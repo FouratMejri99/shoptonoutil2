@@ -35,22 +35,18 @@ try {
   const hostname = url.hostname;
   console.log('🌐 Hostname:', hostname);
   
-  // Test DNS resolution
+  // Test DNS resolution (non-blocking - we'll try connection anyway)
   const dns = await import('dns/promises');
+  let dnsResolved = false;
   try {
     await dns.lookup(hostname);
     console.log('✅ DNS resolution: OK');
+    dnsResolved = true;
   } catch (dnsError) {
-    console.error('\n❌ DNS ERROR: Cannot resolve hostname:', hostname);
-    console.error('This could mean:');
-    console.error('  1. The Supabase project might be paused or deleted');
-    console.error('  2. The project reference in the connection string is incorrect');
-    console.error('  3. There is a network connectivity issue');
-    console.error('\n💡 Solutions:');
-    console.error('  1. Check your Supabase dashboard: https://supabase.com/dashboard');
-    console.error('  2. Verify the project is active (not paused)');
-    console.error('  3. Get a fresh connection string from: Settings → Database → Connection string');
-    process.exit(1);
+    console.warn('\n⚠️  DNS WARNING: Cannot resolve hostname:', hostname);
+    console.warn('   This is often a Windows DNS cache issue.');
+    console.warn('   Attempting connection anyway (the connection might still work)...\n');
+    dnsResolved = false;
   }
 } catch (urlError) {
   console.error('\n❌ ERROR: Invalid connection string URL format');
@@ -77,21 +73,57 @@ try {
 } catch (error) {
   console.error('\n❌ CONNECTION ERROR:', error.message);
   
-  if (error.message.includes('ENOTFOUND')) {
-    console.error('\n💡 The hostname cannot be resolved. Please check:');
-    console.error('  1. Is your Supabase project active? (not paused)');
-    console.error('  2. Is the connection string correct?');
-    console.error('  3. Try getting a fresh connection string from Supabase dashboard');
+  if (error.message.includes('ENOTFOUND') || error.code === 'ENOTFOUND') {
+    console.error('\n💡 DNS Resolution Failed - Windows DNS Cache Issue');
+    console.error('\n🔧 Try these solutions:');
+    console.error('\n1. Flush Windows DNS Cache (Run as Administrator):');
+    console.error('   ipconfig /flushdns');
+    console.error('\n2. Use Connection Pooling (Recommended):');
+    console.error('   Get connection string from Supabase Dashboard → Settings → Database');
+    console.error('   Use "Session mode" (port 6543) instead of direct connection (port 5432)');
+    console.error('   Format: postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true');
+    console.error('\n3. Check Project Status:');
+    console.error('   Run: pnpm run db:check-status');
+    console.error('   (Your project is ACTIVE_HEALTHY, so this is a local DNS issue)');
+    console.error('\n4. Try Different DNS Server:');
+    console.error('   - Use Google DNS (8.8.8.8) or Cloudflare DNS (1.1.1.1)');
+    console.error('   - Or wait a few minutes and try again');
   } else if (error.message.includes('password') || error.message.includes('authentication')) {
     console.error('\n💡 Authentication failed. Please check:');
-    console.error('  1. Is the database password correct?');
-    console.error('  2. Try resetting the password in Supabase dashboard');
+    
+    // Check if using connection pooling
+    const url = new URL(DATABASE_URL);
+    const isPooling = url.hostname.includes('pooler.supabase.com');
+    const username = url.username;
+    
+    if (isPooling && !username.includes('.')) {
+      console.error('\n❌ CRITICAL: Wrong username format for connection pooling!');
+      console.error(`   Current username: ${username}`);
+      console.error('   Expected format: postgres.[PROJECT_REF]');
+      console.error('   Example: postgres.pmonzbwnmaydjxuobtwy');
+      console.error('\n🔧 Fix:');
+      console.error('   1. Go to Supabase Dashboard → Settings → Database');
+      console.error('   2. Select "Session mode" (connection pooling)');
+      console.error('   3. Copy the COMPLETE connection string');
+      console.error('   4. It should start with: postgresql://postgres.[PROJECT_REF]:...');
+      console.error('   5. Update DATABASE_URL in .env file');
+    } else {
+      console.error('  1. Is the database password correct?');
+      console.error('  2. Try resetting the password in Supabase dashboard:');
+      console.error('     Settings → Database → Reset database password');
+      console.error('  3. Make sure special characters in password are URL-encoded');
+      console.error('  4. Run: pnpm run db:validate (to check connection string format)');
+    }
   } else if (error.message.includes('SSL')) {
     console.error('\n💡 SSL connection issue. The code should handle this automatically.');
+  } else if (error.message.includes('timeout') || error.message.includes('ETIMEDOUT')) {
+    console.error('\n💡 Connection timeout. This might be a network/firewall issue.');
+    console.error('   Try using connection pooling (port 6543) instead.');
   }
   
   process.exit(1);
 }
+
 
 
 

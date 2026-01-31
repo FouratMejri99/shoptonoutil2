@@ -34,6 +34,7 @@ import {
   updateAdminLastLogin,
 } from "./db";
 import { TRPCError } from "@trpc/server";
+import { storagePut } from "./storage";
 
 // Helper function to calculate duration and overtime
 function calculateTimeMetrics(startTime: string, endTime: string) {
@@ -140,6 +141,24 @@ export const appRouter = router({
       .input(z.number())
       .mutation(async ({ input }) => {
         return deleteBlogPost(input);
+      }),
+    uploadImage: publicProcedure
+      .input(
+        z.object({
+          fileName: z.string().min(1),
+          contentType: z.string().min(1),
+          dataUrl: z.string().min(1),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const { fileName, contentType, dataUrl } = input;
+        const base64Match = dataUrl.match(/^data:(.*?);base64,(.*)$/);
+        const base64Data = base64Match ? base64Match[2] : dataUrl;
+        const buffer = Buffer.from(base64Data, "base64");
+        const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const key = `blog/${Date.now()}-${safeName}`;
+        const { url } = await storagePut(key, buffer, contentType);
+        return { key, url };
       }),
   }),
 
@@ -495,5 +514,4 @@ export const appRouter = router({
 });
 
 export type AppRouter = typeof appRouter;
-
 

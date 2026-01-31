@@ -17,15 +17,6 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 
-const galleryImages = [
-  "/blog-articulate-captivate.webp",
-  "/blog-madcap-flare.webp",
-  "/blog-video-localization.webp",
-  "/Solupedia-creation-solutions.jpg",
-  "/Solupedia-document-localization.jpg",
-  "/Solupedia-video-editing-localization.jpg",
-];
-
 export default function AdminBlog() {
   const [, setLocation] = useLocation();
   const [showForm, setShowForm] = useState(false);
@@ -47,6 +38,7 @@ export default function AdminBlog() {
   const { data: posts, isLoading } = trpc.blog.all.useQuery();
   const createMutation = trpc.blog.create.useMutation();
   const deleteMutation = trpc.blog.delete.useMutation();
+  const uploadMutation = trpc.blog.uploadImage.useMutation();
 
   // Check admin session on mount
   useEffect(() => {
@@ -395,26 +387,33 @@ export default function AdminBlog() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Featured Image</Label>
-                <div className="grid grid-cols-3 gap-3">
-                  {galleryImages.map((img) => {
-                    const selected = formData.featuredImage === img;
-                    return (
-                      <button
-                        key={img}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, featuredImage: img })}
-                        className={`relative rounded-xl overflow-hidden border ${selected ? "border-blue-500 ring-2 ring-blue-300" : "border-gray-200"} focus:outline-none`}
-                        title={img}
-                      >
-                        <img src={img} alt="Featured" className="w-full h-24 object-cover" />
-                        {selected && (
-                          <span className="absolute top-2 right-2 bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">Selected</span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+                <Label htmlFor="featuredUpload">Featured Image</Label>
+                <input
+                  id="featuredUpload"
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      const reader = new FileReader();
+                      reader.onload = async () => {
+                        const dataUrl = reader.result as string;
+                        const res = await uploadMutation.mutateAsync({
+                          fileName: file.name,
+                          contentType: file.type || "application/octet-stream",
+                          dataUrl,
+                        });
+                        setFormData({ ...formData, featuredImage: res.url });
+                        toast.success("Image uploaded");
+                      };
+                      reader.readAsDataURL(file);
+                    } catch (err: any) {
+                      toast.error(err?.message || "Failed to upload image");
+                    }
+                  }}
+                  className="block w-full rounded-xl border border-gray-300 bg-white/50 p-2"
+                />
                 {formData.featuredImage && (
                   <div className="mt-2">
                     <div className="text-xs text-gray-500 mb-1">Preview</div>
@@ -459,3 +458,5 @@ export default function AdminBlog() {
     </div>
   );
 }
+
+

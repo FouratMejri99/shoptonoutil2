@@ -1,11 +1,13 @@
+import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
-import { createExpressMiddleware } from "@trpc/server/adapters/express";
-import { registerOAuthRoutes } from "./oauth";
+import { getDb } from "../db";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
+import { ENV } from "./env";
+import { registerOAuthRoutes } from "./oauth";
 import { serveStatic, setupVite } from "./vite";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -28,6 +30,27 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
+  // Validate required environment variables
+  if (!ENV.databaseUrl && process.env.NODE_ENV === "production") {
+    console.error("[Server] ❌ ERROR: DATABASE_URL is required in production");
+    console.error("[Server] Please set DATABASE_URL in your environment variables");
+    process.exit(1);
+  }
+
+  // Initialize database connection early
+  if (ENV.databaseUrl) {
+    console.log("[Server] Initializing database connection...");
+    try {
+      await getDb();
+      console.log("[Server] ✅ Database connection ready");
+    } catch (error) {
+      console.error("[Server] ⚠️  Database connection failed, but continuing...");
+      console.error("[Server] Some features may not work until database is available");
+    }
+  } else {
+    console.warn("[Server] ⚠️  DATABASE_URL not set - database features will be unavailable");
+  }
+
   const app = express();
   const server = createServer(app);
   // Configure body parser with larger size limit for file uploads
@@ -58,7 +81,8 @@ async function startServer() {
   }
 
   server.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}/`);
+    console.log(`[Server] 🚀 Server running on http://localhost:${port}/`);
+    console.log(`[Server] Environment: ${process.env.NODE_ENV || "development"}`);
   });
 }
 

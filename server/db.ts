@@ -30,8 +30,10 @@ export async function getDb() {
 
       // Create postgres client with SSL for Supabase
       const isSupabase = connectionString.includes('supabase.co') || connectionString.includes('pooler.supabase.com');
+      // For connection pooling, use max: 10, for direct connection use max: 1
+      const isPooling = connectionString.includes('pooler.supabase.com');
       _client = postgres(connectionString, { 
-        max: 1,
+        max: isPooling ? 10 : 1, // Connection pooling can handle more connections
         ssl: isSupabase ? 'require' : false,
         connection: {
           application_name: 'solupedia-dashboard'
@@ -257,9 +259,17 @@ export async function getFeaturedTestimonials(limit = 3) {
 // Leads queries
 export async function createLead(lead: InsertLead) {
   const db = await getDb();
-  if (!db) return null;
-  const result = await db.insert(leads).values(lead);
-  return result;
+  if (!db) {
+    console.warn("[Database] Cannot create lead: database not available");
+    throw new Error("Database not available");
+  }
+  try {
+    const result = await db.insert(leads).values(lead).returning();
+    return result[0];
+  } catch (error) {
+    console.error("[Database] Failed to create lead:", error);
+    throw error;
+  }
 }
 
 // Industry Pages queries
@@ -286,9 +296,17 @@ export async function getEmployeeByEmail(email: string) {
 
 export async function createEmployee(employee: InsertEmployee) {
   const db = await getDb();
-  if (!db) return null;
-  const result = await db.insert(employees).values(employee);
-  return result;
+  if (!db) {
+    console.warn("[Database] Cannot create employee: database not available");
+    throw new Error("Database not available");
+  }
+  try {
+    const result = await db.insert(employees).values(employee).returning();
+    return result[0];
+  } catch (error) {
+    console.error("[Database] Failed to create employee:", error);
+    throw error;
+  }
 }
 
 export async function getAllEmployees() {
@@ -336,24 +354,48 @@ export async function getEmployeeTimeRecords(employeeId: number, startDate?: Dat
 
 export async function updateTimeTrackingRecord(id: number, updates: Partial<InsertTimeTrackingRecord>) {
   const db = await getDb();
-  if (!db) return null;
-  const result = await db.update(timeTrackingRecords).set(updates).where(eq(timeTrackingRecords.id, id));
-  return result;
+  if (!db) {
+    console.warn("[Database] Cannot update time tracking record: database not available");
+    throw new Error("Database not available");
+  }
+  try {
+    const result = await db.update(timeTrackingRecords).set(updates).where(eq(timeTrackingRecords.id, id)).returning();
+    return result[0] || null;
+  } catch (error) {
+    console.error("[Database] Failed to update time tracking record:", error);
+    throw error;
+  }
 }
 
 export async function deleteTimeTrackingRecord(id: number) {
   const db = await getDb();
-  if (!db) return null;
-  const result = await db.delete(timeTrackingRecords).where(eq(timeTrackingRecords.id, id));
-  return result;
+  if (!db) {
+    console.warn("[Database] Cannot delete time tracking record: database not available");
+    throw new Error("Database not available");
+  }
+  try {
+    const result = await db.delete(timeTrackingRecords).where(eq(timeTrackingRecords.id, id)).returning();
+    return result[0] || null;
+  } catch (error) {
+    console.error("[Database] Failed to delete time tracking record:", error);
+    throw error;
+  }
 }
 
 // Monthly Report queries
 export async function createMonthlyReport(report: InsertMonthlyReport) {
   const db = await getDb();
-  if (!db) return null;
-  const result = await db.insert(monthlyReports).values(report);
-  return result;
+  if (!db) {
+    console.warn("[Database] Cannot create monthly report: database not available");
+    throw new Error("Database not available");
+  }
+  try {
+    const result = await db.insert(monthlyReports).values(report).returning();
+    return result[0];
+  } catch (error) {
+    console.error("[Database] Failed to create monthly report:", error);
+    throw error;
+  }
 }
 
 export async function getMonthlyReport(employeeId: number, year: number, month: number) {
