@@ -4,12 +4,8 @@
   "buildCommand": "pnpm run build",
   "outputDirectory": "dist/client",
   "regions": ["iad1"],
-  "functions": {
-    "dist/api/index.js": {
-      "runtime": "nodejs22.x",
-      "maxDuration": 30
-    }
-  },
+  "installCommand": "pnpm install",
+  "devCommand": "pnpm run dev",
   "rewrites": [
     {
       "source": "/api/(.*)",

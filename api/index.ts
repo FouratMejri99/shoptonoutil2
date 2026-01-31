@@ -1,33 +1,42 @@
-import { createRequestHandler } from "@trpc/server/adapters/express";
-import express from "express";
-import { createContext } from "../server/_core/context";
+import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { createContextFetch } from "../server/_core/context-fetch";
 import { appRouter } from "../server/routers";
 
-const app = express();
+const handler = async (request: VercelRequest, response: VercelResponse) => {
+  // Handle CORS
+  response.setHeader("Access-Control-Allow-Origin", "*");
+  response.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, DELETE, OPTIONS"
+  );
+  response.setHeader(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization"
+  );
 
-// Enable CORS
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
+  if (request.method === "OPTIONS") {
+    return response.status(200).end();
   }
-  next();
-});
 
-// tRPC handler
-app.use(
-  "/trpc",
-  createRequestHandler({
-    router: appRouter,
-    createContext,
-  })
-);
+  // Health check
+  if (request.url === "/api/health" && request.method === "GET") {
+    return response
+      .status(200)
+      .json({ status: "ok", timestamp: new Date().toISOString() });
+  }
 
-// Health check
-app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
-});
+  // Handle tRPC requests
+  if (request.url?.startsWith("/api/trpc")) {
+    return fetchRequestHandler({
+      endpoint: "/api/trpc",
+      req: request,
+      router: appRouter,
+      createContext: createContextFetch,
+    });
+  }
 
-export default app;
+  return response.status(404).json({ error: "Not found" });
+};
+
+export default handler;
