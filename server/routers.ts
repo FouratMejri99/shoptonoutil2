@@ -1,67 +1,71 @@
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { TRPCError } from "@trpc/server";
+import bcrypt from "bcryptjs";
+import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
+import { sdk } from "./_core/sdk";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
-import { z } from "zod";
-import bcrypt from "bcryptjs";
-import { sdk } from "./_core/sdk";
 import {
-  getServices,
-  getServiceBySlug,
-  getCaseStudies,
-  getFeaturedCaseStudies,
-  getCaseStudyBySlug,
-  getBlogPosts,
-  getBlogPostBySlug,
   createBlogPost,
-  deleteBlogPost,
-  getAllBlogPosts,
-  getTestimonials,
-  getFeaturedTestimonials,
   createLead,
-  getEmployeeByEmail,
-  createEmployee,
-  getAllEmployees,
-  createTimeTrackingRecord,
-  getEmployeeTimeRecords,
-  updateTimeTrackingRecord,
-  deleteTimeTrackingRecord,
   createMonthlyReport,
-  getMonthlyReport,
-  getEmployeeMonthlyReports,
-  createAdminCredential,
+  createTimeTrackingRecord,
+  deleteBlogPost,
+  deleteTimeTrackingRecord,
   getAdminByEmail,
+  getAllBlogPosts,
+  getAllEmployees,
+  getBlogPostBySlug,
+  getBlogPosts,
+  getCaseStudies,
+  getCaseStudyBySlug,
+  getEmployeeByEmail,
+  getEmployeeMonthlyReports,
+  getEmployeeTimeRecords,
+  getFeaturedCaseStudies,
+  getFeaturedTestimonials,
+  getMonthlyReport,
+  getServiceBySlug,
+  getServices,
+  getTestimonials,
   updateAdminLastLogin,
+  updateTimeTrackingRecord,
 } from "./db";
-import { TRPCError } from "@trpc/server";
 import { storagePut } from "./storage";
 
 // Helper function to calculate duration and overtime
 function calculateTimeMetrics(startTime: string, endTime: string) {
   const [startHour, startMin] = startTime.split(":").map(Number);
   const [endHour, endMin] = endTime.split(":").map(Number);
-  
+
   const startMinutes = startHour * 60 + startMin;
   const endMinutes = endHour * 60 + endMin;
-  
+
   let durationMinutes = endMinutes - startMinutes;
   if (durationMinutes < 0) {
     durationMinutes += 24 * 60; // Handle next day
   }
-  
+
   const duration = durationMinutes / 60;
-  
+
   // Business hours: 9 AM to 5 PM (8 hours)
   const businessStartMinutes = 9 * 60;
   const businessEndMinutes = 17 * 60;
-  
+
   let businessDayTime = 0;
   let overtime = 0;
-  
-  if (startMinutes >= businessEndMinutes || endMinutes <= businessStartMinutes) {
+
+  if (
+    startMinutes >= businessEndMinutes ||
+    endMinutes <= businessStartMinutes
+  ) {
     // Entirely outside business hours
     overtime = duration;
-  } else if (startMinutes >= businessStartMinutes && endMinutes <= businessEndMinutes) {
+  } else if (
+    startMinutes >= businessStartMinutes &&
+    endMinutes <= businessEndMinutes
+  ) {
     // Entirely within business hours
     businessDayTime = duration;
   } else {
@@ -71,7 +75,7 @@ function calculateTimeMetrics(startTime: string, endTime: string) {
     businessDayTime = (overlapEnd - overlapStart) / 60;
     overtime = duration - businessDayTime;
   }
-  
+
   return {
     duration: Math.round(duration * 100) / 100,
     businessDayTime: Math.round(businessDayTime * 100) / 100,
@@ -137,11 +141,9 @@ export const appRouter = router({
           publishedAt: input.publishedAt || new Date(),
         });
       }),
-    delete: publicProcedure
-      .input(z.number())
-      .mutation(async ({ input }) => {
-        return deleteBlogPost(input);
-      }),
+    delete: publicProcedure.input(z.number()).mutation(async ({ input }) => {
+      return deleteBlogPost(input);
+    }),
     uploadImage: publicProcedure
       .input(
         z.object({
@@ -206,7 +208,10 @@ export const appRouter = router({
           });
         }
 
-        const passwordMatch = await bcrypt.compare(input.password, employee.password);
+        const passwordMatch = await bcrypt.compare(
+          input.password,
+          employee.password
+        );
         if (!passwordMatch) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
@@ -240,13 +245,11 @@ export const appRouter = router({
       }),
 
     // Get employee profile
-    profile: publicProcedure
-      .input(z.number())
-      .query(async ({ input }) => {
-        // In a real app, you'd verify the employee is accessing their own data
-        const employee = await getEmployeeByEmail("");
-        return employee;
-      }),
+    profile: publicProcedure.input(z.number()).query(async ({ input }) => {
+      // In a real app, you'd verify the employee is accessing their own data
+      const employee = await getEmployeeByEmail("");
+      return employee;
+    }),
 
     // Create time tracking record
     createTimeRecord: publicProcedure
@@ -266,7 +269,7 @@ export const appRouter = router({
       )
       .mutation(async ({ input }) => {
         const metrics = calculateTimeMetrics(input.startTime, input.endTime);
-        
+
         return createTimeTrackingRecord({
           employeeId: input.employeeId,
           workDate: input.workDate,
@@ -294,7 +297,11 @@ export const appRouter = router({
         })
       )
       .query(async ({ input }) => {
-        return getEmployeeTimeRecords(input.employeeId, input.startDate, input.endDate);
+        return getEmployeeTimeRecords(
+          input.employeeId,
+          input.startDate,
+          input.endDate
+        );
       }),
 
     // Update time record
@@ -314,9 +321,9 @@ export const appRouter = router({
       )
       .mutation(async ({ input }) => {
         const { id, startTime, endTime, ...rest } = input;
-        
+
         let updates: any = rest;
-        
+
         if (startTime && endTime) {
           const metrics = calculateTimeMetrics(startTime, endTime);
           updates = {
@@ -328,7 +335,7 @@ export const appRouter = router({
             overtime: metrics.overtime,
           };
         }
-        
+
         return updateTimeTrackingRecord(id, updates);
       }),
 
@@ -372,6 +379,84 @@ export const appRouter = router({
       return getAllEmployees();
     }),
 
+    // Get employee by ID
+    getEmployee: publicProcedure.input(z.number()).query(async ({ input }) => {
+      return getEmployeeById(input);
+    }),
+
+    // Create new employee
+    createEmployee: publicProcedure
+      .input(
+        z.object({
+          email: z.string().email(),
+          password: z.string().min(6),
+          firstName: z.string().min(1),
+          lastName: z.string().min(1),
+          employeeId: z.string().min(1),
+          department: z.string().optional(),
+          position: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        // Check if employee already exists
+        const existing = await getEmployeeByEmail(input.email);
+        if (existing) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: "Employee with this email already exists",
+          });
+        }
+
+        // Hash the password
+        const passwordHash = await bcrypt.hash(input.password, 10);
+
+        return createEmployee({
+          email: input.email,
+          password: passwordHash,
+          firstName: input.firstName,
+          lastName: input.lastName,
+          employeeId: input.employeeId,
+          department: input.department,
+          position: input.position,
+          isActive: true,
+        });
+      }),
+
+    // Update employee
+    updateEmployee: publicProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          email: z.string().email().optional(),
+          password: z.string().min(6).optional(),
+          firstName: z.string().min(1).optional(),
+          lastName: z.string().min(1).optional(),
+          employeeId: z.string().min(1).optional(),
+          department: z.string().optional(),
+          position: z.string().optional(),
+          isActive: z.boolean().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const { id, password, ...rest } = input;
+
+        const updates: any = { ...rest };
+
+        // Hash password if provided
+        if (password) {
+          updates.password = await bcrypt.hash(password, 10);
+        }
+
+        return updateEmployee(id, updates);
+      }),
+
+    // Delete employee (soft delete)
+    deleteEmployee: publicProcedure
+      .input(z.number())
+      .mutation(async ({ input }) => {
+        return deleteEmployee(input);
+      }),
+
     // Get employee time records (admin view)
     getEmployeeRecords: publicProcedure
       .input(
@@ -382,7 +467,11 @@ export const appRouter = router({
         })
       )
       .query(async ({ input }) => {
-        return getEmployeeTimeRecords(input.employeeId, input.startDate, input.endDate);
+        return getEmployeeTimeRecords(
+          input.employeeId,
+          input.startDate,
+          input.endDate
+        );
       }),
 
     // Get all employees' records for a date range
@@ -396,9 +485,13 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const employees = await getAllEmployees();
         const allRecords = await Promise.all(
-          employees.map(async (emp) => ({
+          employees.map(async emp => ({
             employee: emp,
-            records: await getEmployeeTimeRecords(emp.id, input.startDate, input.endDate),
+            records: await getEmployeeTimeRecords(
+              emp.id,
+              input.startDate,
+              input.endDate
+            ),
           }))
         );
         return allRecords;
@@ -466,7 +559,7 @@ export const appRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const admin = await getAdminByEmail(input.email);
-        
+
         if (!admin || !admin.isActive) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
@@ -474,8 +567,11 @@ export const appRouter = router({
           });
         }
 
-        const passwordMatch = await bcrypt.compare(input.password, admin.passwordHash);
-        
+        const passwordMatch = await bcrypt.compare(
+          input.password,
+          admin.passwordHash
+        );
+
         if (!passwordMatch) {
           throw new TRPCError({
             code: "UNAUTHORIZED",
@@ -487,13 +583,10 @@ export const appRouter = router({
         await updateAdminLastLogin(admin.id);
 
         // Create session token for admin
-        const sessionToken = await sdk.createSessionToken(
-          `admin:${admin.id}`,
-          {
-            name: admin.email,
-            expiresInMs: ONE_YEAR_MS,
-          }
-        );
+        const sessionToken = await sdk.createSessionToken(`admin:${admin.id}`, {
+          name: admin.email,
+          expiresInMs: ONE_YEAR_MS,
+        });
 
         // Set session cookie
         const cookieOptions = getSessionCookieOptions(ctx.req);
@@ -514,4 +607,3 @@ export const appRouter = router({
 });
 
 export type AppRouter = typeof appRouter;
-

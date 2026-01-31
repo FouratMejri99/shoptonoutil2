@@ -1,47 +1,30 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { trpc } from "@/lib/trpc";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  Edit2,
+  Eye,
+  EyeOff,
+  LogOut,
+  Plus,
+  Search,
+  Trash2,
+  Users,
+} from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 import { Link } from "wouter";
-import { Plus, Edit2, Trash2, Users, LogOut, Eye, EyeOff, Search } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-
-interface Employee {
-  id: number;
-  email: string;
-  firstName: string;
-  lastName: string;
-  employeeId: string;
-  department?: string;
-  position?: string;
-  isActive: boolean;
-}
 
 export default function AdminEmployees() {
-  const [employees, setEmployees] = useState<Employee[]>([
-    {
-      id: 1,
-      email: "ahmed.hassan@solupedia.com",
-      firstName: "Ahmed",
-      lastName: "Hassan",
-      employeeId: "EMP-001",
-      department: "Translation",
-      position: "Senior Translator",
-      isActive: true,
-    },
-    {
-      id: 2,
-      email: "fatima.mohamed@solupedia.com",
-      firstName: "Fatima",
-      lastName: "Mohamed",
-      employeeId: "EMP-002",
-      department: "Review",
-      position: "QA Specialist",
-      isActive: true,
-    },
-  ]);
-
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -56,55 +39,63 @@ export default function AdminEmployees() {
     position: "",
   });
 
-  const handleAddEmployee = (e: React.FormEvent) => {
+  // tRPC hooks
+  const utils = trpc.useUtils();
+  const { data: employees, isLoading } = trpc.admin.getAllEmployees.useQuery();
+  const createEmployeeMutation = trpc.admin.createEmployee.useMutation();
+  const updateEmployeeMutation = trpc.admin.updateEmployee.useMutation();
+  const deleteEmployeeMutation = trpc.admin.deleteEmployee.useMutation();
+
+  const handleAddEmployee = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (editingId) {
-      // Update existing employee
-      setEmployees(
-        employees.map((emp) =>
-          emp.id === editingId
-            ? {
-                ...emp,
-                email: formData.email,
-                firstName: formData.firstName,
-                lastName: formData.lastName,
-                employeeId: formData.employeeId,
-                department: formData.department,
-                position: formData.position,
-              }
-            : emp
-        )
-      );
-      setEditingId(null);
-    } else {
-      // Add new employee
-      const newEmployee: Employee = {
-        id: Date.now(),
-        email: formData.email,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        employeeId: formData.employeeId,
-        department: formData.department,
-        position: formData.position,
-        isActive: true,
-      };
-      setEmployees([...employees, newEmployee]);
-    }
+    try {
+      if (editingId) {
+        // Update existing employee
+        await updateEmployeeMutation.mutateAsync({
+          id: editingId,
+          email: formData.email,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          employeeId: formData.employeeId,
+          department: formData.department || undefined,
+          position: formData.position || undefined,
+        });
+        toast.success("Employee updated successfully");
+        setEditingId(null);
+      } else {
+        // Create new employee
+        await createEmployeeMutation.mutateAsync({
+          email: formData.email,
+          password: formData.password,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          employeeId: formData.employeeId,
+          department: formData.department || undefined,
+          position: formData.position || undefined,
+        });
+        toast.success("Employee created successfully");
+      }
 
-    setShowForm(false);
-    setFormData({
-      email: "",
-      password: "",
-      firstName: "",
-      lastName: "",
-      employeeId: "",
-      department: "",
-      position: "",
-    });
+      // Invalidate and refetch
+      await utils.admin.getAllEmployees.invalidate();
+
+      setShowForm(false);
+      setFormData({
+        email: "",
+        password: "",
+        firstName: "",
+        lastName: "",
+        employeeId: "",
+        department: "",
+        position: "",
+      });
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to save employee");
+    }
   };
 
-  const handleEdit = (employee: Employee) => {
+  const handleEdit = (employee: any) => {
     setFormData({
       email: employee.email,
       password: "",
@@ -118,33 +109,47 @@ export default function AdminEmployees() {
     setShowForm(true);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
     if (confirm("Are you sure you want to delete this employee?")) {
-      setEmployees(employees.filter((emp) => emp.id !== id));
+      try {
+        await deleteEmployeeMutation.mutateAsync(id);
+        toast.success("Employee deleted successfully");
+        await utils.admin.getAllEmployees.invalidate();
+      } catch (error: any) {
+        toast.error(error?.message || "Failed to delete employee");
+      }
     }
   };
 
-  const handleToggleActive = (id: number) => {
-    setEmployees(
-      employees.map((emp) =>
-        emp.id === id ? { ...emp, isActive: !emp.isActive } : emp
-      )
-    );
+  const handleToggleActive = async (id: number, currentStatus: boolean) => {
+    try {
+      await updateEmployeeMutation.mutateAsync({
+        id,
+        isActive: !currentStatus,
+      });
+      toast.success(
+        currentStatus ? "Employee deactivated" : "Employee activated"
+      );
+      await utils.admin.getAllEmployees.invalidate();
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to update status");
+    }
   };
 
   const handleLogout = () => {
     window.location.href = "/";
   };
 
-  const filteredEmployees = employees.filter(
-    (emp) =>
-      emp.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      emp.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      emp.employeeId.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredEmployees =
+    employees?.filter(
+      (emp: any) =>
+        emp.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        emp.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        emp.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        emp.employeeId?.toLowerCase().includes(searchTerm.toLowerCase())
+    ) || [];
 
-  const activeCount = employees.filter((emp) => emp.isActive).length;
+  const activeCount = employees?.filter((emp: any) => emp.isActive).length || 0;
 
   return (
     <div className="min-h-screen bg-gray-50 relative overflow-hidden">
@@ -159,7 +164,7 @@ export default function AdminEmployees() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <motion.div 
+              <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center shadow-lg"
@@ -173,12 +178,15 @@ export default function AdminEmployees() {
             </div>
             <div className="flex gap-3">
               <Link href="/admin/reporting">
-                <Button variant="ghost" className="rounded-full hover:bg-blue-50 text-blue-600 hover:text-blue-700">
+                <Button
+                  variant="ghost"
+                  className="rounded-full hover:bg-blue-50 text-blue-600 hover:text-blue-700"
+                >
                   Reports
                 </Button>
               </Link>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={handleLogout}
                 className="rounded-full hover:bg-red-50 hover:text-red-600 border-gray-200"
               >
@@ -201,10 +209,14 @@ export default function AdminEmployees() {
           >
             <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-lg hover:shadow-xl transition-shadow rounded-3xl">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Total Employees</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-600">
+                  Total Employees
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-blue-600">{employees.length}</div>
+                <div className="text-3xl font-bold text-blue-600">
+                  {employees?.length || 0}
+                </div>
                 <p className="text-xs text-gray-500 mt-1">All employees</p>
               </CardContent>
             </Card>
@@ -217,10 +229,14 @@ export default function AdminEmployees() {
           >
             <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-lg hover:shadow-xl transition-shadow rounded-3xl">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-gray-600">Active Employees</CardTitle>
+                <CardTitle className="text-sm font-medium text-gray-600">
+                  Active Employees
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-green-600">{activeCount}</div>
+                <div className="text-3xl font-bold text-green-600">
+                  {activeCount}
+                </div>
                 <p className="text-xs text-gray-500 mt-1">Currently active</p>
               </CardContent>
             </Card>
@@ -228,18 +244,21 @@ export default function AdminEmployees() {
         </div>
 
         {/* Actions Bar */}
-        <motion.div 
+        <motion.div
           className="flex flex-col md:flex-row gap-4 mb-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.2 }}
         >
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              size={18}
+            />
             <Input
               placeholder="Search employees..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="pl-10 rounded-full bg-white/80 backdrop-blur-sm border-gray-200 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
@@ -275,7 +294,9 @@ export default function AdminEmployees() {
             >
               <Card className="bg-white/90 backdrop-blur-md border-white/20 shadow-xl rounded-3xl">
                 <CardHeader>
-                  <CardTitle>{editingId ? "Edit Employee" : "Add New Employee"}</CardTitle>
+                  <CardTitle>
+                    {editingId ? "Edit Employee" : "Add New Employee"}
+                  </CardTitle>
                   <CardDescription>
                     {editingId
                       ? "Update employee information"
@@ -291,8 +312,11 @@ export default function AdminEmployees() {
                           id="firstName"
                           placeholder="e.g., Ahmed"
                           value={formData.firstName}
-                          onChange={(e) =>
-                            setFormData({ ...formData, firstName: e.target.value })
+                          onChange={e =>
+                            setFormData({
+                              ...formData,
+                              firstName: e.target.value,
+                            })
                           }
                           required
                           className="rounded-xl bg-white/50"
@@ -305,8 +329,11 @@ export default function AdminEmployees() {
                           id="lastName"
                           placeholder="e.g., Hassan"
                           value={formData.lastName}
-                          onChange={(e) =>
-                            setFormData({ ...formData, lastName: e.target.value })
+                          onChange={e =>
+                            setFormData({
+                              ...formData,
+                              lastName: e.target.value,
+                            })
                           }
                           required
                           className="rounded-xl bg-white/50"
@@ -320,7 +347,7 @@ export default function AdminEmployees() {
                           type="email"
                           placeholder="e.g., ahmed@solupedia.com"
                           value={formData.email}
-                          onChange={(e) =>
+                          onChange={e =>
                             setFormData({ ...formData, email: e.target.value })
                           }
                           required
@@ -334,8 +361,11 @@ export default function AdminEmployees() {
                           id="employeeId"
                           placeholder="e.g., EMP-001"
                           value={formData.employeeId}
-                          onChange={(e) =>
-                            setFormData({ ...formData, employeeId: e.target.value })
+                          onChange={e =>
+                            setFormData({
+                              ...formData,
+                              employeeId: e.target.value,
+                            })
                           }
                           required
                           className="rounded-xl bg-white/50"
@@ -348,8 +378,11 @@ export default function AdminEmployees() {
                           id="department"
                           placeholder="e.g., Translation"
                           value={formData.department}
-                          onChange={(e) =>
-                            setFormData({ ...formData, department: e.target.value })
+                          onChange={e =>
+                            setFormData({
+                              ...formData,
+                              department: e.target.value,
+                            })
                           }
                           className="rounded-xl bg-white/50"
                         />
@@ -361,8 +394,11 @@ export default function AdminEmployees() {
                           id="position"
                           placeholder="e.g., Senior Translator"
                           value={formData.position}
-                          onChange={(e) =>
-                            setFormData({ ...formData, position: e.target.value })
+                          onChange={e =>
+                            setFormData({
+                              ...formData,
+                              position: e.target.value,
+                            })
                           }
                           className="rounded-xl bg-white/50"
                         />
@@ -377,8 +413,11 @@ export default function AdminEmployees() {
                               type={showPassword ? "text" : "password"}
                               placeholder="Enter a secure password"
                               value={formData.password}
-                              onChange={(e) =>
-                                setFormData({ ...formData, password: e.target.value })
+                              onChange={e =>
+                                setFormData({
+                                  ...formData,
+                                  password: e.target.value,
+                                })
                               }
                               required={!editingId}
                               className="rounded-xl bg-white/50 pr-10"
@@ -388,7 +427,11 @@ export default function AdminEmployees() {
                               onClick={() => setShowPassword(!showPassword)}
                               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                             >
-                              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                              {showPassword ? (
+                                <EyeOff size={18} />
+                              ) : (
+                                <Eye size={18} />
+                              )}
                             </button>
                           </div>
                         </div>
@@ -396,7 +439,10 @@ export default function AdminEmployees() {
                     </div>
 
                     <div className="flex gap-3">
-                      <Button type="submit" className="bg-blue-600 hover:bg-blue-700 rounded-full px-6">
+                      <Button
+                        type="submit"
+                        className="bg-blue-600 hover:bg-blue-700 rounded-full px-6"
+                      >
                         {editingId ? "Update Employee" : "Create Employee"}
                       </Button>
                       <Button
@@ -427,7 +473,9 @@ export default function AdminEmployees() {
           <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-lg overflow-hidden rounded-3xl">
             <CardHeader className="bg-blue-50/50 border-b border-blue-100/50">
               <CardTitle>Employees</CardTitle>
-              <CardDescription>Manage employee accounts and access</CardDescription>
+              <CardDescription>
+                Manage employee accounts and access
+              </CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               {filteredEmployees.length === 0 ? (
@@ -436,10 +484,14 @@ export default function AdminEmployees() {
                     <Users className="w-8 h-8 text-gray-400" />
                   </div>
                   <p className="text-gray-600 font-medium">
-                    {searchTerm ? "No employees match your search." : "No employees yet."}
+                    {searchTerm
+                      ? "No employees match your search."
+                      : "No employees yet."}
                   </p>
                   {!searchTerm && (
-                    <p className="text-sm text-gray-500 mt-1">Add your first employee to get started.</p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Add your first employee to get started.
+                    </p>
                   )}
                 </div>
               ) : (
@@ -447,18 +499,30 @@ export default function AdminEmployees() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-gray-200 bg-gray-50/50">
-                        <th className="text-left py-4 px-6 font-semibold text-gray-900 text-sm">Name</th>
-                        <th className="text-left py-4 px-6 font-semibold text-gray-900 text-sm">Email</th>
-                        <th className="text-left py-4 px-6 font-semibold text-gray-900 text-sm">Employee ID</th>
-                        <th className="text-left py-4 px-6 font-semibold text-gray-900 text-sm">Department</th>
-                        <th className="text-left py-4 px-6 font-semibold text-gray-900 text-sm">Status</th>
-                        <th className="text-right py-4 px-6 font-semibold text-gray-900 text-sm">Actions</th>
+                        <th className="text-left py-4 px-6 font-semibold text-gray-900 text-sm">
+                          Name
+                        </th>
+                        <th className="text-left py-4 px-6 font-semibold text-gray-900 text-sm">
+                          Email
+                        </th>
+                        <th className="text-left py-4 px-6 font-semibold text-gray-900 text-sm">
+                          Employee ID
+                        </th>
+                        <th className="text-left py-4 px-6 font-semibold text-gray-900 text-sm">
+                          Department
+                        </th>
+                        <th className="text-left py-4 px-6 font-semibold text-gray-900 text-sm">
+                          Status
+                        </th>
+                        <th className="text-right py-4 px-6 font-semibold text-gray-900 text-sm">
+                          Actions
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredEmployees.map((emp, idx) => (
-                        <motion.tr 
-                          key={emp.id} 
+                        <motion.tr
+                          key={emp.id}
                           className="border-b border-gray-100 hover:bg-blue-50/30 transition-colors"
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -468,15 +532,21 @@ export default function AdminEmployees() {
                             <div className="font-medium text-gray-900">
                               {emp.firstName} {emp.lastName}
                             </div>
-                            <div className="text-sm text-blue-600 font-medium">{emp.position}</div>
+                            <div className="text-sm text-blue-600 font-medium">
+                              {emp.position}
+                            </div>
                           </td>
-                          <td className="py-4 px-6 text-gray-700">{emp.email}</td>
+                          <td className="py-4 px-6 text-gray-700">
+                            {emp.email}
+                          </td>
                           <td className="py-4 px-6">
                             <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded text-gray-600">
                               {emp.employeeId}
                             </span>
                           </td>
-                          <td className="py-4 px-6 text-gray-700">{emp.department || "-"}</td>
+                          <td className="py-4 px-6 text-gray-700">
+                            {emp.department || "-"}
+                          </td>
                           <td className="py-4 px-6">
                             <span
                               className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
@@ -501,11 +571,20 @@ export default function AdminEmployees() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleToggleActive(emp.id)}
-                                className={`h-8 w-8 p-0 rounded-full ${emp.isActive ? 'hover:bg-orange-100 text-orange-600' : 'hover:bg-green-100 text-green-600'}`}
+                                onClick={() =>
+                                  handleToggleActive(
+                                    emp.id,
+                                    emp.isActive ?? false
+                                  )
+                                }
+                                className={`h-8 w-8 p-0 rounded-full ${emp.isActive ? "hover:bg-orange-100 text-orange-600" : "hover:bg-green-100 text-green-600"}`}
                                 title={emp.isActive ? "Deactivate" : "Activate"}
                               >
-                                {emp.isActive ? <EyeOff size={16} /> : <Eye size={16} />}
+                                {emp.isActive ? (
+                                  <EyeOff size={16} />
+                                ) : (
+                                  <Eye size={16} />
+                                )}
                               </Button>
                               <Button
                                 variant="ghost"

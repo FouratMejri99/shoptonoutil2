@@ -1,9 +1,26 @@
-import { eq, and, gte, lte, desc } from "drizzle-orm";
-import { services, caseStudies, blogPosts, testimonials, leads, industryPages, InsertLead, employees, timeTrackingRecords, monthlyReports, InsertEmployee, InsertTimeTrackingRecord, InsertMonthlyReport, adminCredentials, InsertAdminCredential, InsertBlogPost } from "../drizzle/schema";
+import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { InsertUser, users } from "../drizzle/schema";
-import { ENV } from './_core/env';
+import {
+  adminCredentials,
+  blogPosts,
+  caseStudies,
+  employees,
+  industryPages,
+  InsertBlogPost,
+  InsertEmployee,
+  InsertLead,
+  InsertMonthlyReport,
+  InsertTimeTrackingRecord,
+  InsertUser,
+  leads,
+  monthlyReports,
+  services,
+  testimonials,
+  timeTrackingRecords,
+  users,
+} from "../drizzle/schema";
+import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 let _client: ReturnType<typeof postgres> | null = null;
@@ -13,59 +30,98 @@ export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
       const connectionString = process.env.DATABASE_URL;
-      
-      if (connectionString.startsWith('http://') || connectionString.startsWith('https://')) {
-        console.error("[Database] Invalid DATABASE_URL value. Use a PostgreSQL connection string, not the project URL.");
-        console.error("[Database] Expected format: postgresql://postgres:[PASSWORD]@db.[PROJECT_REF].supabase.co:5432/postgres");
-        console.error("[Database] Tip: run `pnpm run db:get-connection` then update .env");
+
+      if (
+        connectionString.startsWith("http://") ||
+        connectionString.startsWith("https://")
+      ) {
+        console.error(
+          "[Database] Invalid DATABASE_URL value. Use a PostgreSQL connection string, not the project URL."
+        );
+        console.error(
+          "[Database] Expected format: postgresql://postgres:[PASSWORD]@db.[PROJECT_REF].supabase.co:5432/postgres"
+        );
+        console.error(
+          "[Database] Tip: run `pnpm run db:get-connection` then update .env"
+        );
         return null;
       }
 
       // Validate connection string format for Supabase
-      if (!connectionString.startsWith('postgresql://') && !connectionString.startsWith('postgres://')) {
-        console.error("[Database] Invalid DATABASE_URL format. Expected postgresql:// or postgres://");
-        console.error("[Database] For Supabase, use: postgresql://postgres:[PASSWORD]@db.[PROJECT_REF].supabase.co:5432/postgres");
+      if (
+        !connectionString.startsWith("postgresql://") &&
+        !connectionString.startsWith("postgres://")
+      ) {
+        console.error(
+          "[Database] Invalid DATABASE_URL format. Expected postgresql:// or postgres://"
+        );
+        console.error(
+          "[Database] For Supabase, use: postgresql://postgres:[PASSWORD]@db.[PROJECT_REF].supabase.co:5432/postgres"
+        );
         return null;
       }
 
       // Create postgres client with SSL for Supabase
-      const isSupabase = connectionString.includes('supabase.co') || connectionString.includes('pooler.supabase.com');
+      const isSupabase =
+        connectionString.includes("supabase.co") ||
+        connectionString.includes("pooler.supabase.com");
       // For connection pooling, use max: 10, for direct connection use max: 1
-      const isPooling = connectionString.includes('pooler.supabase.com');
-      _client = postgres(connectionString, { 
+      const isPooling = connectionString.includes("pooler.supabase.com");
+      _client = postgres(connectionString, {
         max: isPooling ? 10 : 1, // Connection pooling can handle more connections
-        ssl: isSupabase ? 'require' : false,
+        ssl: isSupabase ? "require" : false,
         connection: {
-          application_name: 'solupedia-dashboard'
+          application_name: "solupedia-dashboard",
         },
-        connect_timeout: 10
+        connect_timeout: 10,
       });
-      
+
       // Test connection
       await _client`SELECT 1`;
       console.log("[Database] Successfully connected to database");
-      
+
       _db = drizzle(_client);
     } catch (error: any) {
       console.error("[Database] Failed to connect:", error?.message || error);
-      
+
       // Provide helpful error messages
-      if (error?.message?.includes('ENOTFOUND') || error?.code === 'ENOTFOUND') {
+      if (
+        error?.message?.includes("ENOTFOUND") ||
+        error?.code === "ENOTFOUND"
+      ) {
         console.error("[Database] ❌ DNS Error: Cannot resolve hostname");
         console.error("[Database] 💡 This usually means:");
-        console.error("[Database]   1. The Supabase project might be paused or deleted");
-        console.error("[Database]   2. The connection string hostname is incorrect");
-        console.error("[Database]   3. Check your Supabase dashboard: https://supabase.com/dashboard");
-        console.error("[Database]   4. Get a fresh connection string from: Settings → Database");
-      } else if (error?.message?.includes('password') || error?.message?.includes('authentication')) {
+        console.error(
+          "[Database]   1. The Supabase project might be paused or deleted"
+        );
+        console.error(
+          "[Database]   2. The connection string hostname is incorrect"
+        );
+        console.error(
+          "[Database]   3. Check your Supabase dashboard: https://supabase.com/dashboard"
+        );
+        console.error(
+          "[Database]   4. Get a fresh connection string from: Settings → Database"
+        );
+      } else if (
+        error?.message?.includes("password") ||
+        error?.message?.includes("authentication")
+      ) {
         console.error("[Database] ❌ Authentication Error: Invalid password");
-        console.error("[Database] 💡 Check your database password in the connection string");
-      } else if (error?.message?.includes('SSL')) {
+        console.error(
+          "[Database] 💡 Check your database password in the connection string"
+        );
+      } else if (error?.message?.includes("SSL")) {
         console.error("[Database] ❌ SSL Error: Connection requires SSL");
-        console.error("[Database] 💡 SSL should be enabled automatically for Supabase");
+        console.error(
+          "[Database] 💡 SSL should be enabled automatically for Supabase"
+        );
       }
-      
-      console.error("[Database] Connection string (first 30 chars):", process.env.DATABASE_URL?.substring(0, 30) + "...");
+
+      console.error(
+        "[Database] Connection string (first 30 chars):",
+        process.env.DATABASE_URL?.substring(0, 30) + "..."
+      );
       _db = null;
       _client = null;
     }
@@ -111,8 +167,8 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       values.role = user.role;
       updateSet.role = user.role;
     } else if (user.openId === ENV.ownerOpenId) {
-      values.role = 'admin';
-      updateSet.role = 'admin';
+      values.role = "admin";
+      updateSet.role = "admin";
     }
 
     if (!values.lastSignedIn) {
@@ -140,7 +196,11 @@ export async function getUserByOpenId(openId: string) {
     return undefined;
   }
 
-  const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
+  const result = await db
+    .select()
+    .from(users)
+    .where(eq(users.openId, openId))
+    .limit(1);
 
   return result.length > 0 ? result[0] : undefined;
 }
@@ -155,7 +215,11 @@ export async function getServices() {
 export async function getServiceBySlug(slug: string) {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db.select().from(services).where(eq(services.slug, slug)).limit(1);
+  const result = await db
+    .select()
+    .from(services)
+    .where(eq(services.slug, slug))
+    .limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
@@ -164,7 +228,11 @@ export async function getCaseStudies(limit?: number) {
   const db = await getDb();
   if (!db) return [];
   if (limit) {
-    return db.select().from(caseStudies).orderBy(caseStudies.order).limit(limit);
+    return db
+      .select()
+      .from(caseStudies)
+      .orderBy(caseStudies.order)
+      .limit(limit);
   }
   return db.select().from(caseStudies).orderBy(caseStudies.order);
 }
@@ -172,13 +240,22 @@ export async function getCaseStudies(limit?: number) {
 export async function getFeaturedCaseStudies(limit = 3) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(caseStudies).where(eq(caseStudies.featured, true)).orderBy(caseStudies.order).limit(limit);
+  return db
+    .select()
+    .from(caseStudies)
+    .where(eq(caseStudies.featured, true))
+    .orderBy(caseStudies.order)
+    .limit(limit);
 }
 
 export async function getCaseStudyBySlug(slug: string) {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db.select().from(caseStudies).where(eq(caseStudies.slug, slug)).limit(1);
+  const result = await db
+    .select()
+    .from(caseStudies)
+    .where(eq(caseStudies.slug, slug))
+    .limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
@@ -188,9 +265,18 @@ export async function getBlogPosts(limit?: number) {
   if (!db) return [];
   try {
     if (limit) {
-      return await db.select().from(blogPosts).where(eq(blogPosts.published, true)).orderBy(desc(blogPosts.publishedAt)).limit(limit);
+      return await db
+        .select()
+        .from(blogPosts)
+        .where(eq(blogPosts.published, true))
+        .orderBy(desc(blogPosts.publishedAt))
+        .limit(limit);
     }
-    return await db.select().from(blogPosts).where(eq(blogPosts.published, true)).orderBy(desc(blogPosts.publishedAt));
+    return await db
+      .select()
+      .from(blogPosts)
+      .where(eq(blogPosts.published, true))
+      .orderBy(desc(blogPosts.publishedAt));
   } catch (error) {
     console.error("[Database] Error fetching blog posts:", error);
     return [];
@@ -200,7 +286,11 @@ export async function getBlogPosts(limit?: number) {
 export async function getBlogPostBySlug(slug: string) {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db.select().from(blogPosts).where(eq(blogPosts.slug, slug)).limit(1);
+  const result = await db
+    .select()
+    .from(blogPosts)
+    .where(eq(blogPosts.slug, slug))
+    .limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
@@ -226,7 +316,10 @@ export async function deleteBlogPost(id: number) {
     throw new Error("Database not available");
   }
   try {
-    const result = await db.delete(blogPosts).where(eq(blogPosts.id, id)).returning();
+    const result = await db
+      .delete(blogPosts)
+      .where(eq(blogPosts.id, id))
+      .returning();
     return result[0];
   } catch (error) {
     console.error("[Database] Failed to delete blog post:", error);
@@ -245,7 +338,11 @@ export async function getTestimonials(limit?: number) {
   const db = await getDb();
   if (!db) return [];
   if (limit) {
-    return db.select().from(testimonials).orderBy(testimonials.order).limit(limit);
+    return db
+      .select()
+      .from(testimonials)
+      .orderBy(testimonials.order)
+      .limit(limit);
   }
   return db.select().from(testimonials).orderBy(testimonials.order);
 }
@@ -253,7 +350,12 @@ export async function getTestimonials(limit?: number) {
 export async function getFeaturedTestimonials(limit = 3) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(testimonials).where(eq(testimonials.featured, true)).orderBy(testimonials.order).limit(limit);
+  return db
+    .select()
+    .from(testimonials)
+    .where(eq(testimonials.featured, true))
+    .orderBy(testimonials.order)
+    .limit(limit);
 }
 
 // Leads queries
@@ -282,7 +384,11 @@ export async function getIndustryPages() {
 export async function getIndustryPageBySlug(slug: string) {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db.select().from(industryPages).where(eq(industryPages.slug, slug)).limit(1);
+  const result = await db
+    .select()
+    .from(industryPages)
+    .where(eq(industryPages.slug, slug))
+    .limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
@@ -290,7 +396,11 @@ export async function getIndustryPageBySlug(slug: string) {
 export async function getEmployeeByEmail(email: string) {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db.select().from(employees).where(eq(employees.email, email)).limit(1);
+  const result = await db
+    .select()
+    .from(employees)
+    .where(eq(employees.email, email))
+    .limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
@@ -315,15 +425,75 @@ export async function getAllEmployees() {
   return db.select().from(employees).where(eq(employees.isActive, true));
 }
 
-// Time Tracking queries
-export async function createTimeTrackingRecord(record: InsertTimeTrackingRecord) {
+export async function getEmployeeById(id: number) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db
+    .select()
+    .from(employees)
+    .where(eq(employees.id, id))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function updateEmployee(
+  id: number,
+  updates: Partial<InsertEmployee>
+) {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot create time tracking record: database not available");
+    console.warn("[Database] Cannot update employee: database not available");
     throw new Error("Database not available");
   }
   try {
-    const result = await db.insert(timeTrackingRecords).values(record).returning();
+    const result = await db
+      .update(employees)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(employees.id, id))
+      .returning();
+    return result[0];
+  } catch (error) {
+    console.error("[Database] Failed to update employee:", error);
+    throw error;
+  }
+}
+
+export async function deleteEmployee(id: number) {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot delete employee: database not available");
+    throw new Error("Database not available");
+  }
+  try {
+    // Soft delete - just set isActive to false
+    const result = await db
+      .update(employees)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(employees.id, id))
+      .returning();
+    return result[0];
+  } catch (error) {
+    console.error("[Database] Failed to delete employee:", error);
+    throw error;
+  }
+}
+
+// Time Tracking queries
+export async function createTimeTrackingRecord(
+  record: InsertTimeTrackingRecord
+) {
+  const db = await getDb();
+  if (!db) {
+    console.warn(
+      "[Database] Cannot create time tracking record: database not available"
+    );
+    throw new Error("Database not available");
+  }
+  try {
+    const result = await db
+      .insert(timeTrackingRecords)
+      .values(record)
+      .returning();
     return result[0];
   } catch (error) {
     console.error("[Database] Failed to create time tracking record:", error);
@@ -331,35 +501,56 @@ export async function createTimeTrackingRecord(record: InsertTimeTrackingRecord)
   }
 }
 
-export async function getEmployeeTimeRecords(employeeId: number, startDate?: Date, endDate?: Date) {
+export async function getEmployeeTimeRecords(
+  employeeId: number,
+  startDate?: Date,
+  endDate?: Date
+) {
   const db = await getDb();
   if (!db) return [];
   try {
     if (startDate && endDate) {
-      return await db.select().from(timeTrackingRecords).where(
-        and(
-          eq(timeTrackingRecords.employeeId, employeeId),
-          gte(timeTrackingRecords.workDate, startDate),
-          lte(timeTrackingRecords.workDate, endDate)
+      return await db
+        .select()
+        .from(timeTrackingRecords)
+        .where(
+          and(
+            eq(timeTrackingRecords.employeeId, employeeId),
+            gte(timeTrackingRecords.workDate, startDate),
+            lte(timeTrackingRecords.workDate, endDate)
+          )
         )
-      ).orderBy(desc(timeTrackingRecords.workDate));
+        .orderBy(desc(timeTrackingRecords.workDate));
     }
-    
-    return await db.select().from(timeTrackingRecords).where(eq(timeTrackingRecords.employeeId, employeeId)).orderBy(desc(timeTrackingRecords.workDate));
+
+    return await db
+      .select()
+      .from(timeTrackingRecords)
+      .where(eq(timeTrackingRecords.employeeId, employeeId))
+      .orderBy(desc(timeTrackingRecords.workDate));
   } catch (error) {
     console.error("[Database] Error fetching employee time records:", error);
     return [];
   }
 }
 
-export async function updateTimeTrackingRecord(id: number, updates: Partial<InsertTimeTrackingRecord>) {
+export async function updateTimeTrackingRecord(
+  id: number,
+  updates: Partial<InsertTimeTrackingRecord>
+) {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot update time tracking record: database not available");
+    console.warn(
+      "[Database] Cannot update time tracking record: database not available"
+    );
     throw new Error("Database not available");
   }
   try {
-    const result = await db.update(timeTrackingRecords).set(updates).where(eq(timeTrackingRecords.id, id)).returning();
+    const result = await db
+      .update(timeTrackingRecords)
+      .set(updates)
+      .where(eq(timeTrackingRecords.id, id))
+      .returning();
     return result[0] || null;
   } catch (error) {
     console.error("[Database] Failed to update time tracking record:", error);
@@ -370,11 +561,16 @@ export async function updateTimeTrackingRecord(id: number, updates: Partial<Inse
 export async function deleteTimeTrackingRecord(id: number) {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot delete time tracking record: database not available");
+    console.warn(
+      "[Database] Cannot delete time tracking record: database not available"
+    );
     throw new Error("Database not available");
   }
   try {
-    const result = await db.delete(timeTrackingRecords).where(eq(timeTrackingRecords.id, id)).returning();
+    const result = await db
+      .delete(timeTrackingRecords)
+      .where(eq(timeTrackingRecords.id, id))
+      .returning();
     return result[0] || null;
   } catch (error) {
     console.error("[Database] Failed to delete time tracking record:", error);
@@ -386,7 +582,9 @@ export async function deleteTimeTrackingRecord(id: number) {
 export async function createMonthlyReport(report: InsertMonthlyReport) {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot create monthly report: database not available");
+    console.warn(
+      "[Database] Cannot create monthly report: database not available"
+    );
     throw new Error("Database not available");
   }
   try {
@@ -398,40 +596,64 @@ export async function createMonthlyReport(report: InsertMonthlyReport) {
   }
 }
 
-export async function getMonthlyReport(employeeId: number, year: number, month: number) {
+export async function getMonthlyReport(
+  employeeId: number,
+  year: number,
+  month: number
+) {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db.select().from(monthlyReports).where(
-    and(
-      eq(monthlyReports.employeeId, employeeId),
-      eq(monthlyReports.year, year),
-      eq(monthlyReports.month, month)
+  const result = await db
+    .select()
+    .from(monthlyReports)
+    .where(
+      and(
+        eq(monthlyReports.employeeId, employeeId),
+        eq(monthlyReports.year, year),
+        eq(monthlyReports.month, month)
+      )
     )
-  ).limit(1);
+    .limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
-export async function getEmployeeMonthlyReports(employeeId: number, year?: number) {
+export async function getEmployeeMonthlyReports(
+  employeeId: number,
+  year?: number
+) {
   const db = await getDb();
   if (!db) return [];
-  
+
   if (year) {
-    return db.select().from(monthlyReports).where(
-      and(
-        eq(monthlyReports.employeeId, employeeId),
-        eq(monthlyReports.year, year)
+    return db
+      .select()
+      .from(monthlyReports)
+      .where(
+        and(
+          eq(monthlyReports.employeeId, employeeId),
+          eq(monthlyReports.year, year)
+        )
       )
-    ).orderBy(monthlyReports.month);
+      .orderBy(monthlyReports.month);
   }
-  
-  return db.select().from(monthlyReports).where(eq(monthlyReports.employeeId, employeeId)).orderBy(monthlyReports.year, monthlyReports.month);
+
+  return db
+    .select()
+    .from(monthlyReports)
+    .where(eq(monthlyReports.employeeId, employeeId))
+    .orderBy(monthlyReports.year, monthlyReports.month);
 }
 
 // Admin Credentials helpers
-export async function createAdminCredential(email: string, passwordHash: string): Promise<void> {
+export async function createAdminCredential(
+  email: string,
+  passwordHash: string
+): Promise<void> {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot create admin credential: database not available");
+    console.warn(
+      "[Database] Cannot create admin credential: database not available"
+    );
     return;
   }
 
@@ -454,21 +676,30 @@ export async function getAdminByEmail(email: string) {
     return undefined;
   }
 
-  const result = await db.select().from(adminCredentials).where(eq(adminCredentials.email, email)).limit(1);
+  const result = await db
+    .select()
+    .from(adminCredentials)
+    .where(eq(adminCredentials.email, email))
+    .limit(1);
   return result.length > 0 ? result[0] : undefined;
 }
 
 export async function updateAdminLastLogin(adminId: number): Promise<void> {
   const db = await getDb();
   if (!db) {
-    console.warn("[Database] Cannot update admin last login: database not available");
+    console.warn(
+      "[Database] Cannot update admin last login: database not available"
+    );
     return;
   }
 
   try {
-    await db.update(adminCredentials).set({
-      lastLoginAt: new Date(),
-    }).where(eq(adminCredentials.id, adminId));
+    await db
+      .update(adminCredentials)
+      .set({
+        lastLoginAt: new Date(),
+      })
+      .where(eq(adminCredentials.id, adminId));
   } catch (error) {
     console.error("[Database] Failed to update admin last login:", error);
   }

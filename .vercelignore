@@ -1,0 +1,33 @@
+# Dependencies
+node_modules
+
+# Build outputs
+dist/client/assets
+dist/api/node_modules
+
+# Configuration
+*.log
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode
+.idea
+
+# Testing
+coverage
+*.test.ts
+*.test.tsx
+
+# Database
+drizzle
+
+# Scripts
+scripts
+
+# Temporary
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
