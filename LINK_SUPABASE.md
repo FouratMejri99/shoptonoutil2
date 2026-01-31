@@ -95,3 +95,5 @@ DATABASE_URL="postgresql://postgres.xbxwjmqmowypokicazor:[PASSWORD]@aws-0-[REGIO
 You can find this in: **Settings → Database → Connection string → Session mode**
 
 
+
+

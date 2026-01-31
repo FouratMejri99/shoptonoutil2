@@ -127,3 +127,5 @@ postgresql://postgres.[PROJECT-REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.co
 - Make sure password is URL-encoded if it has special characters
 
 
+
+

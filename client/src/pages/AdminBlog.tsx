@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useLocation } from "wouter";
-import { Plus, Trash2, Edit2, FileText } from "lucide-react";
+import { Plus, Trash2, Edit2, FileText, ArrowLeft, Search } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { motion, AnimatePresence } from "framer-motion";
@@ -17,10 +17,20 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 
+const galleryImages = [
+  "/blog-articulate-captivate.webp",
+  "/blog-madcap-flare.webp",
+  "/blog-video-localization.webp",
+  "/Solupedia-creation-solutions.jpg",
+  "/Solupedia-document-localization.jpg",
+  "/Solupedia-video-editing-localization.jpg",
+];
+
 export default function AdminBlog() {
   const [, setLocation] = useLocation();
   const [showForm, setShowForm] = useState(false);
   const [editingPost, setEditingPost] = useState<any>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState({
     title: "",
     slug: "",
@@ -110,16 +120,31 @@ export default function AdminBlog() {
     });
   };
 
+  const filteredPosts = posts?.filter(post => 
+    post.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    post.category?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 relative overflow-hidden">
+      {/* Background Blobs */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-900/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+      </div>
+
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-40">
+      <header className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center">
+              <motion.div 
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center shadow-lg"
+              >
                 <FileText className="text-white" size={20} />
-              </div>
+              </motion.div>
               <div>
                 <h1 className="font-bold text-gray-900">Blog Management</h1>
                 <p className="text-xs text-gray-600">Create and manage blog posts</p>
@@ -129,15 +154,17 @@ export default function AdminBlog() {
               <Button
                 variant="outline"
                 onClick={() => setLocation("/admin/dashboard")}
+                className="rounded-full hover:bg-gray-100"
               >
-                Back to Dashboard
+                <ArrowLeft size={16} className="mr-2" />
+                Back
               </Button>
               <Button
                 onClick={() => {
                   resetForm();
                   setShowForm(true);
                 }}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-blue-600 hover:bg-blue-700 rounded-full shadow-lg shadow-blue-600/20"
               >
                 <Plus size={18} className="mr-2" />
                 New Post
@@ -148,16 +175,33 @@ export default function AdminBlog() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 relative z-10">
+        {/* Search Bar */}
+        <motion.div 
+          className="mb-8 max-w-md mx-auto md:mx-0 relative"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <Input
+            placeholder="Search posts..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 rounded-full bg-white/80 backdrop-blur-sm border-gray-200 focus:ring-blue-500 focus:border-blue-500"
+          />
+        </motion.div>
+
         {isLoading ? (
           <div className="text-center py-12">
+            <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-gray-600">Loading blog posts...</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <AnimatePresence>
-              {posts && posts.length > 0 ? (
-                posts.map((post, idx) => (
+              {filteredPosts && filteredPosts.length > 0 ? (
+                filteredPosts.map((post, idx) => (
                   <motion.div
                     key={post.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -166,43 +210,45 @@ export default function AdminBlog() {
                     transition={{ duration: 0.3, delay: idx * 0.05 }}
                     whileHover={{ y: -5 }}
                   >
-                    <Card className="h-full flex flex-col">
+                    <Card className="h-full flex flex-col bg-white/80 backdrop-blur-md border-white/20 shadow-lg hover:shadow-xl transition-shadow rounded-2xl overflow-hidden">
                       {post.featuredImage && (
-                        <div className="w-full h-48 bg-gray-300 rounded-t-lg overflow-hidden">
+                        <div className="w-full h-48 bg-gray-200 overflow-hidden relative group">
                           <img
                             src={post.featuredImage}
                             alt={post.title}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                           />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         </div>
                       )}
-                      <CardHeader className="flex-1">
+                      <CardHeader className="flex-1 pb-2">
                         <div className="flex items-start justify-between mb-2">
                           {post.category && (
-                            <span className="text-xs font-semibold text-blue-600 uppercase">
+                            <span className="text-xs font-semibold text-blue-600 uppercase tracking-wider bg-blue-50 px-2 py-1 rounded-full">
                               {post.category}
                             </span>
                           )}
-                          <span className={`text-xs px-2 py-1 rounded ${
+                          <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                             post.published
-                              ? "bg-green-100 text-green-700"
-                              : "bg-gray-100 text-gray-700"
+                              ? "bg-green-100 text-green-700 border border-green-200"
+                              : "bg-gray-100 text-gray-700 border border-gray-200"
                           }`}>
                             {post.published ? "Published" : "Draft"}
                           </span>
                         </div>
-                        <CardTitle className="text-lg">{post.title}</CardTitle>
+                        <CardTitle className="text-lg font-bold text-gray-900 line-clamp-2">{post.title}</CardTitle>
                         {post.excerpt && (
-                          <CardDescription className="mt-2 line-clamp-2">
+                          <CardDescription className="mt-2 line-clamp-2 text-gray-600">
                             {post.excerpt}
                           </CardDescription>
                         )}
                       </CardHeader>
-                      <CardContent className="flex flex-col gap-2">
-                        <div className="text-xs text-gray-500">
+                      <CardContent className="flex flex-col gap-3 pt-0 mt-auto">
+                        <div className="text-xs text-gray-500 flex items-center gap-2 border-t border-gray-100 pt-3">
+                          <span className="w-2 h-2 rounded-full bg-gray-300"></span>
                           {formatDate(post.publishedAt)}
                         </div>
-                        <div className="flex gap-2 mt-2">
+                        <div className="flex gap-2">
                           <Button
                             variant="outline"
                             size="sm"
@@ -221,16 +267,16 @@ export default function AdminBlog() {
                               });
                               setShowForm(true);
                             }}
-                            className="flex-1"
+                            className="flex-1 rounded-full hover:bg-blue-50 hover:text-blue-600 border-gray-200"
                           >
                             <Edit2 size={14} className="mr-1" />
                             Edit
                           </Button>
                           <Button
-                            variant="destructive"
+                            variant="ghost"
                             size="sm"
                             onClick={() => handleDelete(post.id)}
-                            className="flex-1"
+                            className="flex-1 rounded-full hover:bg-red-50 text-red-600 hover:text-red-700"
                           >
                             <Trash2 size={14} className="mr-1" />
                             Delete
@@ -241,14 +287,15 @@ export default function AdminBlog() {
                   </motion.div>
                 ))
               ) : (
-                <div className="col-span-full text-center py-12">
-                  <p className="text-gray-600 mb-4">No blog posts yet.</p>
+                <div className="col-span-full text-center py-12 bg-white/50 backdrop-blur-sm rounded-3xl border border-white/20">
+                  <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-4 font-medium">No blog posts found.</p>
                   <Button
                     onClick={() => {
                       resetForm();
                       setShowForm(true);
                     }}
-                    className="bg-blue-600 hover:bg-blue-700"
+                    className="bg-blue-600 hover:bg-blue-700 rounded-full"
                   >
                     <Plus size={18} className="mr-2" />
                     Create Your First Post
@@ -262,14 +309,14 @@ export default function AdminBlog() {
 
       {/* Create/Edit Dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto rounded-3xl">
           <DialogHeader>
             <DialogTitle>{editingPost ? "Edit Blog Post" : "Create New Blog Post"}</DialogTitle>
             <DialogDescription>
               {editingPost ? "Update the blog post details below." : "Fill in the details to create a new blog post."}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4 mt-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="title">Title *</Label>
@@ -278,6 +325,7 @@ export default function AdminBlog() {
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   required
+                  className="rounded-xl"
                 />
               </div>
               <div className="space-y-2">
@@ -287,6 +335,7 @@ export default function AdminBlog() {
                   value={formData.slug}
                   onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
                   placeholder="Auto-generated from title"
+                  className="rounded-xl"
                 />
               </div>
             </div>
@@ -298,6 +347,7 @@ export default function AdminBlog() {
                 value={formData.excerpt}
                 onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
                 rows={2}
+                className="rounded-xl resize-none"
               />
             </div>
 
@@ -309,6 +359,7 @@ export default function AdminBlog() {
                 onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                 rows={10}
                 required
+                className="rounded-xl"
               />
             </div>
 
@@ -319,6 +370,7 @@ export default function AdminBlog() {
                   id="author"
                   value={formData.author}
                   onChange={(e) => setFormData({ ...formData, author: e.target.value })}
+                  className="rounded-xl"
                 />
               </div>
               <div className="space-y-2">
@@ -327,6 +379,7 @@ export default function AdminBlog() {
                   id="category"
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  className="rounded-xl"
                 />
               </div>
             </div>
@@ -338,27 +391,50 @@ export default function AdminBlog() {
                   id="tags"
                   value={formData.tags}
                   onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                  className="rounded-xl"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="featuredImage">Featured Image URL</Label>
-                <Input
-                  id="featuredImage"
-                  value={formData.featuredImage}
-                  onChange={(e) => setFormData({ ...formData, featuredImage: e.target.value })}
-                />
+                <Label>Featured Image</Label>
+                <div className="grid grid-cols-3 gap-3">
+                  {galleryImages.map((img) => {
+                    const selected = formData.featuredImage === img;
+                    return (
+                      <button
+                        key={img}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, featuredImage: img })}
+                        className={`relative rounded-xl overflow-hidden border ${selected ? "border-blue-500 ring-2 ring-blue-300" : "border-gray-200"} focus:outline-none`}
+                        title={img}
+                      >
+                        <img src={img} alt="Featured" className="w-full h-24 object-cover" />
+                        {selected && (
+                          <span className="absolute top-2 right-2 bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">Selected</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+                {formData.featuredImage && (
+                  <div className="mt-2">
+                    <div className="text-xs text-gray-500 mb-1">Preview</div>
+                    <div className="rounded-xl overflow-hidden border border-gray-200">
+                      <img src={formData.featuredImage} alt="Preview" className="w-full h-32 object-cover" />
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 bg-gray-50 p-3 rounded-xl">
               <input
                 type="checkbox"
                 id="published"
                 checked={formData.published}
                 onChange={(e) => setFormData({ ...formData, published: e.target.checked })}
-                className="w-4 h-4"
+                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
               />
-              <Label htmlFor="published">Published</Label>
+              <Label htmlFor="published" className="cursor-pointer">Published</Label>
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
@@ -369,10 +445,11 @@ export default function AdminBlog() {
                   setShowForm(false);
                   resetForm();
                 }}
+                className="rounded-full"
               >
                 Cancel
               </Button>
-              <Button type="submit" className="bg-blue-600 hover:bg-blue-700" disabled={createMutation.isPending}>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 rounded-full" disabled={createMutation.isPending}>
                 {createMutation.isPending ? "Creating..." : editingPost ? "Update" : "Create Post"}
               </Button>
             </div>
@@ -382,5 +459,3 @@ export default function AdminBlog() {
     </div>
   );
 }
-
-

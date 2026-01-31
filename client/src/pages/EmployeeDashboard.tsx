@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link, useLocation } from "wouter";
-import { Plus, Clock, LogOut, Calendar, Briefcase, Users } from "lucide-react";
+import { Plus, Clock, LogOut, Calendar, Briefcase, Users, Save, X, Play, StopCircle, Trash2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface TimeRecord {
   id: number;
@@ -26,6 +27,9 @@ export default function EmployeeDashboard() {
   const [records, setRecords] = useState<TimeRecord[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const [timerRunning, setTimerRunning] = useState(false);
+  const [timerStart, setTimerStart] = useState<number | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [formData, setFormData] = useState({
     projectNumber: "",
     projectName: "",
@@ -62,6 +66,117 @@ export default function EmployeeDashboard() {
       setLocation("/employee/login");
     }
   }, [setLocation]);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("employeeLiveTimer");
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed.start) {
+          setTimerStart(parsed.start);
+        }
+        if (parsed.running) {
+          setTimerRunning(true);
+        }
+        if (parsed.elapsedSeconds) {
+          setElapsedSeconds(parsed.elapsedSeconds);
+        } else if (parsed.running && parsed.start) {
+          setElapsedSeconds(Math.floor((Date.now() - parsed.start) / 1000));
+        }
+      } catch {}
+    }
+  }, []);
+
+  useEffect(() => {
+    let interval: number | undefined;
+    if (timerRunning && timerStart) {
+      interval = window.setInterval(() => {
+        setElapsedSeconds(Math.floor((Date.now() - timerStart) / 1000));
+      }, 1000);
+    }
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [timerRunning, timerStart]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "employeeLiveTimer",
+      JSON.stringify({ running: timerRunning, start: timerStart, elapsedSeconds })
+    );
+  }, [timerRunning, timerStart, elapsedSeconds]);
+
+  const formatElapsed = (s: number) => {
+    const hours = Math.floor(s / 3600);
+    const minutes = Math.floor((s % 3600) / 60);
+    const seconds = s % 60;
+    const hh = String(hours).padStart(2, "0");
+    const mm = String(minutes).padStart(2, "0");
+    const ss = String(seconds).padStart(2, "0");
+    return `${hh}:${mm}:${ss}`;
+  };
+
+  const startLiveTimer = () => {
+    const now = Date.now();
+    setTimerStart(now);
+    setElapsedSeconds(0);
+    setTimerRunning(true);
+  };
+
+  const stopLiveTimer = () => {
+    if (!timerStart) return;
+    const endMs = Date.now();
+    const startDate = new Date(timerStart);
+    const endDate = new Date(endMs);
+    const workDate = new Date().toISOString().split("T")[0];
+    const startStr = `${String(startDate.getHours()).padStart(2, "0")}:${String(startDate.getMinutes()).padStart(2, "0")}`;
+    const endStr = `${String(endDate.getHours()).padStart(2, "0")}:${String(endDate.getMinutes()).padStart(2, "0")}`;
+
+    const startMinutes = startDate.getHours() * 60 + startDate.getMinutes();
+    const endMinutes = endDate.getHours() * 60 + endDate.getMinutes();
+    let durationMinutes = endMinutes - startMinutes;
+    if (durationMinutes < 0) {
+      durationMinutes += 24 * 60;
+    }
+    const duration = Math.round((durationMinutes / 60) * 100) / 100;
+
+    const businessStartMinutes = 9 * 60;
+    const businessEndMinutes = 17 * 60;
+    let businessDayTime = 0;
+    let overtime = 0;
+    if (startMinutes >= businessEndMinutes || endMinutes <= businessStartMinutes) {
+      overtime = duration;
+    } else if (startMinutes >= businessStartMinutes && endMinutes <= businessEndMinutes) {
+      businessDayTime = duration;
+    } else {
+      const overlapStart = Math.max(startMinutes, businessStartMinutes);
+      const overlapEnd = Math.min(endMinutes, businessEndMinutes);
+      businessDayTime = Math.round(((overlapEnd - overlapStart) / 60) * 100) / 100;
+      overtime = Math.round((duration - businessDayTime) * 100) / 100;
+    }
+
+    const newRecord: TimeRecord = {
+      id: Date.now(),
+      workDate,
+      projectNumber: formData.projectNumber,
+      projectName: formData.projectName,
+      taskType: formData.taskType,
+      client: formData.client,
+      languages: formData.languages,
+      startTime: startStr,
+      endTime: endStr,
+      duration,
+      businessDayTime,
+      overtime,
+    };
+    setRecords([newRecord, ...records]);
+    setTimerRunning(false);
+    setTimerStart(null);
+    setElapsedSeconds(0);
+    localStorage.removeItem("employeeLiveTimer");
+  };
 
   const handleAddRecord = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,6 +249,10 @@ export default function EmployeeDashboard() {
     window.location.href = "/employee/login";
   };
 
+  const handleDeleteRecord = (id: number) => {
+    setRecords(records.filter(r => r.id !== id));
+  };
+
   const totalHours = records.reduce((sum, r) => sum + r.duration, 0);
   const totalBusinessHours = records.reduce((sum, r) => sum + r.businessDayTime, 0);
   const totalOvertime = records.reduce((sum, r) => sum + r.overtime, 0);
@@ -151,21 +270,35 @@ export default function EmployeeDashboard() {
   const thisMonthHours = thisMonthRecords.reduce((sum, r) => sum + r.duration, 0);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 relative overflow-hidden">
+      {/* Background Blobs */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-900/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+      </div>
+
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-40">
+      <header className="bg-white/80 backdrop-blur-md border-b border-gray-200/50 shadow-sm sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center">
+              <motion.div 
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center shadow-lg"
+              >
                 <span className="text-white font-bold">S</span>
-              </div>
+              </motion.div>
               <div>
                 <h1 className="font-bold text-gray-900">Time Tracking</h1>
                 <p className="text-xs text-gray-600">Employee Portal</p>
               </div>
             </div>
-            <Button variant="outline" onClick={handleLogout}>
+            <Button 
+              variant="outline" 
+              onClick={handleLogout}
+              className="rounded-full hover:bg-red-50 hover:text-red-600 border-gray-200"
+            >
               <LogOut size={18} className="mr-2" />
               Logout
             </Button>
@@ -174,284 +307,443 @@ export default function EmployeeDashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 relative z-10">
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Total Hours</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-blue-600">{totalHours.toFixed(2)}</div>
-              <p className="text-xs text-gray-500 mt-1">All tracked hours</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Business Hours</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-green-600">{totalBusinessHours.toFixed(2)}</div>
-              <p className="text-xs text-gray-500 mt-1">9 AM - 5 PM</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Overtime</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-orange-600">{totalOvertime.toFixed(2)}</div>
-              <p className="text-xs text-gray-500 mt-1">Outside business hours</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">This Month</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-purple-600">{thisMonthHours.toFixed(2)}</div>
-              <p className="text-xs text-gray-500 mt-1">Hours this month</p>
-            </CardContent>
-          </Card>
+          {[
+            { title: "Total Hours", value: totalHours.toFixed(2), subtitle: "All tracked hours", color: "text-blue-600" },
+            { title: "Business Hours", value: totalBusinessHours.toFixed(2), subtitle: "9 AM - 5 PM", color: "text-green-600" },
+            { title: "Overtime", value: totalOvertime.toFixed(2), subtitle: "Outside business hours", color: "text-orange-600" },
+            { title: "This Month", value: thisMonthHours.toFixed(2), subtitle: "Hours this month", color: "text-purple-600" }
+          ].map((item, idx) => (
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: idx * 0.1 }}
+            >
+              <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-lg hover:shadow-xl transition-shadow rounded-3xl">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-gray-600">{item.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className={`text-3xl font-bold ${item.color}`}>{item.value}</div>
+                  <p className="text-xs text-gray-500 mt-1">{item.subtitle}</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
         </div>
 
         {/* Additional Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Days Worked</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-700">{uniqueDays}</div>
-              <p className="text-xs text-gray-500 mt-1">Unique days tracked</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Projects</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-700">{uniqueProjects}</div>
-              <p className="text-xs text-gray-500 mt-1">Different projects</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-gray-600">Avg Hours/Day</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-gray-700">{averageHoursPerDay}</div>
-              <p className="text-xs text-gray-500 mt-1">Average per day</p>
-            </CardContent>
-          </Card>
+          {[
+            { title: "Days Worked", value: uniqueDays, subtitle: "Unique days tracked" },
+            { title: "Projects", value: uniqueProjects, subtitle: "Different projects" },
+            { title: "Avg Hours/Day", value: averageHoursPerDay, subtitle: "Average per day" }
+          ].map((item, idx) => (
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.4 + (idx * 0.1) }}
+            >
+              <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-md rounded-3xl">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm font-medium text-gray-600">{item.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-gray-700">{item.value}</div>
+                  <p className="text-xs text-gray-500 mt-1">{item.subtitle}</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
         </div>
 
-        {/* Add Record Button */}
-        <div className="mb-8">
-          <Button
-            onClick={() => setShowForm(!showForm)}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus size={18} className="mr-2" />
-            Add Time Entry
-          </Button>
-        </div>
-
-        {/* Add Record Form */}
-        {showForm && (
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle>Add Time Entry</CardTitle>
-              <CardDescription>Record your work time for a project</CardDescription>
+        <motion.div 
+          className="mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.65 }}
+        >
+          <Card className="bg-white/90 backdrop-blur-md border-white/20 shadow-xl rounded-3xl overflow-hidden">
+            <CardHeader className="bg-blue-50/30">
+              <CardTitle>Live Timer</CardTitle>
+              <CardDescription>Track real work time</CardDescription>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={handleAddRecord} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="workDate">Work Date</Label>
-                    <Input
-                      id="workDate"
-                      type="date"
-                      value={selectedDate}
-                      onChange={(e) => setSelectedDate(e.target.value)}
-                      required
-                    />
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between gap-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center">
+                    <Clock className="w-8 h-8 text-blue-700" />
                   </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="taskType">Task Type</Label>
-                    <select
-                      id="taskType"
-                      value={formData.taskType}
-                      onChange={(e) => setFormData({ ...formData, taskType: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      <option value="translation">Translation</option>
-                      <option value="review">Review</option>
-                      <option value="qa">QA</option>
-                      <option value="desktop_publishing">Desktop Publishing</option>
-                      <option value="voiceover">Voice Over</option>
-                      <option value="subtitle">Subtitle</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="projectNumber">Project Number</Label>
-                    <Input
-                      id="projectNumber"
-                      placeholder="e.g., PROJ-2024-001"
-                      value={formData.projectNumber}
-                      onChange={(e) => setFormData({ ...formData, projectNumber: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="projectName">Project Name</Label>
-                    <Input
-                      id="projectName"
-                      placeholder="e.g., Website Localization"
-                      value={formData.projectName}
-                      onChange={(e) => setFormData({ ...formData, projectName: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="client">Client</Label>
-                    <Input
-                      id="client"
-                      placeholder="e.g., Acme Corp"
-                      value={formData.client}
-                      onChange={(e) => setFormData({ ...formData, client: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="languages">Languages</Label>
-                    <Input
-                      id="languages"
-                      placeholder="e.g., English, Spanish, French"
-                      value={formData.languages}
-                      onChange={(e) => setFormData({ ...formData, languages: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="startTime">Start Time</Label>
-                    <Input
-                      id="startTime"
-                      type="time"
-                      value={formData.startTime}
-                      onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="endTime">End Time</Label>
-                    <Input
-                      id="endTime"
-                      type="time"
-                      value={formData.endTime}
-                      onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                      required
-                    />
+                  <div>
+                    <div className="text-4xl font-bold tracking-tight text-gray-900">{formatElapsed(elapsedSeconds)}</div>
+                    <div className="text-xs text-gray-500 mt-1">{timerRunning ? "Running" : "Stopped"}</div>
                   </div>
                 </div>
-
+                <div className="flex items-center gap-3">
+                  {!timerRunning ? (
+                    <Button onClick={startLiveTimer} className="bg-green-600 hover:bg-green-700 rounded-full px-6 h-11">
+                      <Play size={18} className="mr-2" />
+                      Start
+                    </Button>
+                  ) : (
+                    <Button onClick={stopLiveTimer} className="bg-red-600 hover:bg-red-700 rounded-full px-6 h-11">
+                      <StopCircle size={18} className="mr-2" />
+                      Stop
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="notes">Notes (Optional)</Label>
-                  <textarea
-                    id="notes"
-                    placeholder="Add any additional notes about this time entry"
-                    value={formData.notes}
-                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    rows={3}
+                  <Label htmlFor="timerTaskType">Task Type</Label>
+                  <select
+                    id="timerTaskType"
+                    value={formData.taskType}
+                    onChange={(e) => setFormData({ ...formData, taskType: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 h-10"
+                  >
+                    <option value="translation">Translation</option>
+                    <option value="review">Review</option>
+                    <option value="qa">QA</option>
+                    <option value="desktop_publishing">Desktop Publishing</option>
+                    <option value="voiceover">Voice Over</option>
+                    <option value="subtitle">Subtitle</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="timerProjectNumber">Project Number</Label>
+                  <Input
+                    id="timerProjectNumber"
+                    placeholder="e.g., PROJ-2024-001"
+                    value={formData.projectNumber}
+                    onChange={(e) => setFormData({ ...formData, projectNumber: e.target.value })}
+                    className="rounded-xl bg-white/50"
                   />
                 </div>
-
-                <div className="flex gap-3">
-                  <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                    Save Entry
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowForm(false)}
-                  >
-                    Cancel
-                  </Button>
+                <div className="space-y-2">
+                  <Label htmlFor="timerProjectName">Project Name</Label>
+                  <Input
+                    id="timerProjectName"
+                    placeholder="e.g., Website Localization"
+                    value={formData.projectName}
+                    onChange={(e) => setFormData({ ...formData, projectName: e.target.value })}
+                    className="rounded-xl bg-white/50"
+                  />
                 </div>
-              </form>
+                <div className="space-y-2">
+                  <Label htmlFor="timerClient">Client</Label>
+                  <Input
+                    id="timerClient"
+                    placeholder="e.g., Acme Corp"
+                    value={formData.client}
+                    onChange={(e) => setFormData({ ...formData, client: e.target.value })}
+                    className="rounded-xl bg-white/50"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="timerLanguages">Languages</Label>
+                  <select
+                    id="timerLanguages"
+                    value={formData.languages}
+                    onChange={(e) => setFormData({ ...formData, languages: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 h-10"
+                  >
+                    <option value="">Select language</option>
+                    <option value="English">English</option>
+                    <option value="Arabic">Arabic</option>
+                    <option value="French">French</option>
+                    <option value="Spanish">Spanish</option>
+                    <option value="German">German</option>
+                    <option value="Chinese">Chinese</option>
+                    <option value="Japanese">Japanese</option>
+                    <option value="Portuguese">Portuguese</option>
+                    <option value="Italian">Italian</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        )}
+        </motion.div>
+
+        {/* Add Record Button */}
+        <motion.div 
+          className="mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.7 }}
+        >
+          <Button
+            onClick={() => setShowForm(!showForm)}
+            className="bg-blue-600 hover:bg-blue-700 rounded-full shadow-lg shadow-blue-600/20 px-6 h-12 text-lg"
+          >
+            {showForm ? <X size={18} className="mr-2" /> : <Plus size={18} className="mr-2" />}
+            {showForm ? "Close Form" : "Add Time Entry"}
+          </Button>
+        </motion.div>
+
+        {/* Add Record Form */}
+        <AnimatePresence>
+          {showForm && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+              animate={{ opacity: 1, height: "auto", marginBottom: 32 }}
+              exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+              className="overflow-hidden"
+            >
+              <Card className="bg-white/90 backdrop-blur-md border-white/20 shadow-xl rounded-3xl overflow-hidden">
+                <CardHeader className="bg-blue-50/30">
+                  <CardTitle>Add Time Entry</CardTitle>
+                  <CardDescription>Record your work time for a project</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <form onSubmit={handleAddRecord} className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="workDate">Work Date</Label>
+                        <Input
+                          id="workDate"
+                          type="date"
+                          value={selectedDate}
+                          onChange={(e) => setSelectedDate(e.target.value)}
+                          required
+                          className="rounded-xl bg-white/50"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="taskType">Task Type</Label>
+                        <select
+                          id="taskType"
+                          value={formData.taskType}
+                          onChange={(e) => setFormData({ ...formData, taskType: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 h-10"
+                        >
+                          <option value="translation">Translation</option>
+                          <option value="review">Review</option>
+                          <option value="qa">QA</option>
+                          <option value="desktop_publishing">Desktop Publishing</option>
+                          <option value="voiceover">Voice Over</option>
+                          <option value="subtitle">Subtitle</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="projectNumber">Project Number</Label>
+                        <Input
+                          id="projectNumber"
+                          placeholder="e.g., PROJ-2024-001"
+                          value={formData.projectNumber}
+                          onChange={(e) => setFormData({ ...formData, projectNumber: e.target.value })}
+                          className="rounded-xl bg-white/50"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="projectName">Project Name</Label>
+                        <Input
+                          id="projectName"
+                          placeholder="e.g., Website Localization"
+                          value={formData.projectName}
+                          onChange={(e) => setFormData({ ...formData, projectName: e.target.value })}
+                          className="rounded-xl bg-white/50"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="client">Client</Label>
+                        <Input
+                          id="client"
+                          placeholder="e.g., Acme Corp"
+                          value={formData.client}
+                          onChange={(e) => setFormData({ ...formData, client: e.target.value })}
+                          className="rounded-xl bg-white/50"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="languages">Languages</Label>
+                        <Input
+                          id="languages"
+                          placeholder="e.g., English, Spanish, French"
+                          value={formData.languages}
+                          onChange={(e) => setFormData({ ...formData, languages: e.target.value })}
+                          className="rounded-xl bg-white/50"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="startTime">Start Time</Label>
+                        <Input
+                          id="startTime"
+                          type="time"
+                          value={formData.startTime}
+                          onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                          required
+                          className="rounded-xl bg-white/50"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="endTime">End Time</Label>
+                        <Input
+                          id="endTime"
+                          type="time"
+                          value={formData.endTime}
+                          onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                          required
+                          className="rounded-xl bg-white/50"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="notes">Notes (Optional)</Label>
+                      <textarea
+                        id="notes"
+                        placeholder="Add any additional notes about this time entry"
+                        value={formData.notes}
+                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50"
+                        rows={3}
+                      />
+                    </div>
+
+                    <div className="flex gap-3 pt-2">
+                      <Button type="submit" className="bg-blue-600 hover:bg-blue-700 rounded-full px-8">
+                        <Save size={18} className="mr-2" />
+                        Save Entry
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setShowForm(false)}
+                        className="rounded-full px-6"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Records List */}
-        <div>
-          <h2 className="text-2xl font-bold mb-4">Time Entries</h2>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.8 }}
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <h2 className="text-2xl font-bold text-gray-900">Time Entries</h2>
+            <span className="text-sm text-gray-500 bg-white px-2 py-1 rounded-full border border-gray-200 shadow-sm">
+              {records.length} entries
+            </span>
+          </div>
+          
           {records.length === 0 ? (
-            <Card>
-              <CardContent className="pt-8 pb-8 text-center">
-                <Clock className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-600">No time entries yet. Add your first entry above.</p>
+            <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-lg rounded-3xl">
+              <CardContent className="pt-12 pb-12 text-center">
+                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Clock className="w-8 h-8 text-gray-400" />
+                </div>
+                <p className="text-gray-600 font-medium">No time entries yet.</p>
+                <p className="text-sm text-gray-500 mt-1">Add your first entry above to start tracking time.</p>
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-4">
-              {records.map((record) => (
-                <Card key={record.id}>
-                  <CardContent className="pt-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-600">Date</p>
-                        <p className="font-semibold">{record.workDate}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Time</p>
-                        <p className="font-semibold">{record.startTime} - {record.endTime}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Task</p>
-                        <p className="font-semibold capitalize">{record.taskType}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Duration</p>
-                        <p className="font-semibold text-blue-600">{record.duration}h</p>
-                      </div>
-                      {record.projectName && (
-                        <div className="md:col-span-2">
-                          <p className="text-sm text-gray-600">Project</p>
-                          <p className="font-semibold">{record.projectName}</p>
+              <AnimatePresence>
+                {records.map((record, idx) => (
+                  <motion.div
+                    key={record.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.3, delay: idx * 0.05 }}
+                  >
+                    <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-md hover:shadow-lg transition-shadow rounded-2xl overflow-hidden">
+                      <CardContent className="pt-6 pb-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                          <div>
+                            <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Date & Time</p>
+                            <div className="flex items-center gap-2">
+                              <Calendar size={16} className="text-blue-500" />
+                              <span className="font-semibold text-gray-900">{record.workDate}</span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1 text-sm text-gray-600">
+                              <Clock size={14} />
+                              <span>{record.startTime} - {record.endTime}</span>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Task Info</p>
+                            <div className="flex items-center gap-2">
+                              <Briefcase size={16} className="text-purple-500" />
+                              <span className="font-semibold capitalize text-gray-900">{record.taskType.replace('_', ' ')}</span>
+                            </div>
+                            {record.projectName && (
+                              <div className="text-sm text-gray-600 mt-1 truncate" title={record.projectName}>
+                                {record.projectName}
+                              </div>
+                            )}
+                          </div>
+                          
+                          <div className="md:col-span-2 lg:col-span-2 flex flex-col md:flex-row gap-4 justify-between items-start md:items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100">
+                            <div className="flex items-center gap-3">
+                              <div className="bg-blue-100 p-2 rounded-lg text-blue-700">
+                                <p className="text-xs font-bold uppercase">Duration</p>
+                                <p className="text-xl font-bold">{record.duration}h</p>
+                              </div>
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                  <span className="text-gray-600">Business:</span>
+                                  <span className="font-semibold text-gray-900">{record.businessDayTime}h</span>
+                                </div>
+                                <div className="flex items-center gap-2 text-sm">
+                                  <span className="w-2 h-2 rounded-full bg-orange-500"></span>
+                                  <span className="text-gray-600">Overtime:</span>
+                                  <span className="font-semibold text-gray-900">{record.overtime}h</span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {(record.client || record.projectNumber) && (
+                              <div className="text-right text-sm">
+                                {record.client && <p className="font-medium text-gray-900">{record.client}</p>}
+                                {record.projectNumber && <p className="font-mono text-xs text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-200 inline-block mt-1">{record.projectNumber}</p>}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      )}
-                      {record.client && (
-                        <div className="md:col-span-2">
-                          <p className="text-sm text-gray-600">Client</p>
-                          <p className="font-semibold">{record.client}</p>
-                        </div>
-                      )}
-                      <div>
-                        <p className="text-sm text-gray-600">Business Hours</p>
-                        <p className="font-semibold text-green-600">{record.businessDayTime}h</p>
+                      </CardContent>
+                      <div className="px-6 pb-6 flex justify-end">
+                        <Button
+                          variant="outline"
+                          onClick={() => handleDeleteRecord(record.id)}
+                          className="rounded-full hover:bg-red-50 hover:text-red-600 border-gray-200"
+                        >
+                          <Trash2 size={16} className="mr-2" />
+                          Delete
+                        </Button>
                       </div>
-                      <div>
-                        <p className="text-sm text-gray-600">Overtime</p>
-                        <p className="font-semibold text-orange-600">{record.overtime}h</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </Card>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
             </div>
           )}
-        </div>
+        </motion.div>
       </main>
     </div>
   );

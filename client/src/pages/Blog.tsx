@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, Calendar, User } from "lucide-react";
+import { ArrowRight, Calendar, User, Search } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { PageLoader, PageSkeleton } from "@/components/PageLoader";
 import { motion } from "framer-motion";
@@ -53,31 +53,38 @@ export default function Blog() {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full relative overflow-hidden bg-white">
+      {/* Background Blobs */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-900/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+        <div className="absolute top-1/2 left-1/2 w-[800px] h-[800px] bg-blue-400/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+      </div>
+
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
-        <div className="container mx-auto px-4">
-          <motion.h1 
+      <section className="relative pt-32 pb-20 overflow-hidden z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-white/50 to-blue-50/50 backdrop-blur-3xl -z-10"></div>
+        <div className="container mx-auto px-4 text-center">
+          <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-5xl font-bold mb-4"
           >
-            Localization Insights
-          </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-xl text-blue-100"
-          >
-            Industry trends, best practices, and expert insights on localization
-          </motion.p>
+            <span className="inline-block py-1 px-3 rounded-full bg-blue-100 text-blue-600 text-sm font-semibold mb-6">
+              Our Blog
+            </span>
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-900 via-blue-700 to-blue-900">
+              Localization Insights
+            </h1>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
+              Industry trends, best practices, and expert insights to help you navigate the global marketplace.
+            </p>
+          </motion.div>
         </div>
       </section>
 
       {/* Blog Posts */}
-      <section className="py-20">
+      <section className="py-20 relative z-10">
         <div className="container mx-auto px-4">
           {isLoading ? (
             <PageSkeleton />
@@ -93,20 +100,23 @@ export default function Blog() {
                   whileHover={{ y: -8, transition: { duration: 0.2 } }}
                 >
                   <Link href={`/blog/${post.slug}`}>
-                    <Card className="h-full hover:shadow-xl transition-all cursor-pointer flex flex-col overflow-hidden">
+                    <Card className="h-full hover:shadow-xl transition-all cursor-pointer flex flex-col overflow-hidden border-none shadow-lg bg-white/80 backdrop-blur-sm">
                       {post.featuredImage && (
                         <motion.div 
-                          className="w-full h-48 bg-gray-300 rounded-t-lg overflow-hidden"
-                          whileHover={{ scale: 1.05 }}
-                          transition={{ duration: 0.3 }}
+                          className="w-full h-56 bg-gray-200 overflow-hidden relative group"
                         >
-                          <img src={post.featuredImage} alt={post.title} className="w-full h-full object-cover" />
+                          <img 
+                            src={post.featuredImage} 
+                            alt={post.title} 
+                            className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" 
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         </motion.div>
                       )}
-                      <CardHeader className="flex-1">
+                      <CardHeader className="flex-1 pb-2">
                         {post.category && (
                           <motion.div 
-                            className="text-xs font-semibold text-blue-600 mb-2 uppercase"
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mb-3 w-fit"
                             initial={{ opacity: 0 }}
                             whileInView={{ opacity: 1 }}
                             viewport={{ once: true }}
@@ -115,25 +125,30 @@ export default function Blog() {
                             {post.category}
                           </motion.div>
                         )}
-                        <CardTitle className="text-lg">{post.title}</CardTitle>
+                        <CardTitle className="text-xl font-bold text-gray-900 leading-tight group-hover:text-blue-600 transition-colors">
+                          {post.title}
+                        </CardTitle>
                       </CardHeader>
-                      <CardContent className="flex-1 flex flex-col justify-between">
+                      <CardContent className="flex-1 flex flex-col justify-between pt-0">
                         {post.excerpt && (
-                          <p className="text-gray-600 text-sm line-clamp-3 mb-4">{post.excerpt}</p>
+                          <p className="text-gray-600 text-sm line-clamp-3 mb-6 leading-relaxed">{post.excerpt}</p>
                         )}
-                        <div className="flex items-center gap-4 text-xs text-gray-500">
-                          {post.author && (
-                            <div className="flex items-center gap-1">
-                              <User size={14} />
-                              <span>{post.author}</span>
-                            </div>
-                          )}
-                          {post.publishedAt && (
-                            <div className="flex items-center gap-1">
-                              <Calendar size={14} />
-                              <span>{formatDate(post.publishedAt)}</span>
-                            </div>
-                          )}
+                        <div className="flex items-center justify-between border-t border-gray-100 pt-4 mt-auto">
+                          <div className="flex items-center gap-4 text-xs text-gray-500">
+                            {post.author && (
+                              <div className="flex items-center gap-1.5 font-medium">
+                                <User size={14} className="text-blue-500" />
+                                <span>{post.author}</span>
+                              </div>
+                            )}
+                            {post.publishedAt && (
+                              <div className="flex items-center gap-1.5">
+                                <Calendar size={14} className="text-blue-500" />
+                                <span>{formatDate(post.publishedAt)}</span>
+                              </div>
+                            )}
+                          </div>
+                          <ArrowRight size={16} className="text-blue-600 transform group-hover:translate-x-1 transition-transform" />
                         </div>
                       </CardContent>
                     </Card>
@@ -142,45 +157,52 @@ export default function Blog() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-12">
-              <p className="text-gray-600 mb-4">No blog posts available yet.</p>
-              <p className="text-gray-600">Check back soon for our latest insights on localization.</p>
+            <div className="text-center py-20 bg-white/50 backdrop-blur-sm rounded-3xl border border-dashed border-gray-300">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Search className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">No posts found</h3>
+              <p className="text-gray-600 mb-6">Check back soon for our latest insights on localization.</p>
             </div>
           )}
         </div>
       </section>
 
       {/* Newsletter Signup */}
-      <section className="bg-blue-50 py-16">
-        <div className="container mx-auto px-4 text-center max-w-2xl">
-          <h2 className="text-3xl font-bold mb-4">Stay Updated</h2>
-          <p className="text-gray-700 mb-6">
-            Subscribe to our newsletter for the latest localization insights and industry trends.
-          </p>
-          <form className="flex gap-2">
-            <input
-              type="email"
-              placeholder="Enter your email"
-              className="flex-1 px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-600"
-              required
-            />
-            <Button className="bg-blue-600 hover:bg-blue-700">Subscribe</Button>
-          </form>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="bg-blue-600 text-white py-16">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-4xl font-bold mb-4">Ready to Expand Globally?</h2>
-          <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-            Let's discuss how our localization expertise can help your business reach new markets.
-          </p>
-          <Link href="/contact">
-            <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50">
-              Get Started Today <ArrowRight className="ml-2" size={20} />
-            </Button>
-          </Link>
+      <section className="py-20 relative z-10">
+        <div className="container mx-auto px-4">
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="bg-blue-600 rounded-[2.5rem] p-12 md:p-16 relative overflow-hidden shadow-2xl text-center"
+          >
+            <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
+              <div className="absolute top-0 left-0 w-64 h-64 bg-blue-500 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 opacity-50"></div>
+              <div className="absolute bottom-0 right-0 w-80 h-80 bg-blue-800 rounded-full blur-3xl translate-x-1/2 translate-y-1/2 opacity-50"></div>
+            </div>
+            
+            <div className="relative z-10 max-w-2xl mx-auto">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">Stay Updated</h2>
+              <p className="text-blue-100 mb-8 text-lg">
+                Subscribe to our newsletter for the latest localization insights, industry trends, and Solupedia updates delivered to your inbox.
+              </p>
+              <form className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="email"
+                  placeholder="Enter your email address"
+                  className="flex-1 px-6 py-4 rounded-full border-none focus:ring-2 focus:ring-white/50 bg-white/10 text-white placeholder-blue-200 backdrop-blur-sm"
+                  required
+                />
+                <Button className="bg-white text-blue-600 hover:bg-blue-50 h-14 px-8 rounded-full text-lg font-semibold shadow-lg transition-all">
+                  Subscribe
+                </Button>
+              </form>
+              <p className="text-blue-200 text-sm mt-4">
+                We care about your data in our <Link href="/privacy" className="underline hover:text-white">privacy policy</Link>.
+              </p>
+            </div>
+          </motion.div>
         </div>
       </section>
     </div>

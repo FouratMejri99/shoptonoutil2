@@ -4,9 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Link, useLocation } from "wouter";
-import { AlertCircle, LogIn } from "lucide-react";
+import { AlertCircle, LogIn, Clock, Briefcase } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { motion } from "framer-motion";
 
 export default function EmployeeLogin() {
   const [, setLocation] = useLocation();
@@ -46,7 +47,9 @@ export default function EmployeeLogin() {
         }));
 
         toast.success("Login successful!");
-        setLocation("/employee/dashboard");
+        setTimeout(() => {
+          setLocation("/employee/dashboard");
+        }, 100);
       }
     } catch (err: any) {
       const errorMessage = err?.message || "Login failed. Please try again.";
@@ -58,40 +61,59 @@ export default function EmployeeLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-white">
+      {/* Background Blobs */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-900/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+        <div className="absolute top-1/2 left-1/2 w-[800px] h-[800px] bg-blue-400/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+      </div>
+
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="w-full max-w-md relative z-10"
+      >
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center shadow-md">
-              <span className="text-white font-bold text-xl">S</span>
-            </div>
-            <div className="flex flex-col text-left">
-              <span className="font-bold text-xl text-gray-900">Solupedia</span>
-              <span className="text-xs text-blue-600 font-semibold">Employee Portal</span>
-            </div>
+          <motion.div 
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.1 }}
+            className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl shadow-xl mb-6 transform -rotate-3"
+          >
+            <Clock className="w-10 h-10 text-white" />
+          </motion.div>
+          <div className="flex flex-col items-center">
+            <h1 className="font-bold text-3xl text-gray-900 mb-2">Solupedia</h1>
+            <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-700 text-sm font-semibold">Employee Portal</span>
           </div>
         </div>
 
         {/* Login Card */}
-        <Card className="shadow-lg">
-          <CardHeader>
-            <CardTitle>Time Tracking Login</CardTitle>
-            <CardDescription>
-              Sign in with your employee credentials to access your time tracking dashboard
+        <Card className="shadow-2xl border-white/20 bg-white/80 backdrop-blur-md rounded-3xl overflow-hidden">
+          <CardHeader className="bg-blue-50/50 border-b border-blue-100/50 pb-8 pt-8">
+            <CardTitle className="text-2xl text-center text-blue-900">Time Tracking Login</CardTitle>
+            <CardDescription className="text-center text-gray-600 mt-2">
+              Sign in to access your dashboard
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
+          <CardContent className="p-8">
+            <form onSubmit={handleLogin} className="space-y-6">
               {error && (
-                <div className="flex items-center gap-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-xl"
+                >
                   <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                  <p className="text-sm text-red-700">{error}</p>
-                </div>
+                  <p className="text-sm text-red-700 font-medium">{error}</p>
+                </motion.div>
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
+                <Label htmlFor="email" className="text-gray-700 font-medium">Email Address</Label>
                 <Input
                   id="email"
                   type="email"
@@ -100,11 +122,12 @@ export default function EmployeeLogin() {
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   disabled={isLoading}
+                  className="bg-white/50 border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-xl h-12"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <Label htmlFor="password" className="text-gray-700 font-medium">Password</Label>
                 <Input
                   id="password"
                   type="password"
@@ -113,43 +136,79 @@ export default function EmployeeLogin() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   disabled={isLoading}
+                  className="bg-white/50 border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-xl h-12"
                 />
               </div>
 
-              <Button
-                type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <span className="animate-spin mr-2">⏳</span>
-                    Signing in...
-                  </>
-                ) : (
-                  <>
-                    <LogIn className="mr-2" size={18} />
-                    Sign In
-                  </>
-                )}
-              </Button>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  type="submit"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 rounded-xl text-lg font-semibold shadow-lg shadow-blue-600/20"
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Signing in...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <LogIn className="mr-2" size={20} />
+                      Sign In
+                    </>
+                  )}
+                </Button>
+              </motion.div>
+
+              {import.meta.env.DEV && (
+                <div className="pt-4 text-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="rounded-full"
+                    onClick={() => {
+                      localStorage.setItem("employeeSession", JSON.stringify({
+                        id: 1001,
+                        email: "employee.demo@solupedia.com",
+                        firstName: "Demo",
+                        lastName: "Employee",
+                        employeeId: "EMP-DEMO",
+                        loginTime: new Date().toISOString(),
+                      }));
+                      toast.success("Demo employee activated");
+                      setTimeout(() => {
+                        setLocation("/employee/dashboard");
+                      }, 100);
+                    }}
+                  >
+                    Use Demo Employee
+                  </Button>
+                </div>
+              )}
             </form>
 
-            <div className="mt-6 pt-6 border-t">
-              <p className="text-sm text-gray-600 text-center">
-                Need help? <a href="mailto:support@solupedia.com" className="text-blue-600 hover:underline">Contact Support</a>
+            <div className="mt-8 pt-6 border-t border-gray-100 text-center">
+              <p className="text-sm text-gray-500 mb-4">
+                Need help? <a href="mailto:support@solupedia.com" className="text-blue-600 hover:text-blue-700 font-medium hover:underline transition-all">Contact Support</a>
               </p>
+              <Link href="/">
+                <a className="inline-flex items-center text-sm text-gray-500 hover:text-blue-600 font-medium transition-colors">
+                  <ArrowLeft className="w-4 h-4 mr-1" /> Back to Solupedia
+                </a>
+              </Link>
             </div>
           </CardContent>
         </Card>
-
-        {/* Back to website */}
-        <div className="text-center mt-6">
-          <Link href="/">
-            <a className="text-sm text-gray-600 hover:text-gray-900">← Back to Solupedia</a>
-          </Link>
+        
+        <div className="text-center mt-8">
+          <p className="text-sm text-gray-500">
+            © 2026 Solupedia LTD. All rights reserved.
+          </p>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
+
+// Import ArrowLeft icon since we used it
+import { ArrowLeft } from "lucide-react";

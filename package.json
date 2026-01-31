@@ -12,7 +12,9 @@
     "test": "vitest run",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
     "db:test": "node scripts/test-connection.mjs",
-    "db:get-connection": "node scripts/get-connection-string.mjs"
+    "db:get-connection": "node scripts/get-connection-string.mjs",
+    "supabase:setup": "pnpm run db:test && pnpm run db:push && node scripts/init-admin.mjs",
+    "supabase:seed-admin": "node scripts/init-admin.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.693.0",
@@ -56,7 +58,7 @@
     "cookie": "^1.0.2",
     "cross-env": "^10.1.0",
     "date-fns": "^4.1.0",
-    "dotenv": "^17.2.2",
+    "dotenv": "^17.2.3",
     "drizzle-orm": "^0.44.5",
     "embla-carousel-react": "^8.6.0",
     "express": "^4.21.2",

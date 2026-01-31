@@ -119,3 +119,5 @@ Sometimes Supabase uses a different format. Try this:
 ✅ **Correct:** Resume the project in Supabase dashboard
 
 
+
+

@@ -1,42 +1,95 @@
-import { Link } from "wouter";
-import { Mail, Phone, MapPin, Facebook, Twitter, Linkedin, MessageCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  ArrowRight,
+  Facebook,
+  Linkedin,
+  Mail,
+  MapPin,
+  MessageCircle,
+  Phone,
+  Twitter,
+} from "lucide-react";
 import { memo } from "react";
+import { Link } from "wouter";
 
 function Footer() {
   return (
-    <footer className="bg-gray-900 text-white mt-16">
-      <div className="container mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          {/* Company Info */}
-          <div>
-            <img src="/logo-white-full.png" alt="Solupedia" className="h-12 mb-4" />
-            <p className="text-gray-400 text-sm">
-              Professional localization solutions for global businesses. Bridging language gaps since 2006.
+    <footer className="bg-gray-900 text-white mt-16 relative overflow-hidden">
+      {/* Abstract Background */}
+      <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+      <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-900/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+
+      <div className="container mx-auto px-4 py-8 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">
+          {/* Company Info - spans 2 columns */}
+          <div className="lg:col-span-2">
+            <Link href="/">
+              <img
+                src="/logo-white-full.png"
+                alt="Solupedia"
+                className="h-8 mb-4 cursor-pointer"
+              />
+            </Link>
+            <p className="text-gray-400 text-sm leading-relaxed mb-4 max-w-sm">
+              Professional localization solutions for global businesses.
+              Bridging language gaps since 2006 with expertise, technology, and
+              a human touch.
             </p>
+
+            <div className="bg-gray-800/50 p-4 rounded-xl border border-gray-700/50">
+              <h4 className="font-semibold mb-2 text-sm">Subscribe</h4>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Email"
+                  className="bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 rounded-full h-8 text-sm"
+                />
+                <Button
+                  size="icon"
+                  className="rounded-full bg-blue-600 hover:bg-blue-700 shrink-0 h-8 w-8"
+                >
+                  <ArrowRight size={18} />
+                </Button>
+              </div>
+            </div>
           </div>
 
           {/* Services */}
           <div>
-            <h3 className="font-bold mb-4">Services</h3>
-            <ul className="space-y-2 text-gray-400 text-sm">
+            <h3 className="font-semibold mb-4 text-white text-base">
+              Services
+            </h3>
+            <ul className="space-y-3 text-gray-400 text-sm">
               <li>
-                <Link href="/services/document-localization" className="hover:text-white transition">
-                  Document Localization
+                <Link href="/services/document-localization">
+                  <a className="hover:text-blue-400 transition-colors flex items-center gap-2 group">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                    Document Localization
+                  </a>
                 </Link>
               </li>
               <li>
-                <Link href="/services/elearning-localization" className="hover:text-white transition">
-                  eLearning Localization
+                <Link href="/services/elearning-localization">
+                  <a className="hover:text-blue-400 transition-colors flex items-center gap-2 group">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                    eLearning Localization
+                  </a>
                 </Link>
               </li>
               <li>
-                <Link href="/services/audio-video-localization" className="hover:text-white transition">
-                  Audio/Video Localization
+                <Link href="/services/audio-video-localization">
+                  <a className="hover:text-blue-400 transition-colors flex items-center gap-2 group">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                    Audio/Video Localization
+                  </a>
                 </Link>
               </li>
               <li>
-                <Link href="/services/creation-solutions" className="hover:text-white transition">
-                  Creation Solutions
+                <Link href="/services/creation-solutions">
+                  <a className="hover:text-blue-400 transition-colors flex items-center gap-2 group">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                    Creation Solutions
+                  </a>
                 </Link>
               </li>
             </ul>
@@ -44,26 +97,40 @@ function Footer() {
 
           {/* Resources */}
           <div>
-            <h3 className="font-bold mb-4">Resources</h3>
-            <ul className="space-y-2 text-gray-400 text-sm">
+            <h3 className="font-semibold mb-4 text-white text-base">
+              Resources
+            </h3>
+            <ul className="space-y-3 text-gray-400 text-sm">
               <li>
-                <Link href="/case-studies" className="hover:text-white transition">
-                  Case Studies
+                <Link href="/case-studies">
+                  <a className="hover:text-blue-400 transition-colors flex items-center gap-2 group">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                    Case Studies
+                  </a>
                 </Link>
               </li>
               <li>
-                <Link href="/blog" className="hover:text-white transition">
-                  Blog
+                <Link href="/blog">
+                  <a className="hover:text-blue-400 transition-colors flex items-center gap-2 group">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                    Blog
+                  </a>
                 </Link>
               </li>
               <li>
-                <Link href="/lead-magnet" className="hover:text-white transition">
-                  Free Guide
+                <Link href="/lead-magnet">
+                  <a className="hover:text-blue-400 transition-colors flex items-center gap-2 group">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                    Free Guide
+                  </a>
                 </Link>
               </li>
               <li>
-                <Link href="/about" className="hover:text-white transition">
-                  About Us
+                <Link href="/about">
+                  <a className="hover:text-blue-400 transition-colors flex items-center gap-2 group">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                    About Us
+                  </a>
                 </Link>
               </li>
             </ul>
@@ -71,46 +138,84 @@ function Footer() {
 
           {/* Contact Info */}
           <div>
-            <h3 className="font-bold mb-4">Contact</h3>
+            <h3 className="font-semibold mb-4 text-white text-base">Contact</h3>
             <ul className="space-y-3 text-gray-400 text-sm">
-              <li className="flex items-start gap-2">
-                <Phone size={16} className="mt-0.5 flex-shrink-0" />
-                <a href="tel:+1910626852" className="hover:text-white transition">
+              <li className="flex items-start gap-3 group">
+                <div className="w-6 h-6 rounded-full bg-gray-800 flex items-center justify-center text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-colors shrink-0">
+                  <Phone size={12} />
+                </div>
+                <a
+                  href="tel:+1910626852"
+                  className="hover:text-white transition py-1"
+                >
                   +1 (910) 626-8525
                 </a>
               </li>
-              <li className="flex items-start gap-2">
-                <Mail size={16} className="mt-0.5 flex-shrink-0" />
-                <a href="mailto:info@solupedia.com" className="hover:text-white transition">
+              <li className="flex items-start gap-3 group">
+                <div className="w-6 h-6 rounded-full bg-gray-800 flex items-center justify-center text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-colors shrink-0">
+                  <Mail size={12} />
+                </div>
+                <a
+                  href="mailto:info@solupedia.com"
+                  className="hover:text-white transition py-1"
+                >
                   info@solupedia.com
                 </a>
               </li>
-              <li className="flex items-start gap-2">
-                <MapPin size={16} className="mt-0.5 flex-shrink-0" />
-                <span>71-75 Shelton Street<br />Covent Garden, London<br />WC2H 9JQ, UK</span>
+              <li className="flex items-start gap-3 group">
+                <div className="w-6 h-6 rounded-full bg-gray-800 flex items-center justify-center text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-colors shrink-0">
+                  <MapPin size={12} />
+                </div>
+                <span className="py-1">
+                  71-75 Shelton Street
+                  <br />
+                  Covent Garden, London
+                  <br />
+                  WC2H 9JQ, UK
+                </span>
               </li>
             </ul>
           </div>
         </div>
 
         {/* Social Links & Copyright */}
-        <div className="border-t border-gray-800 pt-8">
-          <div className="flex flex-col md:flex-row items-center justify-between">
-            <p className="text-gray-400 text-sm">
+        <div className="border-t border-gray-800 pt-4 mt-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-gray-500 text-xs">
               © 2026 Solupedia LTD. All rights reserved.
             </p>
-            <div className="flex gap-4 mt-4 md:mt-0">
-              <a href="https://www.facebook.com/solupediadotcom/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition">
-                <Facebook size={20} />
+            <div className="flex gap-3">
+              <a
+                href="https://www.facebook.com/solupediadotcom/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-blue-600 hover:text-white transition-all duration-300"
+              >
+                <Facebook size={14} />
               </a>
-              <a href="https://wa.me/201555335577" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition">
-                <MessageCircle size={20} />
+              <a
+                href="https://wa.me/201555335577"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-green-600 hover:text-white transition-all duration-300"
+              >
+                <MessageCircle size={14} />
               </a>
-              <a href="https://twitter.com/solupedia" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition">
-                <Twitter size={20} />
+              <a
+                href="https://twitter.com/solupedia"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-sky-500 hover:text-white transition-all duration-300"
+              >
+                <Twitter size={14} />
               </a>
-              <a href="https://linkedin.com/company/solupedia" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition">
-                <Linkedin size={20} />
+              <a
+                href="https://linkedin.com/company/solupedia"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-blue-700 hover:text-white transition-all duration-300"
+              >
+                <Linkedin size={14} />
               </a>
             </div>
           </div>

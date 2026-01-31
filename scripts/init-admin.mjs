@@ -1,5 +1,14 @@
 import bcrypt from 'bcryptjs';
 import postgres from 'postgres';
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+dotenv.config({ path: join(__dirname, '..', '.env') });
+dotenv.config({ path: join(__dirname, '..', '.env.local') });
 
 const DATABASE_URL = process.env.DATABASE_URL;
 
@@ -11,17 +20,17 @@ if (!DATABASE_URL) {
 async function initializeAdmin() {
   let sql;
   try {
-    // Create postgres connection
-    sql = postgres(DATABASE_URL, { max: 1 });
+    sql = postgres(DATABASE_URL, { 
+      max: 1,
+      ssl: DATABASE_URL.includes('supabase.co') || DATABASE_URL.includes('pooler.supabase.com') ? 'require' : false
+    });
 
-    const email = 'weseily@solupedia.com';
-    const password = 'Zuna9sK_4SoQ!sx#G';
+    const email = process.env.ADMIN_EMAIL || 'weseily@solupedia.com';
+    const password = process.env.ADMIN_PASSWORD || 'Zuna9sK_4SoQ!sx#G';
 
-    // Hash the password
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(password, saltRounds);
 
-    // Check if admin already exists
     const existing = await sql`
       SELECT * FROM "adminCredentials" WHERE email = ${email}
     `;
@@ -32,7 +41,6 @@ async function initializeAdmin() {
       process.exit(0);
     }
 
-    // Insert admin credentials
     await sql`
       INSERT INTO "adminCredentials" (email, "passwordHash", "isActive", "createdAt", "updatedAt") 
       VALUES (${email}, ${passwordHash}, true, NOW(), NOW())

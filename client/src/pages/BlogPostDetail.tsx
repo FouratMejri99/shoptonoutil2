@@ -1,8 +1,9 @@
 import { useParams } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, User, Share2 } from "lucide-react";
+import { ArrowLeft, Calendar, User, Share2, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
+import { motion } from "framer-motion";
 
 // Blog post data with full content
 const blogPostsData: Record<string, any> = {
@@ -153,18 +154,22 @@ export default function BlogPostDetail() {
 
   if (!post) {
     return (
-      <div className="min-h-screen bg-gray-50 py-12">
-        <div className="container mx-auto px-4">
-          <div className="text-center py-12">
-            <h1 className="text-3xl font-bold text-gray-900 mb-4">Blog Post Not Found</h1>
-            <p className="text-gray-600 mb-8">Sorry, the blog post you're looking for doesn't exist.</p>
-            <Link href="/blog">
-              <Button className="gap-2">
-                <ArrowLeft className="w-4 h-4" />
-                Back to Blog
-              </Button>
-            </Link>
-          </div>
+      <div className="min-h-screen w-full flex items-center justify-center bg-white relative overflow-hidden">
+        {/* Background Blobs */}
+        <div className="fixed inset-0 pointer-events-none z-0">
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+          <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-900/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+        </div>
+
+        <div className="relative z-10 text-center px-4">
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">Blog Post Not Found</h1>
+          <p className="text-gray-600 mb-8">Sorry, the blog post you're looking for doesn't exist.</p>
+          <Link href="/blog">
+            <Button className="rounded-full bg-blue-600 hover:bg-blue-700 gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Blog
+            </Button>
+          </Link>
         </div>
       </div>
     );
@@ -179,108 +184,182 @@ export default function BlogPostDetail() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Hero Section with Featured Image */}
-      {post.featuredImage && (
-        <div className="w-full h-96 bg-gray-300 overflow-hidden">
-          <img
-            src={post.featuredImage}
-            alt={post.title}
-            className="w-full h-full object-cover"
-          />
-        </div>
-      )}
+    <div className="min-h-screen bg-white relative overflow-hidden">
+      {/* Background Blobs */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-900/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+      </div>
 
-      {/* Blog Post Content */}
-      <div className="py-12">
-        <div className="container mx-auto px-4 max-w-3xl">
-          {/* Back Button */}
-          <Link href="/blog">
-            <Button variant="ghost" className="gap-2 mb-8">
-              <ArrowLeft className="w-4 h-4" />
-              Back to Blog
-            </Button>
-          </Link>
-
-          {/* Post Header */}
-          <article className="bg-white rounded-lg shadow-sm p-8">
-            <div className="mb-6">
-              <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium mb-4">
-                {post.category}
-              </span>
-              <h1 className="text-4xl font-bold text-gray-900 mb-4">{post.title}</h1>
-
-              {/* Post Meta */}
-              <div className="flex flex-wrap gap-6 text-gray-600 border-t border-b border-gray-200 py-4">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  <span>{formatDate(post.publishedAt)}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  <span>By {post.author}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Post Content */}
-            <div
-              className="prose prose-lg max-w-none text-gray-700 leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: post.content }}
+      <div className="relative z-10">
+        {/* Hero Section with Featured Image */}
+        {post.featuredImage && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.8 }}
+            className="w-full h-[400px] md:h-[500px] relative overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10"></div>
+            <img
+              src={post.featuredImage}
+              alt={post.title}
+              className="w-full h-full object-cover"
             />
-
-            {/* Share Section */}
-            <div className="mt-12 pt-8 border-t border-gray-200">
-              <div className="flex items-center gap-4">
-                <span className="text-gray-700 font-medium">Share this post:</span>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Share2 className="w-4 h-4" />
-                  Share
-                </Button>
+            <div className="absolute bottom-0 left-0 w-full z-20 p-8 md:p-16">
+              <div className="container mx-auto">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3, duration: 0.6 }}
+                >
+                  <span className="inline-block px-4 py-1.5 bg-blue-600 text-white rounded-full text-sm font-medium mb-4 shadow-lg">
+                    {post.category}
+                  </span>
+                  <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight max-w-4xl shadow-sm">{post.title}</h1>
+                  
+                  <div className="flex flex-wrap gap-6 text-white/90">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-5 h-5" />
+                      <span className="text-lg">{formatDate(post.publishedAt)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <User className="w-5 h-5" />
+                      <span className="text-lg">By {post.author}</span>
+                    </div>
+                  </div>
+                </motion.div>
               </div>
             </div>
+          </motion.div>
+        )}
+
+        {/* Blog Post Content */}
+        <div className="py-16 md:py-24">
+          <div className="container mx-auto px-4 max-w-4xl">
+            {/* Back Button */}
+            <Link href="/blog">
+              <Button variant="ghost" className="gap-2 mb-8 hover:bg-blue-50 text-gray-600 hover:text-blue-600">
+                <ArrowLeft className="w-4 h-4" />
+                Back to Blog
+              </Button>
+            </Link>
+
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.6 }}
+            >
+              {/* Post Content */}
+              <article className="bg-white/80 backdrop-blur-md rounded-3xl shadow-xl p-8 md:p-12 border border-white/20">
+                {!post.featuredImage && (
+                  <div className="mb-10 pb-10 border-b border-gray-100">
+                    <span className="inline-block px-4 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-medium mb-6">
+                      {post.category}
+                    </span>
+                    <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">{post.title}</h1>
+
+                    <div className="flex flex-wrap gap-6 text-gray-600">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-5 h-5 text-blue-500" />
+                        <span>{formatDate(post.publishedAt)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <User className="w-5 h-5 text-blue-500" />
+                        <span>By {post.author}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div
+                  className="prose prose-lg prose-blue max-w-none text-gray-700 leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: post.content }}
+                />
+
+                {/* Share Section */}
+                <div className="mt-16 pt-8 border-t border-gray-100 flex items-center justify-between">
+                  <span className="text-gray-900 font-semibold text-lg">Share this post:</span>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="gap-2 rounded-full border-gray-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600">
+                      <Share2 className="w-4 h-4" />
+                      Share
+                    </Button>
+                  </div>
+                </div>
+              </article>
+            </motion.div>
 
             {/* CTA Section */}
-            <div className="mt-12 p-8 bg-blue-50 rounded-lg border border-blue-200">
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Need Expert Localization Services?</h3>
-              <p className="text-gray-700 mb-4">
-                Solupedia specializes in professional localization solutions across all industries. Contact us today to discuss your project needs.
-              </p>
-              <Link href="/contact">
-                <Button className="gap-2">
-                  Get in Touch
-                </Button>
-              </Link>
-            </div>
-          </article>
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="mt-16 p-10 md:p-12 bg-gradient-to-br from-blue-600 to-blue-800 rounded-3xl shadow-xl text-white relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+              
+              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+                <div>
+                  <h3 className="text-2xl md:text-3xl font-bold mb-3">Need Expert Localization Services?</h3>
+                  <p className="text-blue-100 text-lg max-w-xl">
+                    Solupedia specializes in professional localization solutions across all industries.
+                  </p>
+                </div>
+                <Link href="/contact">
+                  <Button className="bg-white text-blue-600 hover:bg-blue-50 h-12 px-8 rounded-full text-lg font-semibold shadow-lg transition-all whitespace-nowrap">
+                    Get in Touch
+                  </Button>
+                </Link>
+              </div>
+            </motion.div>
 
-          {/* Related Posts */}
-          <div className="mt-16">
-            <h3 className="text-2xl font-bold text-gray-900 mb-8">More Blog Posts</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {Object.values(blogPostsData)
-                .filter((p: any) => p.slug !== slug)
-                .slice(0, 2)
-                .map((relatedPost: any) => (
-                  <Link key={relatedPost.id} href={`/blog/${relatedPost.slug}`}>
-                    <Card className="h-full hover:shadow-lg transition cursor-pointer flex flex-col">
-                      {relatedPost.featuredImage && (
-                        <div className="w-full h-40 bg-gray-300 rounded-t-lg overflow-hidden">
-                          <img
-                            src={relatedPost.featuredImage}
-                            alt={relatedPost.title}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
-                      <CardContent className="flex-1 p-4">
-                        <span className="text-xs font-medium text-blue-600 uppercase">{relatedPost.category}</span>
-                        <h4 className="font-bold text-gray-900 mt-2 line-clamp-2">{relatedPost.title}</h4>
-                        <p className="text-sm text-gray-600 mt-2 line-clamp-2">{relatedPost.excerpt}</p>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
+            {/* Related Posts */}
+            <div className="mt-24">
+              <h3 className="text-3xl font-bold text-gray-900 mb-10">More Blog Posts</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {Object.values(blogPostsData)
+                  .filter((p: any) => p.slug !== slug)
+                  .slice(0, 2)
+                  .map((relatedPost: any, idx) => (
+                    <motion.div
+                      key={relatedPost.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: idx * 0.1 }}
+                    >
+                      <Link href={`/blog/${relatedPost.slug}`}>
+                        <Card className="h-full hover:shadow-xl transition-all cursor-pointer flex flex-col border-none shadow-lg bg-white/80 backdrop-blur-sm group overflow-hidden rounded-3xl">
+                          {relatedPost.featuredImage && (
+                            <div className="w-full h-52 bg-gray-200 overflow-hidden relative">
+                              <img
+                                src={relatedPost.featuredImage}
+                                alt={relatedPost.title}
+                                className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+                              />
+                              <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors"></div>
+                            </div>
+                          )}
+                          <CardContent className="flex-1 p-8">
+                            <span className="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold uppercase tracking-wide mb-4">
+                              {relatedPost.category}
+                            </span>
+                            <h4 className="text-xl font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                              {relatedPost.title}
+                            </h4>
+                            <p className="text-gray-600 line-clamp-3 leading-relaxed">
+                              {relatedPost.excerpt}
+                            </p>
+                            <div className="mt-6 flex items-center text-blue-600 font-semibold text-sm group-hover:translate-x-1 transition-transform">
+                              Read Article <ArrowRight size={16} className="ml-2" />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    </motion.div>
+                  ))}
+              </div>
             </div>
           </div>
         </div>

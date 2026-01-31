@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Mail, Phone, MapPin, Clock } from "lucide-react";
+import { Mail, Phone, MapPin, Clock, Send, CheckCircle, HelpCircle } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+import { motion } from "framer-motion";
 
 export default function Contact() {
   const [formData, setFormData] = useState({
@@ -47,142 +48,196 @@ export default function Contact() {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full relative overflow-hidden bg-white">
+      {/* Background Blobs */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-blue-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-900/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
+      </div>
+
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-16">
-        <div className="container mx-auto px-4">
-          <h1 className="text-5xl font-bold mb-4">Get in Touch</h1>
-          <p className="text-xl text-blue-100">
-            Let's discuss how we can help your business go global
-          </p>
+      <section className="relative pt-32 pb-20 overflow-hidden z-10">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-white/50 to-blue-50/50 backdrop-blur-3xl -z-10"></div>
+        <div className="container mx-auto px-4 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <span className="inline-block py-1 px-3 rounded-full bg-blue-100 text-blue-600 text-sm font-semibold mb-6">
+              Contact Us
+            </span>
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-900 via-blue-700 to-blue-900">
+              Get in Touch
+            </h1>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
+              Let's discuss how we can help your business go global. Our team is ready to answer all your questions.
+            </p>
+          </motion.div>
         </div>
       </section>
 
-      {/* Contact Section */}
-      <section className="py-20">
+      {/* Contact Cards */}
+      <section className="relative z-10 pb-12">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-            <Card>
-              <CardHeader>
-                <Phone className="w-10 h-10 text-blue-600 mb-2" />
-                <CardTitle>Phone</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <a href="tel:+1910626852" className="text-lg font-semibold text-blue-600 hover:underline">
-                  +1 (910) 626-8525
-                </a>
-                <p className="text-gray-600 text-sm mt-2">Available Monday-Friday, 9AM-5PM EST</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <Mail className="w-10 h-10 text-blue-600 mb-2" />
-                <CardTitle>Email</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <a href="mailto:info@solupedia.com" className="text-lg font-semibold text-blue-600 hover:underline">
-                  info@solupedia.com
-                </a>
-                <p className="text-gray-600 text-sm mt-2">We respond within 24 hours</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <MapPin className="w-10 h-10 text-blue-600 mb-2" />
-                <CardTitle>Office</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700 font-semibold">
-                  71-75 Shelton Street<br />
-                  Covent Garden, London<br />
-                  WC2H 9JQ, UK
-                </p>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {
+                icon: Phone,
+                title: "Phone",
+                content: "+1 (910) 626-8525",
+                sub: "Mon-Fri, 9AM-5PM EST",
+                link: "tel:+19106268525"
+              },
+              {
+                icon: Mail,
+                title: "Email",
+                content: "info@solupedia.com",
+                sub: "We respond within 24 hours",
+                link: "mailto:info@solupedia.com"
+              },
+              {
+                icon: MapPin,
+                title: "Office",
+                content: "Covent Garden, London",
+                sub: "71-75 Shelton Street, WC2H 9JQ",
+                link: null
+              }
+            ].map((item, idx) => {
+              const Icon = item.icon;
+              return (
+                <motion.div
+                  key={idx}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: idx * 0.1 }}
+                >
+                  <Card className="h-full border-none shadow-lg hover:shadow-xl transition-all bg-white/80 backdrop-blur-md text-center">
+                    <CardContent className="pt-8 pb-8">
+                      <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6 text-blue-600">
+                        <Icon className="w-8 h-8" />
+                      </div>
+                      <h3 className="font-bold text-xl mb-2 text-gray-900">{item.title}</h3>
+                      {item.link ? (
+                        <a href={item.link} className="text-lg font-semibold text-blue-600 hover:text-blue-700 transition-colors">
+                          {item.content}
+                        </a>
+                      ) : (
+                        <p className="text-lg font-semibold text-gray-900">{item.content}</p>
+                      )}
+                      <p className="text-gray-500 mt-2">{item.sub}</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              );
+            })}
           </div>
+        </div>
+      </section>
 
-          {/* Contact Form */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-            <div>
-              <h2 className="text-3xl font-bold mb-6">Send us a Message</h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Name *</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-600"
-                    placeholder="Your name"
-                  />
+      {/* Main Form Section */}
+      <section className="py-20 relative z-10">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+            {/* Form */}
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="bg-white p-8 md:p-10 rounded-3xl shadow-xl border border-gray-100"
+            >
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold mb-4 text-gray-900">Send us a Message</h2>
+                <p className="text-gray-600">Fill out the form below and we'll get back to you shortly.</p>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700">Name *</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
+                      placeholder="Your name"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700">Email *</label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      required
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
+                      placeholder="your@email.com"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Email *</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-600"
-                    placeholder="your@email.com"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700">Phone</label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
+                      placeholder="+1 (555) 000-0000"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700">Company</label>
+                    <input
+                      type="text"
+                      name="company"
+                      value={formData.company}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all"
+                      placeholder="Your company"
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Phone</label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-600"
-                    placeholder="+1 (555) 123-4567"
-                  />
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-gray-700">Service Type</label>
+                  <div className="relative">
+                    <select
+                      name="serviceType"
+                      value={formData.serviceType}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all appearance-none"
+                    >
+                      <option value="">Select a service</option>
+                      <option value="document-localization">Document Localization</option>
+                      <option value="elearning-localization">eLearning Localization</option>
+                      <option value="audio-video-localization">Audio/Video Localization</option>
+                      <option value="creation-solutions">Creation Solutions</option>
+                      <option value="other">Other</option>
+                    </select>
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500">
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M2.5 4.5L6 8L9.5 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Company</label>
-                  <input
-                    type="text"
-                    name="company"
-                    value={formData.company}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-600"
-                    placeholder="Your company"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Service Type</label>
-                  <select
-                    name="serviceType"
-                    value={formData.serviceType}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-600"
-                  >
-                    <option value="">Select a service</option>
-                    <option value="document-localization">Document Localization</option>
-                    <option value="elearning-localization">eLearning Localization</option>
-                    <option value="audio-video-localization">Audio/Video Localization</option>
-                    <option value="creation-solutions">Creation Solutions</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Message</label>
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold text-gray-700">Message</label>
                   <textarea
                     name="message"
                     value={formData.message}
                     onChange={handleChange}
                     rows={5}
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:border-blue-600"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-600/20 focus:border-blue-600 transition-all resize-none"
                     placeholder="Tell us about your project..."
                   />
                 </div>
@@ -190,68 +245,84 @@ export default function Contact() {
                 <Button
                   type="submit"
                   disabled={submitLead.isPending}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
-                  size="lg"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 rounded-xl text-lg font-semibold shadow-lg shadow-blue-600/20 hover:shadow-xl transition-all"
                 >
-                  {submitLead.isPending ? "Sending..." : "Send Message"}
+                  {submitLead.isPending ? "Sending..." : "Send Message"} <Send className="ml-2 w-4 h-4" />
                 </Button>
               </form>
-            </div>
+            </motion.div>
 
-            {/* Info Section */}
-            <div>
-              <h2 className="text-3xl font-bold mb-6">Why Choose Solupedia?</h2>
-              <div className="space-y-6">
-                <div>
-                  <h3 className="font-bold text-lg mb-2">Expert Team</h3>
-                  <p className="text-gray-700">
-                    Our team of experienced localization professionals brings deep expertise across industries and languages.
-                  </p>
+            {/* Why Choose Us & Info */}
+            <div className="space-y-8">
+              <motion.div
+                initial={{ opacity: 0, x: 30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6 }}
+              >
+                <h2 className="text-3xl font-bold mb-8 text-gray-900">Why Partner With Us?</h2>
+                <div className="space-y-6">
+                  {[
+                    { title: "Expert Team", desc: "Our team of experienced localization professionals brings deep expertise across industries and languages." },
+                    { title: "Quality Assured", desc: "Rigorous quality control processes ensure culturally appropriate and accurate localization every time." },
+                    { title: "Fast Turnaround", desc: "Efficient workflows and project management enable quick delivery without compromising quality." },
+                    { title: "Global Reach", desc: "Support for 150+ languages with deep understanding of cultural nuances and local markets." }
+                  ].map((item, idx) => (
+                    <div key={idx} className="flex gap-4">
+                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                        <CheckCircle className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg text-gray-900 mb-1">{item.title}</h3>
+                        <p className="text-gray-600 leading-relaxed">{item.desc}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
+              </motion.div>
 
-                <div>
-                  <h3 className="font-bold text-lg mb-2">Quality Assured</h3>
-                  <p className="text-gray-700">
-                    Rigorous quality control processes ensure culturally appropriate and accurate localization every time.
-                  </p>
-                </div>
-
-                <div>
-                  <h3 className="font-bold text-lg mb-2">Fast Turnaround</h3>
-                  <p className="text-gray-700">
-                    Efficient workflows and project management enable quick delivery without compromising quality.
-                  </p>
-                </div>
-
-                <div>
-                  <h3 className="font-bold text-lg mb-2">Global Reach</h3>
-                  <p className="text-gray-700">
-                    Support for 150+ languages with deep understanding of cultural nuances and local markets.
-                  </p>
-                </div>
-
-                <Card className="bg-blue-50 border-blue-200">
-                  <CardHeader>
-                    <Clock className="w-8 h-8 text-blue-600 mb-2" />
-                    <CardTitle>Response Time</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-700">
-                      We typically respond to inquiries within 24 hours. For urgent matters, please call us directly.
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+              >
+                <Card className="bg-gradient-to-br from-blue-600 to-blue-800 text-white border-none shadow-xl">
+                  <CardContent className="p-8">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <Clock className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-xl">Quick Response</h3>
+                        <p className="text-blue-100">We value your time</p>
+                      </div>
+                    </div>
+                    <p className="text-blue-50 leading-relaxed">
+                      We typically respond to inquiries within 24 hours. For urgent matters, please call us directly at +1 (910) 626-8525.
                     </p>
                   </CardContent>
                 </Card>
-              </div>
+              </motion.div>
             </div>
           </div>
         </div>
       </section>
 
       {/* FAQ Section */}
-      <section className="bg-gray-50 py-20">
+      <section className="py-20 bg-gray-50/50 relative z-10">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold mb-12 text-center">Frequently Asked Questions</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-3xl font-bold mb-4 text-gray-900">Frequently Asked Questions</h2>
+            <p className="text-gray-600">Common questions about our services and process</p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {[
               {
                 q: "How long does a typical localization project take?",
@@ -278,14 +349,25 @@ export default function Contact() {
                 a: "Absolutely. We maintain strict confidentiality and can sign NDAs as needed."
               }
             ].map((item, idx) => (
-              <Card key={idx}>
-                <CardHeader>
-                  <CardTitle className="text-lg">{item.q}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-700">{item.a}</p>
-                </CardContent>
-              </Card>
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: idx * 0.1 }}
+              >
+                <Card className="h-full border-none shadow-md hover:shadow-lg transition-shadow bg-white">
+                  <CardHeader className="pb-2">
+                    <div className="flex gap-3 items-start">
+                      <HelpCircle className="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
+                      <CardTitle className="text-lg text-gray-900 leading-snug">{item.q}</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-600 ml-8 leading-relaxed">{item.a}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
           </div>
         </div>

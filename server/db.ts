@@ -14,6 +14,13 @@ export async function getDb() {
     try {
       const connectionString = process.env.DATABASE_URL;
       
+      if (connectionString.startsWith('http://') || connectionString.startsWith('https://')) {
+        console.error("[Database] Invalid DATABASE_URL value. Use a PostgreSQL connection string, not the project URL.");
+        console.error("[Database] Expected format: postgresql://postgres:[PASSWORD]@db.[PROJECT_REF].supabase.co:5432/postgres");
+        console.error("[Database] Tip: run `pnpm run db:get-connection` then update .env");
+        return null;
+      }
+
       // Validate connection string format for Supabase
       if (!connectionString.startsWith('postgresql://') && !connectionString.startsWith('postgres://')) {
         console.error("[Database] Invalid DATABASE_URL format. Expected postgresql:// or postgres://");
