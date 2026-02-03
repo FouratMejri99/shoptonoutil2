@@ -1,13 +1,20 @@
-import { Link } from "wouter";
+import { PageSkeleton } from "@/components/PageLoader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, Calendar, User, Search } from "lucide-react";
 import { trpc } from "@/lib/trpc";
-import { PageLoader, PageSkeleton } from "@/components/PageLoader";
 import { motion } from "framer-motion";
+import { ArrowRight, Calendar, User } from "lucide-react";
+import { Link } from "wouter";
 
 export default function Blog() {
-  const { data: posts, isLoading } = trpc.blog.list.useQuery();
+  const {
+    data: posts,
+    isLoading,
+    error,
+  } = trpc.blog.list.useQuery(undefined, {
+    retry: false,
+    refetchOnWindowFocus: false,
+  });
 
   // Static blog posts from Solupedia.com
   const staticPosts = [
@@ -19,7 +26,8 @@ export default function Blog() {
       author: "Solupedia",
       publishedAt: new Date("2023-02-16"),
       featuredImage: "/blog-articulate-captivate.webp",
-      excerpt: "Which eLearning authoring tool is the better choice for localization: Articulate Storyline or Adobe Captivate? When it comes to e-learning authoring tools, both tools offer a range of features to support robust localization capabilities."
+      excerpt:
+        "Which eLearning authoring tool is the better choice for localization: Articulate Storyline or Adobe Captivate? When it comes to e-learning authoring tools, both tools offer a range of features to support robust localization capabilities.",
     },
     {
       id: 2,
@@ -29,7 +37,8 @@ export default function Blog() {
       author: "Solupedia",
       publishedAt: new Date("2022-08-29"),
       featuredImage: "/blog-madcap-flare.webp",
-      excerpt: "MadCap Flare is a popular software tool used for creating and publishing technical documentation, help files, and online help systems. One of the key benefits of using MadCap Flare is its ability to localize content efficiently."
+      excerpt:
+        "MadCap Flare is a popular software tool used for creating and publishing technical documentation, help files, and online help systems. One of the key benefits of using MadCap Flare is its ability to localize content efficiently.",
     },
     {
       id: 3,
@@ -39,8 +48,9 @@ export default function Blog() {
       author: "Solupedia",
       publishedAt: new Date("2022-08-24"),
       featuredImage: "/blog-video-localization.webp",
-      excerpt: "As the world becomes increasingly connected, more and more video content is being shared across borders and languages. Localizing video content involves adapting it for a particular region or language, which can be a complex process."
-    }
+      excerpt:
+        "As the world becomes increasingly connected, more and more video content is being shared across borders and languages. Localizing video content involves adapting it for a particular region or language, which can be a complex process.",
+    },
   ];
 
   const formatDate = (date: Date | null) => {
@@ -48,7 +58,7 @@ export default function Blog() {
     return new Date(date).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
-      day: "numeric"
+      day: "numeric",
     });
   };
 
@@ -77,7 +87,8 @@ export default function Blog() {
               Localization Insights
             </h1>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
-              Industry trends, best practices, and expert insights to help you navigate the global marketplace.
+              Industry trends, best practices, and expert insights to help you
+              navigate the global marketplace.
             </p>
           </motion.div>
         </div>
@@ -88,9 +99,9 @@ export default function Blog() {
         <div className="container mx-auto px-4">
           {isLoading ? (
             <PageSkeleton />
-          ) : (posts && posts.length > 0 ? posts : staticPosts).length > 0 ? (
+          ) : posts && posts.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {(posts && posts.length > 0 ? posts : staticPosts).map((post, idx) => (
+              {posts.map((post, idx) => (
                 <motion.div
                   key={post.id}
                   initial={{ opacity: 0, y: 50 }}
@@ -102,20 +113,18 @@ export default function Blog() {
                   <Link href={`/blog/${post.slug}`}>
                     <Card className="h-full hover:shadow-xl transition-all cursor-pointer flex flex-col overflow-hidden border-none shadow-lg bg-white/80 backdrop-blur-sm">
                       {post.featuredImage && (
-                        <motion.div 
-                          className="w-full h-56 bg-gray-200 overflow-hidden relative group"
-                        >
-                          <img 
-                            src={post.featuredImage} 
-                            alt={post.title} 
-                            className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" 
+                        <motion.div className="w-full h-56 bg-gray-200 overflow-hidden relative group">
+                          <img
+                            src={post.featuredImage}
+                            alt={post.title}
+                            className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         </motion.div>
                       )}
                       <CardHeader className="flex-1 pb-2">
                         {post.category && (
-                          <motion.div 
+                          <motion.div
                             className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mb-3 w-fit"
                             initial={{ opacity: 0 }}
                             whileInView={{ opacity: 1 }}
@@ -131,7 +140,9 @@ export default function Blog() {
                       </CardHeader>
                       <CardContent className="flex-1 flex flex-col justify-between pt-0">
                         {post.excerpt && (
-                          <p className="text-gray-600 text-sm line-clamp-3 mb-6 leading-relaxed">{post.excerpt}</p>
+                          <p className="text-gray-600 text-sm line-clamp-3 mb-6 leading-relaxed">
+                            {post.excerpt}
+                          </p>
                         )}
                         <div className="flex items-center justify-between border-t border-gray-100 pt-4 mt-auto">
                           <div className="flex items-center gap-4 text-xs text-gray-500">
@@ -148,7 +159,81 @@ export default function Blog() {
                               </div>
                             )}
                           </div>
-                          <ArrowRight size={16} className="text-blue-600 transform group-hover:translate-x-1 transition-transform" />
+                          <ArrowRight
+                            size={16}
+                            className="text-blue-600 transform group-hover:translate-x-1 transition-transform"
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          ) : error ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {staticPosts.map((post, idx) => (
+                <motion.div
+                  key={post.id}
+                  initial={{ opacity: 0, y: 50 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-50px" }}
+                  transition={{ duration: 0.5, delay: idx * 0.1 }}
+                  whileHover={{ y: -8, transition: { duration: 0.2 } }}
+                >
+                  <Link href={`/blog/${post.slug}`}>
+                    <Card className="h-full hover:shadow-xl transition-all cursor-pointer flex flex-col overflow-hidden border-none shadow-lg bg-white/80 backdrop-blur-sm">
+                      {post.featuredImage && (
+                        <motion.div className="w-full h-56 bg-gray-200 overflow-hidden relative group">
+                          <img
+                            src={post.featuredImage}
+                            alt={post.title}
+                            className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        </motion.div>
+                      )}
+                      <CardHeader className="flex-1 pb-2">
+                        {post.category && (
+                          <motion.div
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mb-3 w-fit"
+                            initial={{ opacity: 0 }}
+                            whileInView={{ opacity: 1 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: idx * 0.1 + 0.2 }}
+                          >
+                            {post.category}
+                          </motion.div>
+                        )}
+                        <CardTitle className="text-xl font-bold text-gray-900 leading-tight group-hover:text-blue-600 transition-colors">
+                          {post.title}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="flex-1 flex flex-col justify-between pt-0">
+                        {post.excerpt && (
+                          <p className="text-gray-600 text-sm line-clamp-3 mb-6 leading-relaxed">
+                            {post.excerpt}
+                          </p>
+                        )}
+                        <div className="flex items-center justify-between border-t border-gray-100 pt-4 mt-auto">
+                          <div className="flex items-center gap-4 text-xs text-gray-500">
+                            {post.author && (
+                              <div className="flex items-center gap-1.5 font-medium">
+                                <User size={14} className="text-blue-500" />
+                                <span>{post.author}</span>
+                              </div>
+                            )}
+                            {post.publishedAt && (
+                              <div className="flex items-center gap-1.5">
+                                <Calendar size={14} className="text-blue-500" />
+                                <span>{formatDate(post.publishedAt)}</span>
+                              </div>
+                            )}
+                          </div>
+                          <ArrowRight
+                            size={16}
+                            className="text-blue-600 transform group-hover:translate-x-1 transition-transform"
+                          />
                         </div>
                       </CardContent>
                     </Card>
@@ -157,12 +242,75 @@ export default function Blog() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-20 bg-white/50 backdrop-blur-sm rounded-3xl border border-dashed border-gray-300">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Search className="w-8 h-8 text-gray-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No posts found</h3>
-              <p className="text-gray-600 mb-6">Check back soon for our latest insights on localization.</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {staticPosts.map((post, idx) => (
+                <motion.div
+                  key={post.id}
+                  initial={{ opacity: 0, y: 50 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-50px" }}
+                  transition={{ duration: 0.5, delay: idx * 0.1 }}
+                  whileHover={{ y: -8, transition: { duration: 0.2 } }}
+                >
+                  <Link href={`/blog/${post.slug}`}>
+                    <Card className="h-full hover:shadow-xl transition-all cursor-pointer flex flex-col overflow-hidden border-none shadow-lg bg-white/80 backdrop-blur-sm">
+                      {post.featuredImage && (
+                        <motion.div className="w-full h-56 bg-gray-200 overflow-hidden relative group">
+                          <img
+                            src={post.featuredImage}
+                            alt={post.title}
+                            className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                        </motion.div>
+                      )}
+                      <CardHeader className="flex-1 pb-2">
+                        {post.category && (
+                          <motion.div
+                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mb-3 w-fit"
+                            initial={{ opacity: 0 }}
+                            whileInView={{ opacity: 1 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: idx * 0.1 + 0.2 }}
+                          >
+                            {post.category}
+                          </motion.div>
+                        )}
+                        <CardTitle className="text-xl font-bold text-gray-900 leading-tight group-hover:text-blue-600 transition-colors">
+                          {post.title}
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="flex-1 flex flex-col justify-between pt-0">
+                        {post.excerpt && (
+                          <p className="text-gray-600 text-sm line-clamp-3 mb-6 leading-relaxed">
+                            {post.excerpt}
+                          </p>
+                        )}
+                        <div className="flex items-center justify-between border-t border-gray-100 pt-4 mt-auto">
+                          <div className="flex items-center gap-4 text-xs text-gray-500">
+                            {post.author && (
+                              <div className="flex items-center gap-1.5 font-medium">
+                                <User size={14} className="text-blue-500" />
+                                <span>{post.author}</span>
+                              </div>
+                            )}
+                            {post.publishedAt && (
+                              <div className="flex items-center gap-1.5">
+                                <Calendar size={14} className="text-blue-500" />
+                                <span>{formatDate(post.publishedAt)}</span>
+                              </div>
+                            )}
+                          </div>
+                          <ArrowRight
+                            size={16}
+                            className="text-blue-600 transform group-hover:translate-x-1 transition-transform"
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                </motion.div>
+              ))}
             </div>
           )}
         </div>
@@ -171,7 +319,7 @@ export default function Blog() {
       {/* Newsletter Signup */}
       <section className="py-20 relative z-10">
         <div className="container mx-auto px-4">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -181,11 +329,15 @@ export default function Blog() {
               <div className="absolute top-0 left-0 w-64 h-64 bg-blue-500 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 opacity-50"></div>
               <div className="absolute bottom-0 right-0 w-80 h-80 bg-blue-800 rounded-full blur-3xl translate-x-1/2 translate-y-1/2 opacity-50"></div>
             </div>
-            
+
             <div className="relative z-10 max-w-2xl mx-auto">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">Stay Updated</h2>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-white">
+                Stay Updated
+              </h2>
               <p className="text-blue-100 mb-8 text-lg">
-                Subscribe to our newsletter for the latest localization insights, industry trends, and Solupedia updates delivered to your inbox.
+                Subscribe to our newsletter for the latest localization
+                insights, industry trends, and Solupedia updates delivered to
+                your inbox.
               </p>
               <form className="flex flex-col sm:flex-row gap-3">
                 <input
@@ -199,7 +351,11 @@ export default function Blog() {
                 </Button>
               </form>
               <p className="text-blue-200 text-sm mt-4">
-                We care about your data in our <Link href="/privacy" className="underline hover:text-white">privacy policy</Link>.
+                We care about your data in our{" "}
+                <Link href="/privacy" className="underline hover:text-white">
+                  privacy policy
+                </Link>
+                .
               </p>
             </div>
           </motion.div>

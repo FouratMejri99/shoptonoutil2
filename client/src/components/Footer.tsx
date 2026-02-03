@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { trpc } from "@/lib/trpc";
 import {
   ArrowRight,
   Facebook,
@@ -10,10 +11,32 @@ import {
   Phone,
   Twitter,
 } from "lucide-react";
-import { memo } from "react";
+import { memo, useState } from "react";
+import { toast } from "sonner";
 import { Link } from "wouter";
 
 function Footer() {
+  const [email, setEmail] = useState("");
+
+  const subscribeNewsletter = trpc.leads.subscribeNewsletter.useMutation({
+    onSuccess: () => {
+      toast.success(
+        "Thanks for subscribing! Check your email for confirmation."
+      );
+      setEmail("");
+    },
+    onError: error => {
+      toast.error(error.message || "Failed to subscribe. Please try again.");
+    },
+  });
+
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email) {
+      subscribeNewsletter.mutate({ email });
+    }
+  };
+
   return (
     <footer className="bg-gray-900 text-white mt-16 relative overflow-hidden">
       {/* Abstract Background */}
@@ -39,18 +62,24 @@ function Footer() {
 
             <div className="bg-gray-800/50 p-4 rounded-xl border border-gray-700/50">
               <h4 className="font-semibold mb-2 text-sm">Subscribe</h4>
-              <div className="flex gap-2">
+              <form onSubmit={handleSubscribe} className="flex gap-2">
                 <Input
+                  type="email"
                   placeholder="Email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
                   className="bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 rounded-full h-8 text-sm"
+                  required
                 />
                 <Button
+                  type="submit"
                   size="icon"
+                  disabled={subscribeNewsletter.isPending}
                   className="rounded-full bg-blue-600 hover:bg-blue-700 shrink-0 h-8 w-8"
                 >
                   <ArrowRight size={18} />
                 </Button>
-              </div>
+              </form>
             </div>
           </div>
 

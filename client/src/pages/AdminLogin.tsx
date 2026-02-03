@@ -47,7 +47,7 @@ export default function AdminLogin() {
         toast.success("Login successful!");
         // Small delay to ensure cookie is set
         setTimeout(() => {
-          setLocation("/admin/dashboard");
+          setLocation("/admin/employees");
         }, 100);
       }
     } catch (err: any) {

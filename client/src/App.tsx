@@ -1,12 +1,12 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Suspense, lazy } from "react";
 import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
-import { ThemeProvider } from "./contexts/ThemeContext";
-import Navigation from "./components/Navigation";
 import Footer from "./components/Footer";
-import { Suspense, lazy } from "react";
+import Navigation from "./components/Navigation";
 import { PageLoader } from "./components/PageLoader";
+import { ThemeProvider } from "./contexts/ThemeContext";
 
 // Lazy load all pages for better performance and code splitting
 const Home = lazy(() => import("./pages/Home"));
@@ -28,6 +28,7 @@ const AdminEmployees = lazy(() => import("./pages/AdminEmployees"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AdminBlog = lazy(() => import("./pages/AdminBlog"));
+const AdminCaseStudies = lazy(() => import("./pages/AdminCaseStudies"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function Router() {
@@ -54,6 +55,7 @@ function Router() {
         <Route path={"/solupedia-admin"} component={AdminLogin} />
         <Route path={"/admin/dashboard"} component={AdminDashboard} />
         <Route path={"/admin/blog"} component={AdminBlog} />
+        <Route path={"/admin/case-studies"} component={AdminCaseStudies} />
         <Route path={"/404"} component={NotFound} />
         <Route component={NotFound} />
       </Switch>
@@ -63,12 +65,12 @@ function Router() {
 
 function App() {
   // Don't show navigation and footer for employee portal and admin pages
-  const isPortalPage = typeof window !== 'undefined' && (
-    window.location.pathname.startsWith('/employee') ||
-    window.location.pathname.startsWith('/admin') ||
-    window.location.pathname === '/solupedia-admin'
-  );
-  
+  const isPortalPage =
+    typeof window !== "undefined" &&
+    (window.location.pathname.startsWith("/employee") ||
+      window.location.pathname.startsWith("/admin") ||
+      window.location.pathname === "/solupedia-admin");
+
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">

@@ -20,11 +20,25 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Link } from "wouter";
 
+interface Employee {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  employeeId: string;
+  department?: string;
+  position?: string;
+  isActive: boolean;
+  createdAt?: string;
+}
+
 export default function AdminEmployees() {
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -39,12 +53,30 @@ export default function AdminEmployees() {
     position: "",
   });
 
-  // tRPC hooks
-  const utils = trpc.useUtils();
-  const { data: employees, isLoading } = trpc.admin.getAllEmployees.useQuery();
+  // tRPC queries and mutations
+  const {
+    data: employeesData,
+    refetch: refetchEmployees,
+    isLoading: isLoadingEmployees,
+  } = trpc.admin.getAllEmployees.useQuery();
   const createEmployeeMutation = trpc.admin.createEmployee.useMutation();
   const updateEmployeeMutation = trpc.admin.updateEmployee.useMutation();
   const deleteEmployeeMutation = trpc.admin.deleteEmployee.useMutation();
+
+  // Fetch employees on mount
+  useEffect(() => {
+    if (employeesData) {
+      setEmployees(employeesData || []);
+    }
+  }, [employeesData]);
+
+  useEffect(() => {
+    setIsLoading(isLoadingEmployees);
+  }, [isLoadingEmployees]);
+
+  const fetchEmployees = async () => {
+    await refetchEmployees();
+  };
 
   const handleAddEmployee = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,7 +84,7 @@ export default function AdminEmployees() {
     try {
       if (editingId) {
         // Update existing employee
-        await updateEmployeeMutation.mutateAsync({
+        const updates: any = {
           id: editingId,
           email: formData.email,
           firstName: formData.firstName,
@@ -60,7 +92,14 @@ export default function AdminEmployees() {
           employeeId: formData.employeeId,
           department: formData.department || undefined,
           position: formData.position || undefined,
-        });
+        };
+
+        // Only update password if provided
+        if (formData.password) {
+          updates.password = formData.password;
+        }
+
+        await updateEmployeeMutation.mutateAsync(updates);
         toast.success("Employee updated successfully");
         setEditingId(null);
       } else {
@@ -77,9 +116,7 @@ export default function AdminEmployees() {
         toast.success("Employee created successfully");
       }
 
-      // Invalidate and refetch
-      await utils.admin.getAllEmployees.invalidate();
-
+      await fetchEmployees();
       setShowForm(false);
       setFormData({
         email: "",
@@ -95,7 +132,7 @@ export default function AdminEmployees() {
     }
   };
 
-  const handleEdit = (employee: any) => {
+  const handleEdit = (employee: Employee) => {
     setFormData({
       email: employee.email,
       password: "",
@@ -114,7 +151,7 @@ export default function AdminEmployees() {
       try {
         await deleteEmployeeMutation.mutateAsync(id);
         toast.success("Employee deleted successfully");
-        await utils.admin.getAllEmployees.invalidate();
+        await fetchEmployees();
       } catch (error: any) {
         toast.error(error?.message || "Failed to delete employee");
       }
@@ -130,26 +167,26 @@ export default function AdminEmployees() {
       toast.success(
         currentStatus ? "Employee deactivated" : "Employee activated"
       );
-      await utils.admin.getAllEmployees.invalidate();
+      await fetchEmployees();
     } catch (error: any) {
       toast.error(error?.message || "Failed to update status");
     }
   };
 
   const handleLogout = () => {
-    window.location.href = "/";
+    localStorage.removeItem("adminSession");
+    window.location.href = "/solupedia-admin";
   };
 
-  const filteredEmployees =
-    employees?.filter(
-      (emp: any) =>
-        emp.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        emp.employeeId?.toLowerCase().includes(searchTerm.toLowerCase())
-    ) || [];
+  const filteredEmployees = employees.filter(
+    emp =>
+      emp.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.employeeId?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-  const activeCount = employees?.filter((emp: any) => emp.isActive).length || 0;
+  const activeCount = employees.filter(emp => emp.isActive).length;
 
   return (
     <div className="min-h-screen bg-gray-50 relative overflow-hidden">
@@ -185,6 +222,22 @@ export default function AdminEmployees() {
                   Reports
                 </Button>
               </Link>
+              <Link href="/admin/blog">
+                <Button
+                  variant="ghost"
+                  className="rounded-full hover:bg-blue-50 text-blue-600 hover:text-blue-700"
+                >
+                  Blog
+                </Button>
+              </Link>
+              <Link href="/admin/case-studies">
+                <Button
+                  variant="ghost"
+                  className="rounded-full hover:bg-blue-50 text-blue-600 hover:text-blue-700"
+                >
+                  Case Studies
+                </Button>
+              </Link>
               <Button
                 variant="outline"
                 onClick={handleLogout}
@@ -215,7 +268,7 @@ export default function AdminEmployees() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold text-blue-600">
-                  {employees?.length || 0}
+                  {employees.length}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">All employees</p>
               </CardContent>
@@ -464,148 +517,167 @@ export default function AdminEmployees() {
           )}
         </AnimatePresence>
 
-        {/* Employees Table */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.3 }}
-        >
-          <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-lg overflow-hidden rounded-3xl">
-            <CardHeader className="bg-blue-50/50 border-b border-blue-100/50">
-              <CardTitle>Employees</CardTitle>
-              <CardDescription>
-                Manage employee accounts and access
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              {filteredEmployees.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Users className="w-8 h-8 text-gray-400" />
-                  </div>
-                  <p className="text-gray-600 font-medium">
-                    {searchTerm
-                      ? "No employees match your search."
-                      : "No employees yet."}
-                  </p>
-                  {!searchTerm && (
-                    <p className="text-sm text-gray-500 mt-1">
-                      Add your first employee to get started.
+        {/* Loading State */}
+        {isLoading ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 animate-spin">
+              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full"></div>
+            </div>
+            <p className="text-gray-600">Loading employees...</p>
+          </div>
+        ) : (
+          /* Employees Table */
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.3 }}
+          >
+            <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-lg overflow-hidden rounded-3xl">
+              <CardHeader className="bg-blue-50/50 border-b border-blue-100/50">
+                <CardTitle>Employees</CardTitle>
+                <CardDescription>
+                  Manage employee accounts and access
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                {filteredEmployees.length === 0 ? (
+                  <div className="text-center py-12">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Users className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <p className="text-gray-600 font-medium">
+                      {searchTerm
+                        ? "No employees match your search."
+                        : "No employees yet."}
                     </p>
-                  )}
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-200 bg-gray-50/50">
-                        <th className="text-left py-4 px-6 font-semibold text-gray-900 text-sm">
-                          Name
-                        </th>
-                        <th className="text-left py-4 px-6 font-semibold text-gray-900 text-sm">
-                          Email
-                        </th>
-                        <th className="text-left py-4 px-6 font-semibold text-gray-900 text-sm">
-                          Employee ID
-                        </th>
-                        <th className="text-left py-4 px-6 font-semibold text-gray-900 text-sm">
-                          Department
-                        </th>
-                        <th className="text-left py-4 px-6 font-semibold text-gray-900 text-sm">
-                          Status
-                        </th>
-                        <th className="text-right py-4 px-6 font-semibold text-gray-900 text-sm">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredEmployees.map((emp, idx) => (
-                        <motion.tr
-                          key={emp.id}
-                          className="border-b border-gray-100 hover:bg-blue-50/30 transition-colors"
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ duration: 0.2, delay: idx * 0.05 }}
-                        >
-                          <td className="py-4 px-6">
-                            <div className="font-medium text-gray-900">
-                              {emp.firstName} {emp.lastName}
-                            </div>
-                            <div className="text-sm text-blue-600 font-medium">
-                              {emp.position}
-                            </div>
-                          </td>
-                          <td className="py-4 px-6 text-gray-700">
-                            {emp.email}
-                          </td>
-                          <td className="py-4 px-6">
-                            <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded text-gray-600">
-                              {emp.employeeId}
-                            </span>
-                          </td>
-                          <td className="py-4 px-6 text-gray-700">
-                            {emp.department || "-"}
-                          </td>
-                          <td className="py-4 px-6">
-                            <span
-                              className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                                emp.isActive
-                                  ? "bg-green-100 text-green-700 border border-green-200"
-                                  : "bg-gray-100 text-gray-700 border border-gray-200"
-                              }`}
-                            >
-                              {emp.isActive ? "Active" : "Inactive"}
-                            </span>
-                          </td>
-                          <td className="py-4 px-6 text-right">
-                            <div className="flex gap-2 justify-end">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEdit(emp)}
-                                className="h-8 w-8 p-0 rounded-full hover:bg-blue-100 text-blue-600"
+                    {!searchTerm && (
+                      <p className="text-sm text-gray-500 mt-1">
+                        Add your first employee to get started.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-200 bg-gray-50/50">
+                          <th className="text-left py-4 px-6 font-semibold text-gray-900 text-sm">
+                            Name
+                          </th>
+                          <th className="text-left py-4 px-6 font-semibold text-gray-900 text-sm">
+                            Email
+                          </th>
+                          <th className="text-left py-4 px-6 font-semibold text-gray-900 text-sm">
+                            Employee ID
+                          </th>
+                          <th className="text-left py-4 px-6 font-semibold text-gray-900 text-sm">
+                            Department
+                          </th>
+                          <th className="text-left py-4 px-6 font-semibold text-gray-900 text-sm">
+                            Status
+                          </th>
+                          <th className="text-right py-4 px-6 font-semibold text-gray-900 text-sm">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredEmployees.map((emp, idx) => (
+                          <motion.tr
+                            key={emp.id}
+                            className="border-b border-gray-100 hover:bg-blue-50/30 transition-colors"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2, delay: idx * 0.05 }}
+                          >
+                            <td className="py-4 px-6">
+                              <div className="font-medium text-gray-900">
+                                {emp.firstName} {emp.lastName}
+                              </div>
+                              <div className="text-sm text-blue-600 font-medium">
+                                {emp.position}
+                              </div>
+                            </td>
+                            <td className="py-4 px-6 text-gray-700">
+                              {emp.email}
+                            </td>
+                            <td className="py-4 px-6">
+                              <span className="font-mono text-xs bg-gray-100 px-2 py-1 rounded text-gray-600">
+                                {emp.employeeId}
+                              </span>
+                            </td>
+                            <td className="py-4 px-6 text-gray-700">
+                              {emp.department || "-"}
+                            </td>
+                            <td className="py-4 px-6">
+                              <span
+                                className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
+                                  emp.isActive
+                                    ? "bg-green-100 text-green-700 border border-green-200"
+                                    : "bg-gray-100 text-gray-700 border border-gray-200"
+                                }`}
                               >
-                                <Edit2 size={16} />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() =>
-                                  handleToggleActive(
-                                    emp.id,
-                                    emp.isActive ?? false
-                                  )
-                                }
-                                className={`h-8 w-8 p-0 rounded-full ${emp.isActive ? "hover:bg-orange-100 text-orange-600" : "hover:bg-green-100 text-green-600"}`}
-                                title={emp.isActive ? "Deactivate" : "Activate"}
-                              >
-                                {emp.isActive ? (
-                                  <EyeOff size={16} />
-                                ) : (
-                                  <Eye size={16} />
-                                )}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDelete(emp.id)}
-                                className="h-8 w-8 p-0 rounded-full hover:bg-red-100 text-red-600"
-                              >
-                                <Trash2 size={16} />
-                              </Button>
-                            </div>
-                          </td>
-                        </motion.tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
+                                {emp.isActive ? "Active" : "Inactive"}
+                              </span>
+                            </td>
+                            <td className="py-4 px-6 text-right">
+                              <div className="flex gap-2 justify-end">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEdit(emp)}
+                                  className="h-8 w-8 p-0 rounded-full hover:bg-blue-100 text-blue-600"
+                                >
+                                  <Edit2 size={16} />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDelete(emp.id)}
+                                  className="h-8 w-8 p-0 rounded-full hover:bg-red-100 text-red-600"
+                                >
+                                  <Trash2 size={16} />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleToggleActive(
+                                      emp.id,
+                                      emp.isActive ?? false
+                                    )
+                                  }
+                                  className={`h-8 w-8 p-0 rounded-full ${emp.isActive ? "hover:bg-orange-100 text-orange-600" : "hover:bg-green-100 text-green-600"}`}
+                                  title={
+                                    emp.isActive ? "Deactivate" : "Activate"
+                                  }
+                                >
+                                  {emp.isActive ? (
+                                    <EyeOff size={16} />
+                                  ) : (
+                                    <Eye size={16} />
+                                  )}
+                                </Button>
+                              </div>
+                            </td>
+                          </motion.tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
       </main>
+
+      {/* Footer */}
+      <footer className="bg-white/80 backdrop-blur-md border-t border-gray-200/50 py-6 relative z-10">
+        <div className="container mx-auto px-4 text-center text-sm text-gray-600">
+          <p>© 2026 Solupedia LTD. All rights reserved.</p>
+        </div>
+      </footer>
     </div>
   );
 }

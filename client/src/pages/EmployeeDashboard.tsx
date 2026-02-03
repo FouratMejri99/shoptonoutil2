@@ -1,11 +1,30 @@
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Link, useLocation } from "wouter";
-import { Plus, Clock, LogOut, Calendar, Briefcase, Users, Save, X, Play, StopCircle, Trash2 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { trpc } from "@/lib/trpc";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  Briefcase,
+  Calendar,
+  Clock,
+  LogOut,
+  Play,
+  Plus,
+  Save,
+  StopCircle,
+  Trash2,
+  X,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { useLocation } from "wouter";
 
 interface TimeRecord {
   id: number;
@@ -26,10 +45,13 @@ export default function EmployeeDashboard() {
   const [, setLocation] = useLocation();
   const [records, setRecords] = useState<TimeRecord[]>([]);
   const [showForm, setShowForm] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
   const [timerRunning, setTimerRunning] = useState(false);
   const [timerStart, setTimerStart] = useState<number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [employeeId, setEmployeeId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     projectNumber: "",
     projectName: "",
@@ -41,22 +63,36 @@ export default function EmployeeDashboard() {
     notes: "",
   });
 
-  // Check employee session on mount
+  // tRPC mutations
+  const utils = trpc.useUtils();
+  const createRecordMutation = trpc.employee.createTimeRecord.useMutation();
+  const deleteRecordMutation = trpc.employee.deleteRecord.useMutation();
+
+  // tRPC query for fetching records
+  const { data: dbRecords, refetch: refetchRecords } =
+    trpc.employee.getRecords.useQuery(
+      { employeeId: employeeId || 0 },
+      { enabled: !!employeeId }
+    );
+
+  // Fetch records from database on mount
   useEffect(() => {
     const employeeSession = localStorage.getItem("employeeSession");
     if (!employeeSession) {
       setLocation("/employee/login");
       return;
     }
-    
-    // Verify session is still valid (check if expired)
+
     try {
       const session = JSON.parse(employeeSession);
+      setEmployeeId(session.id);
+
+      // Session expires after 24 hours
       const loginTime = new Date(session.loginTime);
       const now = new Date();
-      const hoursSinceLogin = (now.getTime() - loginTime.getTime()) / (1000 * 60 * 60);
-      
-      // Session expires after 24 hours
+      const hoursSinceLogin =
+        (now.getTime() - loginTime.getTime()) / (1000 * 60 * 60);
+
       if (hoursSinceLogin > 24) {
         localStorage.removeItem("employeeSession");
         setLocation("/employee/login");
@@ -66,6 +102,29 @@ export default function EmployeeDashboard() {
       setLocation("/employee/login");
     }
   }, [setLocation]);
+
+  // Update records when dbRecords changes
+  useEffect(() => {
+    if (dbRecords) {
+      const transformedRecords: TimeRecord[] = dbRecords.map((record: any) => ({
+        id: record.id,
+        workDate: record.workDate
+          ? new Date(record.workDate).toISOString().split("T")[0]
+          : "",
+        projectNumber: record.projectNumber || "",
+        projectName: record.projectName || "",
+        taskType: record.taskType || "",
+        client: record.client || "",
+        languages: record.languages || "",
+        startTime: record.startTime || "",
+        endTime: record.endTime || "",
+        duration: parseFloat(record.duration) || 0,
+        businessDayTime: parseFloat(record.businessDayTime) || 0,
+        overtime: parseFloat(record.overtime) || 0,
+      }));
+      setRecords(transformedRecords);
+    }
+  }, [dbRecords]);
 
   useEffect(() => {
     const saved = localStorage.getItem("employeeLiveTimer");
@@ -104,7 +163,11 @@ export default function EmployeeDashboard() {
   useEffect(() => {
     localStorage.setItem(
       "employeeLiveTimer",
-      JSON.stringify({ running: timerRunning, start: timerStart, elapsedSeconds })
+      JSON.stringify({
+        running: timerRunning,
+        start: timerStart,
+        elapsedSeconds,
+      })
     );
   }, [timerRunning, timerStart, elapsedSeconds]);
 
@@ -125,7 +188,7 @@ export default function EmployeeDashboard() {
     setTimerRunning(true);
   };
 
-  const stopLiveTimer = () => {
+  const stopLiveTimer = async () => {
     if (!timerStart) return;
     const endMs = Date.now();
     const startDate = new Date(timerStart);
@@ -146,14 +209,21 @@ export default function EmployeeDashboard() {
     const businessEndMinutes = 17 * 60;
     let businessDayTime = 0;
     let overtime = 0;
-    if (startMinutes >= businessEndMinutes || endMinutes <= businessStartMinutes) {
+    if (
+      startMinutes >= businessEndMinutes ||
+      endMinutes <= businessStartMinutes
+    ) {
       overtime = duration;
-    } else if (startMinutes >= businessStartMinutes && endMinutes <= businessEndMinutes) {
+    } else if (
+      startMinutes >= businessStartMinutes &&
+      endMinutes <= businessEndMinutes
+    ) {
       businessDayTime = duration;
     } else {
       const overlapStart = Math.max(startMinutes, businessStartMinutes);
       const overlapEnd = Math.min(endMinutes, businessEndMinutes);
-      businessDayTime = Math.round(((overlapEnd - overlapStart) / 60) * 100) / 100;
+      businessDayTime =
+        Math.round(((overlapEnd - overlapStart) / 60) * 100) / 100;
       overtime = Math.round((duration - businessDayTime) * 100) / 100;
     }
 
@@ -171,7 +241,29 @@ export default function EmployeeDashboard() {
       businessDayTime,
       overtime,
     };
-    setRecords([newRecord, ...records]);
+
+    // Save to database
+    if (employeeId) {
+      try {
+        await createRecordMutation.mutateAsync({
+          employeeId,
+          workDate: new Date(workDate),
+          projectNumber: formData.projectNumber,
+          projectName: formData.projectName,
+          taskType: formData.taskType,
+          client: formData.client,
+          languages: formData.languages,
+          startTime: startStr,
+          endTime: endStr,
+          notes: formData.notes,
+        });
+        toast.success("Time record saved successfully!");
+        refetchRecords();
+      } catch (error) {
+        toast.error("Failed to save time record");
+      }
+    }
+
     setTimerRunning(false);
     setTimerStart(null);
     setElapsedSeconds(0);
@@ -180,39 +272,46 @@ export default function EmployeeDashboard() {
 
   const handleAddRecord = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Calculate duration and overtime
     const [startHour, startMin] = formData.startTime.split(":").map(Number);
     const [endHour, endMin] = formData.endTime.split(":").map(Number);
-    
+
     const startMinutes = startHour * 60 + startMin;
     const endMinutes = endHour * 60 + endMin;
-    
+
     let durationMinutes = endMinutes - startMinutes;
     if (durationMinutes < 0) {
       durationMinutes += 24 * 60;
     }
-    
+
     const duration = Math.round((durationMinutes / 60) * 100) / 100;
-    
+
     // Business hours: 9 AM to 5 PM
     const businessStartMinutes = 9 * 60;
     const businessEndMinutes = 17 * 60;
-    
+
     let businessDayTime = 0;
     let overtime = 0;
-    
-    if (startMinutes >= businessEndMinutes || endMinutes <= businessStartMinutes) {
+
+    if (
+      startMinutes >= businessEndMinutes ||
+      endMinutes <= businessStartMinutes
+    ) {
       overtime = duration;
-    } else if (startMinutes >= businessStartMinutes && endMinutes <= businessEndMinutes) {
+    } else if (
+      startMinutes >= businessStartMinutes &&
+      endMinutes <= businessEndMinutes
+    ) {
       businessDayTime = duration;
     } else {
       const overlapStart = Math.max(startMinutes, businessStartMinutes);
       const overlapEnd = Math.min(endMinutes, businessEndMinutes);
-      businessDayTime = Math.round(((overlapEnd - overlapStart) / 60) * 100) / 100;
+      businessDayTime =
+        Math.round(((overlapEnd - overlapStart) / 60) * 100) / 100;
       overtime = Math.round((duration - businessDayTime) * 100) / 100;
     }
-    
+
     const newRecord: TimeRecord = {
       id: Date.now(),
       workDate: selectedDate,
@@ -227,8 +326,29 @@ export default function EmployeeDashboard() {
       businessDayTime,
       overtime,
     };
-    
-    setRecords([newRecord, ...records]);
+
+    // Save to database
+    if (employeeId) {
+      try {
+        await createRecordMutation.mutateAsync({
+          employeeId,
+          workDate: new Date(selectedDate),
+          projectNumber: formData.projectNumber,
+          projectName: formData.projectName,
+          taskType: formData.taskType,
+          client: formData.client,
+          languages: formData.languages,
+          startTime: formData.startTime,
+          endTime: formData.endTime,
+          notes: formData.notes,
+        });
+        toast.success("Time record saved successfully!");
+        refetchRecords();
+      } catch (error) {
+        toast.error("Failed to save time record");
+      }
+    }
+
     setShowForm(false);
     setFormData({
       projectNumber: "",
@@ -249,25 +369,44 @@ export default function EmployeeDashboard() {
     window.location.href = "/employee/login";
   };
 
-  const handleDeleteRecord = (id: number) => {
-    setRecords(records.filter(r => r.id !== id));
+  const handleDeleteRecord = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this record?")) return;
+    try {
+      await deleteRecordMutation.mutateAsync(id);
+      toast.success("Record deleted successfully!");
+      refetchRecords();
+    } catch (error) {
+      toast.error("Failed to delete record");
+    }
   };
 
   const totalHours = records.reduce((sum, r) => sum + r.duration, 0);
-  const totalBusinessHours = records.reduce((sum, r) => sum + r.businessDayTime, 0);
+  const totalBusinessHours = records.reduce(
+    (sum, r) => sum + r.businessDayTime,
+    0
+  );
   const totalOvertime = records.reduce((sum, r) => sum + r.overtime, 0);
-  
+
   // Calculate additional statistics
   const uniqueDays = new Set(records.map(r => r.workDate)).size;
-  const uniqueProjects = new Set(records.filter(r => r.projectName).map(r => r.projectName)).size;
-  const averageHoursPerDay = uniqueDays > 0 ? (totalHours / uniqueDays).toFixed(2) : "0.00";
+  const uniqueProjects = new Set(
+    records.filter(r => r.projectName).map(r => r.projectName)
+  ).size;
+  const averageHoursPerDay =
+    uniqueDays > 0 ? (totalHours / uniqueDays).toFixed(2) : "0.00";
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
   const thisMonthRecords = records.filter(r => {
     const recordDate = new Date(r.workDate);
-    return recordDate.getMonth() === currentMonth && recordDate.getFullYear() === currentYear;
+    return (
+      recordDate.getMonth() === currentMonth &&
+      recordDate.getFullYear() === currentYear
+    );
   });
-  const thisMonthHours = thisMonthRecords.reduce((sum, r) => sum + r.duration, 0);
+  const thisMonthHours = thisMonthRecords.reduce(
+    (sum, r) => sum + r.duration,
+    0
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 relative overflow-hidden">
@@ -282,7 +421,7 @@ export default function EmployeeDashboard() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <motion.div 
+              <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center shadow-lg"
@@ -294,8 +433,8 @@ export default function EmployeeDashboard() {
                 <p className="text-xs text-gray-600">Employee Portal</p>
               </div>
             </div>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={handleLogout}
               className="rounded-full hover:bg-red-50 hover:text-red-600 border-gray-200"
             >
@@ -311,10 +450,30 @@ export default function EmployeeDashboard() {
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {[
-            { title: "Total Hours", value: totalHours.toFixed(2), subtitle: "All tracked hours", color: "text-blue-600" },
-            { title: "Business Hours", value: totalBusinessHours.toFixed(2), subtitle: "9 AM - 5 PM", color: "text-green-600" },
-            { title: "Overtime", value: totalOvertime.toFixed(2), subtitle: "Outside business hours", color: "text-orange-600" },
-            { title: "This Month", value: thisMonthHours.toFixed(2), subtitle: "Hours this month", color: "text-purple-600" }
+            {
+              title: "Total Hours",
+              value: totalHours.toFixed(2),
+              subtitle: "All tracked hours",
+              color: "text-blue-600",
+            },
+            {
+              title: "Business Hours",
+              value: totalBusinessHours.toFixed(2),
+              subtitle: "9 AM - 5 PM",
+              color: "text-green-600",
+            },
+            {
+              title: "Overtime",
+              value: totalOvertime.toFixed(2),
+              subtitle: "Outside business hours",
+              color: "text-orange-600",
+            },
+            {
+              title: "This Month",
+              value: thisMonthHours.toFixed(2),
+              subtitle: "Hours this month",
+              color: "text-purple-600",
+            },
           ].map((item, idx) => (
             <motion.div
               key={idx}
@@ -324,10 +483,14 @@ export default function EmployeeDashboard() {
             >
               <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-lg hover:shadow-xl transition-shadow rounded-3xl">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-gray-600">{item.title}</CardTitle>
+                  <CardTitle className="text-sm font-medium text-gray-600">
+                    {item.title}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className={`text-3xl font-bold ${item.color}`}>{item.value}</div>
+                  <div className={`text-3xl font-bold ${item.color}`}>
+                    {item.value}
+                  </div>
                   <p className="text-xs text-gray-500 mt-1">{item.subtitle}</p>
                 </CardContent>
               </Card>
@@ -338,22 +501,38 @@ export default function EmployeeDashboard() {
         {/* Additional Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {[
-            { title: "Days Worked", value: uniqueDays, subtitle: "Unique days tracked" },
-            { title: "Projects", value: uniqueProjects, subtitle: "Different projects" },
-            { title: "Avg Hours/Day", value: averageHoursPerDay, subtitle: "Average per day" }
+            {
+              title: "Days Worked",
+              value: uniqueDays,
+              subtitle: "Unique days tracked",
+            },
+            {
+              title: "Projects",
+              value: uniqueProjects,
+              subtitle: "Different projects",
+            },
+            {
+              title: "Avg Hours/Day",
+              value: averageHoursPerDay,
+              subtitle: "Average per day",
+            },
           ].map((item, idx) => (
             <motion.div
               key={idx}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.4 + (idx * 0.1) }}
+              transition={{ duration: 0.3, delay: 0.4 + idx * 0.1 }}
             >
               <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-md rounded-3xl">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-medium text-gray-600">{item.title}</CardTitle>
+                  <CardTitle className="text-sm font-medium text-gray-600">
+                    {item.title}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-gray-700">{item.value}</div>
+                  <div className="text-2xl font-bold text-gray-700">
+                    {item.value}
+                  </div>
                   <p className="text-xs text-gray-500 mt-1">{item.subtitle}</p>
                 </CardContent>
               </Card>
@@ -361,7 +540,7 @@ export default function EmployeeDashboard() {
           ))}
         </div>
 
-        <motion.div 
+        <motion.div
           className="mb-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -379,18 +558,28 @@ export default function EmployeeDashboard() {
                     <Clock className="w-8 h-8 text-blue-700" />
                   </div>
                   <div>
-                    <div className="text-4xl font-bold tracking-tight text-gray-900">{formatElapsed(elapsedSeconds)}</div>
-                    <div className="text-xs text-gray-500 mt-1">{timerRunning ? "Running" : "Stopped"}</div>
+                    <div className="text-4xl font-bold tracking-tight text-gray-900">
+                      {formatElapsed(elapsedSeconds)}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {timerRunning ? "Running" : "Stopped"}
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   {!timerRunning ? (
-                    <Button onClick={startLiveTimer} className="bg-green-600 hover:bg-green-700 rounded-full px-6 h-11">
+                    <Button
+                      onClick={startLiveTimer}
+                      className="bg-green-600 hover:bg-green-700 rounded-full px-6 h-11"
+                    >
                       <Play size={18} className="mr-2" />
                       Start
                     </Button>
                   ) : (
-                    <Button onClick={stopLiveTimer} className="bg-red-600 hover:bg-red-700 rounded-full px-6 h-11">
+                    <Button
+                      onClick={stopLiveTimer}
+                      className="bg-red-600 hover:bg-red-700 rounded-full px-6 h-11"
+                    >
                       <StopCircle size={18} className="mr-2" />
                       Stop
                     </Button>
@@ -403,13 +592,17 @@ export default function EmployeeDashboard() {
                   <select
                     id="timerTaskType"
                     value={formData.taskType}
-                    onChange={(e) => setFormData({ ...formData, taskType: e.target.value })}
+                    onChange={e =>
+                      setFormData({ ...formData, taskType: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 h-10"
                   >
                     <option value="translation">Translation</option>
                     <option value="review">Review</option>
                     <option value="qa">QA</option>
-                    <option value="desktop_publishing">Desktop Publishing</option>
+                    <option value="desktop_publishing">
+                      Desktop Publishing
+                    </option>
                     <option value="voiceover">Voice Over</option>
                     <option value="subtitle">Subtitle</option>
                     <option value="other">Other</option>
@@ -421,7 +614,12 @@ export default function EmployeeDashboard() {
                     id="timerProjectNumber"
                     placeholder="e.g., PROJ-2024-001"
                     value={formData.projectNumber}
-                    onChange={(e) => setFormData({ ...formData, projectNumber: e.target.value })}
+                    onChange={e =>
+                      setFormData({
+                        ...formData,
+                        projectNumber: e.target.value,
+                      })
+                    }
                     className="rounded-xl bg-white/50"
                   />
                 </div>
@@ -431,7 +629,9 @@ export default function EmployeeDashboard() {
                     id="timerProjectName"
                     placeholder="e.g., Website Localization"
                     value={formData.projectName}
-                    onChange={(e) => setFormData({ ...formData, projectName: e.target.value })}
+                    onChange={e =>
+                      setFormData({ ...formData, projectName: e.target.value })
+                    }
                     className="rounded-xl bg-white/50"
                   />
                 </div>
@@ -441,7 +641,9 @@ export default function EmployeeDashboard() {
                     id="timerClient"
                     placeholder="e.g., Acme Corp"
                     value={formData.client}
-                    onChange={(e) => setFormData({ ...formData, client: e.target.value })}
+                    onChange={e =>
+                      setFormData({ ...formData, client: e.target.value })
+                    }
                     className="rounded-xl bg-white/50"
                   />
                 </div>
@@ -450,7 +652,9 @@ export default function EmployeeDashboard() {
                   <select
                     id="timerLanguages"
                     value={formData.languages}
-                    onChange={(e) => setFormData({ ...formData, languages: e.target.value })}
+                    onChange={e =>
+                      setFormData({ ...formData, languages: e.target.value })
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 h-10"
                   >
                     <option value="">Select language</option>
@@ -472,7 +676,7 @@ export default function EmployeeDashboard() {
         </motion.div>
 
         {/* Add Record Button */}
-        <motion.div 
+        <motion.div
           className="mb-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -482,7 +686,11 @@ export default function EmployeeDashboard() {
             onClick={() => setShowForm(!showForm)}
             className="bg-blue-600 hover:bg-blue-700 rounded-full shadow-lg shadow-blue-600/20 px-6 h-12 text-lg"
           >
-            {showForm ? <X size={18} className="mr-2" /> : <Plus size={18} className="mr-2" />}
+            {showForm ? (
+              <X size={18} className="mr-2" />
+            ) : (
+              <Plus size={18} className="mr-2" />
+            )}
             {showForm ? "Close Form" : "Add Time Entry"}
           </Button>
         </motion.div>
@@ -499,7 +707,9 @@ export default function EmployeeDashboard() {
               <Card className="bg-white/90 backdrop-blur-md border-white/20 shadow-xl rounded-3xl overflow-hidden">
                 <CardHeader className="bg-blue-50/30">
                   <CardTitle>Add Time Entry</CardTitle>
-                  <CardDescription>Record your work time for a project</CardDescription>
+                  <CardDescription>
+                    Record your work time for a project
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="pt-6">
                   <form onSubmit={handleAddRecord} className="space-y-6">
@@ -510,7 +720,7 @@ export default function EmployeeDashboard() {
                           id="workDate"
                           type="date"
                           value={selectedDate}
-                          onChange={(e) => setSelectedDate(e.target.value)}
+                          onChange={e => setSelectedDate(e.target.value)}
                           required
                           className="rounded-xl bg-white/50"
                         />
@@ -521,13 +731,20 @@ export default function EmployeeDashboard() {
                         <select
                           id="taskType"
                           value={formData.taskType}
-                          onChange={(e) => setFormData({ ...formData, taskType: e.target.value })}
+                          onChange={e =>
+                            setFormData({
+                              ...formData,
+                              taskType: e.target.value,
+                            })
+                          }
                           className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 h-10"
                         >
                           <option value="translation">Translation</option>
                           <option value="review">Review</option>
                           <option value="qa">QA</option>
-                          <option value="desktop_publishing">Desktop Publishing</option>
+                          <option value="desktop_publishing">
+                            Desktop Publishing
+                          </option>
                           <option value="voiceover">Voice Over</option>
                           <option value="subtitle">Subtitle</option>
                           <option value="other">Other</option>
@@ -540,7 +757,12 @@ export default function EmployeeDashboard() {
                           id="projectNumber"
                           placeholder="e.g., PROJ-2024-001"
                           value={formData.projectNumber}
-                          onChange={(e) => setFormData({ ...formData, projectNumber: e.target.value })}
+                          onChange={e =>
+                            setFormData({
+                              ...formData,
+                              projectNumber: e.target.value,
+                            })
+                          }
                           className="rounded-xl bg-white/50"
                         />
                       </div>
@@ -551,7 +773,12 @@ export default function EmployeeDashboard() {
                           id="projectName"
                           placeholder="e.g., Website Localization"
                           value={formData.projectName}
-                          onChange={(e) => setFormData({ ...formData, projectName: e.target.value })}
+                          onChange={e =>
+                            setFormData({
+                              ...formData,
+                              projectName: e.target.value,
+                            })
+                          }
                           className="rounded-xl bg-white/50"
                         />
                       </div>
@@ -562,7 +789,9 @@ export default function EmployeeDashboard() {
                           id="client"
                           placeholder="e.g., Acme Corp"
                           value={formData.client}
-                          onChange={(e) => setFormData({ ...formData, client: e.target.value })}
+                          onChange={e =>
+                            setFormData({ ...formData, client: e.target.value })
+                          }
                           className="rounded-xl bg-white/50"
                         />
                       </div>
@@ -573,7 +802,12 @@ export default function EmployeeDashboard() {
                           id="languages"
                           placeholder="e.g., English, Spanish, French"
                           value={formData.languages}
-                          onChange={(e) => setFormData({ ...formData, languages: e.target.value })}
+                          onChange={e =>
+                            setFormData({
+                              ...formData,
+                              languages: e.target.value,
+                            })
+                          }
                           className="rounded-xl bg-white/50"
                         />
                       </div>
@@ -584,7 +818,12 @@ export default function EmployeeDashboard() {
                           id="startTime"
                           type="time"
                           value={formData.startTime}
-                          onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
+                          onChange={e =>
+                            setFormData({
+                              ...formData,
+                              startTime: e.target.value,
+                            })
+                          }
                           required
                           className="rounded-xl bg-white/50"
                         />
@@ -596,7 +835,12 @@ export default function EmployeeDashboard() {
                           id="endTime"
                           type="time"
                           value={formData.endTime}
-                          onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                          onChange={e =>
+                            setFormData({
+                              ...formData,
+                              endTime: e.target.value,
+                            })
+                          }
                           required
                           className="rounded-xl bg-white/50"
                         />
@@ -609,14 +853,19 @@ export default function EmployeeDashboard() {
                         id="notes"
                         placeholder="Add any additional notes about this time entry"
                         value={formData.notes}
-                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                        onChange={e =>
+                          setFormData({ ...formData, notes: e.target.value })
+                        }
                         className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50"
                         rows={3}
                       />
                     </div>
 
                     <div className="flex gap-3 pt-2">
-                      <Button type="submit" className="bg-blue-600 hover:bg-blue-700 rounded-full px-8">
+                      <Button
+                        type="submit"
+                        className="bg-blue-600 hover:bg-blue-700 rounded-full px-8"
+                      >
                         <Save size={18} className="mr-2" />
                         Save Entry
                       </Button>
@@ -648,15 +897,19 @@ export default function EmployeeDashboard() {
               {records.length} entries
             </span>
           </div>
-          
+
           {records.length === 0 ? (
             <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-lg rounded-3xl">
               <CardContent className="pt-12 pb-12 text-center">
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Clock className="w-8 h-8 text-gray-400" />
                 </div>
-                <p className="text-gray-600 font-medium">No time entries yet.</p>
-                <p className="text-sm text-gray-500 mt-1">Add your first entry above to start tracking time.</p>
+                <p className="text-gray-600 font-medium">
+                  No time entries yet.
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Add your first entry above to start tracking time.
+                </p>
               </CardContent>
             </Card>
           ) : (
@@ -674,54 +927,90 @@ export default function EmployeeDashboard() {
                       <CardContent className="pt-6 pb-6">
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                           <div>
-                            <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Date & Time</p>
+                            <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">
+                              Date & Time
+                            </p>
                             <div className="flex items-center gap-2">
                               <Calendar size={16} className="text-blue-500" />
-                              <span className="font-semibold text-gray-900">{record.workDate}</span>
+                              <span className="font-semibold text-gray-900">
+                                {record.workDate}
+                              </span>
                             </div>
                             <div className="flex items-center gap-2 mt-1 text-sm text-gray-600">
                               <Clock size={14} />
-                              <span>{record.startTime} - {record.endTime}</span>
+                              <span>
+                                {record.startTime} - {record.endTime}
+                              </span>
                             </div>
                           </div>
-                          
+
                           <div>
-                            <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">Task Info</p>
+                            <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">
+                              Task Info
+                            </p>
                             <div className="flex items-center gap-2">
-                              <Briefcase size={16} className="text-purple-500" />
-                              <span className="font-semibold capitalize text-gray-900">{record.taskType.replace('_', ' ')}</span>
+                              <Briefcase
+                                size={16}
+                                className="text-purple-500"
+                              />
+                              <span className="font-semibold capitalize text-gray-900">
+                                {record.taskType.replace("_", " ")}
+                              </span>
                             </div>
                             {record.projectName && (
-                              <div className="text-sm text-gray-600 mt-1 truncate" title={record.projectName}>
+                              <div
+                                className="text-sm text-gray-600 mt-1 truncate"
+                                title={record.projectName}
+                              >
                                 {record.projectName}
                               </div>
                             )}
                           </div>
-                          
+
                           <div className="md:col-span-2 lg:col-span-2 flex flex-col md:flex-row gap-4 justify-between items-start md:items-center bg-gray-50/50 p-3 rounded-xl border border-gray-100">
                             <div className="flex items-center gap-3">
                               <div className="bg-blue-100 p-2 rounded-lg text-blue-700">
-                                <p className="text-xs font-bold uppercase">Duration</p>
-                                <p className="text-xl font-bold">{record.duration}h</p>
+                                <p className="text-xs font-bold uppercase">
+                                  Duration
+                                </p>
+                                <p className="text-xl font-bold">
+                                  {record.duration}h
+                                </p>
                               </div>
                               <div className="space-y-1">
                                 <div className="flex items-center gap-2 text-sm">
                                   <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                                  <span className="text-gray-600">Business:</span>
-                                  <span className="font-semibold text-gray-900">{record.businessDayTime}h</span>
+                                  <span className="text-gray-600">
+                                    Business:
+                                  </span>
+                                  <span className="font-semibold text-gray-900">
+                                    {record.businessDayTime}h
+                                  </span>
                                 </div>
                                 <div className="flex items-center gap-2 text-sm">
                                   <span className="w-2 h-2 rounded-full bg-orange-500"></span>
-                                  <span className="text-gray-600">Overtime:</span>
-                                  <span className="font-semibold text-gray-900">{record.overtime}h</span>
+                                  <span className="text-gray-600">
+                                    Overtime:
+                                  </span>
+                                  <span className="font-semibold text-gray-900">
+                                    {record.overtime}h
+                                  </span>
                                 </div>
                               </div>
                             </div>
-                            
+
                             {(record.client || record.projectNumber) && (
                               <div className="text-right text-sm">
-                                {record.client && <p className="font-medium text-gray-900">{record.client}</p>}
-                                {record.projectNumber && <p className="font-mono text-xs text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-200 inline-block mt-1">{record.projectNumber}</p>}
+                                {record.client && (
+                                  <p className="font-medium text-gray-900">
+                                    {record.client}
+                                  </p>
+                                )}
+                                {record.projectNumber && (
+                                  <p className="font-mono text-xs text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-200 inline-block mt-1">
+                                    {record.projectNumber}
+                                  </p>
+                                )}
                               </div>
                             )}
                           </div>

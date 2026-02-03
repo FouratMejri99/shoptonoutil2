@@ -1,9 +1,10 @@
-import { useParams } from "wouter";
-import { Card, CardContent } from "@/components/ui/card";
+import { PageLoader } from "@/components/PageLoader";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar, User, Share2, ArrowRight } from "lucide-react";
-import { Link } from "wouter";
+import { Card, CardContent } from "@/components/ui/card";
+import { trpc } from "@/lib/trpc";
 import { motion } from "framer-motion";
+import { ArrowLeft, ArrowRight, Calendar, Share2, User } from "lucide-react";
+import { Link, useParams } from "wouter";
 
 // Blog post data with full content
 const blogPostsData: Record<string, any> = {
@@ -15,7 +16,8 @@ const blogPostsData: Record<string, any> = {
     author: "Solupedia",
     publishedAt: new Date("2023-02-16"),
     featuredImage: "/blog-articulate-captivate.webp",
-    excerpt: "Which eLearning authoring tool is the better choice for localization: Articulate Storyline or Adobe Captivate?",
+    excerpt:
+      "Which eLearning authoring tool is the better choice for localization: Articulate Storyline or Adobe Captivate?",
     content: `
 <h2>Which eLearning authoring tool is the better choice for localization: Articulate Storyline or Adobe Captivate?</h2>
 
@@ -42,7 +44,7 @@ const blogPostsData: Record<string, any> = {
 <p>Overall, both Articulate Storyline and Adobe Captivate are great options if you're looking for an e-learning authoring tool with robust localization capabilities. It's worth taking the time to compare the features and costs of each tool to determine which one is the best fit for your needs.</p>
 
 <p>Looking for advice on your case? We would be pleased to help you decide which e-Learning authoring tool you select for your project!</p>
-    `
+    `,
   },
   "madcap-flare-localization": {
     id: 2,
@@ -52,7 +54,8 @@ const blogPostsData: Record<string, any> = {
     author: "Solupedia",
     publishedAt: new Date("2022-08-29"),
     featuredImage: "/blog-madcap-flare.webp",
-    excerpt: "MadCap Flare is a popular software tool used for creating and publishing technical documentation, help files, and online help systems.",
+    excerpt:
+      "MadCap Flare is a popular software tool used for creating and publishing technical documentation, help files, and online help systems.",
     content: `
 <h2>MadCap Flare Localization</h2>
 
@@ -86,7 +89,7 @@ const blogPostsData: Record<string, any> = {
 <p>MadCap Flare is an excellent choice for organizations that need to create and maintain technical documentation in multiple languages. Its robust localization features, combined with its powerful content management capabilities, make it an ideal solution for global documentation projects.</p>
 
 <p>Need help with your MadCap Flare localization project? Contact Solupedia for expert guidance and support!</p>
-    `
+    `,
   },
   "video-localization-considerations": {
     id: 3,
@@ -96,7 +99,8 @@ const blogPostsData: Record<string, any> = {
     author: "Solupedia",
     publishedAt: new Date("2022-08-24"),
     featuredImage: "/blog-video-localization.webp",
-    excerpt: "As the world becomes increasingly connected, more and more video content is being shared across borders and languages.",
+    excerpt:
+      "As the world becomes increasingly connected, more and more video content is being shared across borders and languages.",
     content: `
 <h2>Video Localization Considerations</h2>
 
@@ -143,14 +147,32 @@ const blogPostsData: Record<string, any> = {
 <p>Video localization is a complex process that requires careful planning, attention to detail, and cultural sensitivity. By considering these key factors and following best practices, you can create video content that effectively reaches and engages your global audience.</p>
 
 <p>Ready to localize your video content? Solupedia offers professional video localization services to help you reach audiences worldwide. Contact us today to learn more!</p>
-    `
-  }
+    `,
+  },
 };
 
 export default function BlogPostDetail() {
   const params = useParams();
   const slug = params.slug as string;
-  const post = blogPostsData[slug];
+
+  // First check if it's a static post
+  const staticPost = blogPostsData[slug];
+
+  // Then try to fetch from database
+  const { data: dbPost, isLoading } = trpc.blog.bySlug.useQuery(slug, {
+    enabled: !staticPost, // Only fetch if not a static post
+  });
+
+  // Use static post if found, otherwise use database post
+  const post = staticPost || dbPost;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-white relative overflow-hidden">
+        <PageLoader />
+      </div>
+    );
+  }
 
   if (!post) {
     return (
@@ -162,8 +184,12 @@ export default function BlogPostDetail() {
         </div>
 
         <div className="relative z-10 text-center px-4">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Blog Post Not Found</h1>
-          <p className="text-gray-600 mb-8">Sorry, the blog post you're looking for doesn't exist.</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            Blog Post Not Found
+          </h1>
+          <p className="text-gray-600 mb-8">
+            Sorry, the blog post you're looking for doesn't exist.
+          </p>
           <Link href="/blog">
             <Button className="rounded-full bg-blue-600 hover:bg-blue-700 gap-2">
               <ArrowLeft className="w-4 h-4" />
@@ -179,7 +205,7 @@ export default function BlogPostDetail() {
     return new Date(date).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
-      day: "numeric"
+      day: "numeric",
     });
   };
 
@@ -192,54 +218,15 @@ export default function BlogPostDetail() {
       </div>
 
       <div className="relative z-10">
-        {/* Hero Section with Featured Image */}
-        {post.featuredImage && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8 }}
-            className="w-full h-[400px] md:h-[500px] relative overflow-hidden"
-          >
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10"></div>
-            <img
-              src={post.featuredImage}
-              alt={post.title}
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute bottom-0 left-0 w-full z-20 p-8 md:p-16">
-              <div className="container mx-auto">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3, duration: 0.6 }}
-                >
-                  <span className="inline-block px-4 py-1.5 bg-blue-600 text-white rounded-full text-sm font-medium mb-4 shadow-lg">
-                    {post.category}
-                  </span>
-                  <h1 className="text-4xl md:text-5xl font-bold text-white mb-6 leading-tight max-w-4xl shadow-sm">{post.title}</h1>
-                  
-                  <div className="flex flex-wrap gap-6 text-white/90">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-5 h-5" />
-                      <span className="text-lg">{formatDate(post.publishedAt)}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <User className="w-5 h-5" />
-                      <span className="text-lg">By {post.author}</span>
-                    </div>
-                  </div>
-                </motion.div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
         {/* Blog Post Content */}
-        <div className="py-16 md:py-24">
+        <div className="py-12 md:py-16">
           <div className="container mx-auto px-4 max-w-4xl">
             {/* Back Button */}
             <Link href="/blog">
-              <Button variant="ghost" className="gap-2 mb-8 hover:bg-blue-50 text-gray-600 hover:text-blue-600">
+              <Button
+                variant="ghost"
+                className="gap-2 mb-8 hover:bg-blue-50 text-gray-600 hover:text-blue-600"
+              >
                 <ArrowLeft className="w-4 h-4" />
                 Back to Blog
               </Button>
@@ -251,59 +238,85 @@ export default function BlogPostDetail() {
               transition={{ delay: 0.4, duration: 0.6 }}
             >
               {/* Post Content */}
-              <article className="bg-white/80 backdrop-blur-md rounded-3xl shadow-xl p-8 md:p-12 border border-white/20">
-                {!post.featuredImage && (
-                  <div className="mb-10 pb-10 border-b border-gray-100">
-                    <span className="inline-block px-4 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-medium mb-6">
-                      {post.category}
-                    </span>
-                    <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 leading-tight">{post.title}</h1>
-
-                    <div className="flex flex-wrap gap-6 text-gray-600">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-5 h-5 text-blue-500" />
-                        <span>{formatDate(post.publishedAt)}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <User className="w-5 h-5 text-blue-500" />
-                        <span>By {post.author}</span>
-                      </div>
-                    </div>
+              <article className="bg-white/80 backdrop-blur-md rounded-3xl shadow-xl border border-white/20 overflow-hidden">
+                {/* Featured Image */}
+                {post.featuredImage && (
+                  <div className="w-full h-64 md:h-80 relative overflow-hidden">
+                    <img
+                      src={post.featuredImage}
+                      alt={post.title}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
                   </div>
                 )}
 
-                <div
-                  className="prose prose-lg prose-blue max-w-none text-gray-700 leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: post.content }}
-                />
+                <div className="p-8 md:p-12">
+                  {/* Category Badge */}
+                  <span className="inline-block px-4 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-medium mb-6">
+                    {post.category}
+                  </span>
 
-                {/* Share Section */}
-                <div className="mt-16 pt-8 border-t border-gray-100 flex items-center justify-between">
-                  <span className="text-gray-900 font-semibold text-lg">Share this post:</span>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="gap-2 rounded-full border-gray-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600">
-                      <Share2 className="w-4 h-4" />
-                      Share
-                    </Button>
+                  {/* Title */}
+                  <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6 leading-tight">
+                    {post.title}
+                  </h1>
+
+                  {/* Meta Info */}
+                  <div className="flex flex-wrap gap-6 text-gray-600 mb-10 pb-8 border-b border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-5 h-5 text-blue-500" />
+                      <span>{formatDate(post.publishedAt)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <User className="w-5 h-5 text-blue-500" />
+                      <span>By {post.author}</span>
+                    </div>
+                  </div>
+
+                  {/* Post Content */}
+                  <div
+                    className="prose prose-lg prose-blue max-w-none text-gray-700 leading-relaxed"
+                    dangerouslySetInnerHTML={{ __html: post.content }}
+                  />
+
+                  {/* Share Section */}
+                  <div className="mt-16 pt-8 border-t border-gray-100 flex items-center justify-between">
+                    <span className="text-gray-900 font-semibold text-lg">
+                      Share this post:
+                    </span>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2 rounded-full border-gray-200 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600"
+                      >
+                        <Share2 className="w-4 h-4" />
+                        Share
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </article>
             </motion.div>
 
             {/* CTA Section */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               className="mt-16 p-10 md:p-12 bg-gradient-to-br from-blue-600 to-blue-800 rounded-3xl shadow-xl text-white relative overflow-hidden"
             >
               <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-              
+
               <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
                 <div>
-                  <h3 className="text-2xl md:text-3xl font-bold mb-3">Need Expert Localization Services?</h3>
+                  <h3 className="text-2xl md:text-3xl font-bold mb-3">
+                    Need Expert Localization Services?
+                  </h3>
                   <p className="text-blue-100 text-lg max-w-xl">
-                    Solupedia specializes in professional localization solutions across all industries.
+                    Solupedia specializes in professional localization solutions
+                    across all industries.
                   </p>
                 </div>
                 <Link href="/contact">
@@ -316,7 +329,9 @@ export default function BlogPostDetail() {
 
             {/* Related Posts */}
             <div className="mt-24">
-              <h3 className="text-3xl font-bold text-gray-900 mb-10">More Blog Posts</h3>
+              <h3 className="text-3xl font-bold text-gray-900 mb-10">
+                More Blog Posts
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {Object.values(blogPostsData)
                   .filter((p: any) => p.slug !== slug)
@@ -352,7 +367,8 @@ export default function BlogPostDetail() {
                               {relatedPost.excerpt}
                             </p>
                             <div className="mt-6 flex items-center text-blue-600 font-semibold text-sm group-hover:translate-x-1 transition-transform">
-                              Read Article <ArrowRight size={16} className="ml-2" />
+                              Read Article{" "}
+                              <ArrowRight size={16} className="ml-2" />
                             </div>
                           </CardContent>
                         </Card>

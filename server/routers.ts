@@ -8,30 +8,52 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import {
   createBlogPost,
+  createCaseStudy,
+  createEmployee,
   createLead,
   createMonthlyReport,
   createTimeTrackingRecord,
   deleteBlogPost,
+  deleteCaseStudy,
+  deleteEmployee,
   deleteTimeTrackingRecord,
   getAdminByEmail,
   getAllBlogPosts,
+  getAllCaseStudies,
   getAllEmployees,
+  getAllEmployeesMonthlyReports,
   getBlogPostBySlug,
   getBlogPosts,
   getCaseStudies,
   getCaseStudyBySlug,
+  getDailyReportSummary,
   getEmployeeByEmail,
+  getEmployeeById,
   getEmployeeMonthlyReports,
   getEmployeeTimeRecords,
   getFeaturedCaseStudies,
   getFeaturedTestimonials,
+  getLeadByEmail,
   getMonthlyReport,
+  getMonthlyReportSummary,
   getServiceBySlug,
   getServices,
+  getTaskTypeDistribution,
   getTestimonials,
+  seedSampleCaseStudies,
   updateAdminLastLogin,
+  updateBlogPost,
+  updateCaseStudy,
+  updateEmployee,
   updateTimeTrackingRecord,
 } from "./db";
+import {
+  LeadEmailData,
+  sendAutoReply,
+  sendLeadMagnetEmail,
+  sendLeadNotification,
+  sendNewsletterConfirmation,
+} from "./email";
 import { storagePut } from "./storage";
 
 // Helper function to calculate duration and overtime
@@ -107,10 +129,81 @@ export const appRouter = router({
   // Case Studies router
   caseStudies: router({
     list: publicProcedure.query(() => getCaseStudies()),
+    all: publicProcedure.query(() => getAllCaseStudies()),
     featured: publicProcedure.query(() => getFeaturedCaseStudies()),
     bySlug: publicProcedure
       .input(z.string())
       .query(({ input }) => getCaseStudyBySlug(input)),
+    create: publicProcedure
+      .input(
+        z.object({
+          title: z.string().min(1),
+          slug: z.string().min(1),
+          clientName: z.string().min(1),
+          clientLogo: z.string().optional(),
+          industry: z.string().optional(),
+          serviceType: z.string().min(1),
+          challenge: z.string().optional(),
+          solution: z.string().optional(),
+          results: z.string().optional(),
+          testimonial: z.string().optional(),
+          testimonialAuthor: z.string().optional(),
+          testimonialRole: z.string().optional(),
+          imageUrl: z.string().optional(),
+          featured: z.boolean().default(false),
+        })
+      )
+      .mutation(async ({ input }) => {
+        return createCaseStudy(input);
+      }),
+    delete: publicProcedure.input(z.number()).mutation(async ({ input }) => {
+      return deleteCaseStudy(input);
+    }),
+    update: publicProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          title: z.string().min(1).optional(),
+          slug: z.string().min(1).optional(),
+          clientName: z.string().min(1).optional(),
+          clientLogo: z.string().optional(),
+          industry: z.string().optional(),
+          serviceType: z.string().min(1).optional(),
+          challenge: z.string().optional(),
+          solution: z.string().optional(),
+          results: z.string().optional(),
+          testimonial: z.string().optional(),
+          testimonialAuthor: z.string().optional(),
+          testimonialRole: z.string().optional(),
+          imageUrl: z.string().optional(),
+          featured: z.boolean().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const { id, ...rest } = input;
+        return updateCaseStudy(id, rest);
+      }),
+    seed: publicProcedure.mutation(async () => {
+      return seedSampleCaseStudies();
+    }),
+    uploadImage: publicProcedure
+      .input(
+        z.object({
+          fileName: z.string().min(1),
+          contentType: z.string().min(1),
+          dataUrl: z.string().min(1),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const { fileName, contentType, dataUrl } = input;
+        const base64Match = dataUrl.match(/^data:(.*?);base64,(.*)$/);
+        const base64Data = base64Match ? base64Match[2] : dataUrl;
+        const buffer = Buffer.from(base64Data, "base64");
+        const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+        const key = `case-studies/${Date.now()}-${safeName}`;
+        const { url } = await storagePut(key, buffer, contentType);
+        return { key, url };
+      }),
   }),
 
   // Blog router
@@ -144,6 +237,26 @@ export const appRouter = router({
     delete: publicProcedure.input(z.number()).mutation(async ({ input }) => {
       return deleteBlogPost(input);
     }),
+    update: publicProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          title: z.string().min(1).optional(),
+          slug: z.string().min(1).optional(),
+          excerpt: z.string().optional(),
+          content: z.string().min(1).optional(),
+          author: z.string().optional(),
+          category: z.string().optional(),
+          tags: z.string().optional(),
+          featuredImage: z.string().optional(),
+          published: z.boolean().optional(),
+          publishedAt: z.date().optional(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        const { id, ...rest } = input;
+        return updateBlogPost(id, rest);
+      }),
     uploadImage: publicProcedure
       .input(
         z.object({
@@ -185,7 +298,66 @@ export const appRouter = router({
         })
       )
       .mutation(async ({ input }) => {
-        return createLead(input);
+        // Create the lead in the database
+        const lead = await createLead(input);
+
+        const emailData: LeadEmailData = {
+          name: input.name,
+          email: input.email,
+          phone: input.phone || "",
+          company: input.company || "",
+          serviceType: input.serviceType || "",
+          message: input.message || "",
+        };
+
+        // Handle different lead sources
+        if (input.source === "lead_magnet") {
+          // Send lead magnet email with guide
+          await sendLeadMagnetEmail({
+            name: input.name,
+            email: input.email,
+            company: input.company || "",
+          });
+        } else {
+          // Send notification email to info@solupedia.com
+          await sendLeadNotification(emailData);
+
+          // Send auto-reply to the customer
+          await sendAutoReply(emailData);
+        }
+
+        return lead;
+      }),
+    subscribeNewsletter: publicProcedure
+      .input(
+        z.object({
+          email: z.string().email(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        // Check if email already exists as a lead
+        const existingLead = await getLeadByEmail(input.email);
+
+        if (existingLead) {
+          // Update existing lead to be subscribed to newsletter
+          await createLead({
+            email: input.email,
+            name: existingLead.name || "Newsletter Subscriber",
+            source: "newsletter",
+          });
+        } else {
+          // Create new lead for newsletter subscriber
+          await createLead({
+            email: input.email,
+            name: "Newsletter Subscriber",
+            source: "newsletter",
+          });
+        }
+
+        // Send newsletter confirmation email
+        await sendNewsletterConfirmation(input.email);
+
+        return { success: true };
       }),
   }),
 
@@ -545,6 +717,110 @@ export const appRouter = router({
       )
       .query(async ({ input }) => {
         return getEmployeeMonthlyReports(input.employeeId, input.year);
+      }),
+
+    // Get monthly report summary for all employees
+    getMonthlyReportSummary: publicProcedure
+      .input(
+        z.object({
+          year: z.number(),
+          month: z.number(),
+        })
+      )
+      .query(async ({ input }) => {
+        return getMonthlyReportSummary(input.year, input.month);
+      }),
+
+    // Get daily report summary for a date range
+    getDailyReportSummary: publicProcedure
+      .input(
+        z.object({
+          startDate: z.date(),
+          endDate: z.date(),
+        })
+      )
+      .query(async ({ input }) => {
+        return getDailyReportSummary(input.startDate, input.endDate);
+      }),
+
+    // Get task type distribution
+    getTaskTypeDistribution: publicProcedure
+      .input(
+        z.object({
+          startDate: z.date(),
+          endDate: z.date(),
+        })
+      )
+      .query(async ({ input }) => {
+        return getTaskTypeDistribution(input.startDate, input.endDate);
+      }),
+
+    // Get all employees' monthly reports for a year
+    getAllEmployeesMonthlyReports: publicProcedure
+      .input(
+        z.object({
+          year: z.number(),
+        })
+      )
+      .query(async ({ input }) => {
+        return getAllEmployeesMonthlyReports(input.year);
+      }),
+
+    // Seed sample data for reporting (for testing)
+    seedSampleReports: publicProcedure
+      .input(
+        z.object({
+          year: z.number(),
+          month: z.number(),
+        })
+      )
+      .mutation(async ({ input }) => {
+        // Get all employees
+        const employeesList = await getAllEmployees();
+
+        if (employeesList.length === 0) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "No employees found. Please create employees first.",
+          });
+        }
+
+        const results = [];
+
+        for (const emp of employeesList) {
+          // Check if report already exists
+          const existing = await getMonthlyReport(
+            emp.id,
+            input.year,
+            input.month
+          );
+          if (existing) {
+            results.push({ employeeId: emp.id, status: "already_exists" });
+            continue;
+          }
+
+          // Generate random data for the month
+          const totalHours = 150 + Math.floor(Math.random() * 40); // 150-190 hours
+          const businessDayHours =
+            totalHours -
+            (Math.random() < 0.7 ? 5 + Math.floor(Math.random() * 15) : 0);
+          const overtimeHours = totalHours - businessDayHours;
+          const projectCount = 8 + Math.floor(Math.random() * 10);
+
+          await createMonthlyReport({
+            employeeId: emp.id,
+            year: input.year,
+            month: input.month,
+            totalHours: String(totalHours),
+            businessDayHours: String(businessDayHours),
+            overtimeHours: String(overtimeHours),
+            projectCount,
+          });
+
+          results.push({ employeeId: emp.id, status: "created" });
+        }
+
+        return results;
       }),
   }),
 

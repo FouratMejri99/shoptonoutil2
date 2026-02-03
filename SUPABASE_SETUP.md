@@ -3,6 +3,7 @@
 ## Getting Your Supabase Connection String
 
 Your `.env` file currently has:
+
 ```
 DATABASE_URL='https://xbxwjmqmowypokicazor.supabase.co'
 ```
@@ -60,32 +61,52 @@ pnpm run db:push
 
 This will create all the necessary tables in your Supabase database.
 
+## Setting Up RLS Policies
+
+After running migrations, you need to set up Row Level Security (RLS) policies for the employees table. Run the SQL script in your Supabase SQL Editor:
+
+1. Go to your Supabase Dashboard
+2. Navigate to **SQL Editor**
+3. Copy the contents of `SUPABASE_RLS_POLICIES.sql`
+4. Run the script
+
+This will:
+
+- Enable RLS on the employees table
+- Create policies for read, insert, update, and delete operations
+- Add performance indexes
+- Create a trigger for auto-updating the `updatedAt` field
+
 ## Verifying Connection
 
 The application will automatically test the connection on startup. Check the server logs for:
+
 - `[Database] Successfully connected to database` ✅
 - Or error messages if connection fails ❌
 
 ## Troubleshooting
 
 ### Connection Refused
+
 - Make sure your Supabase project is active
 - Check that the password is correct
 - Verify the connection string format
 
 ### SSL Required
+
 - Supabase requires SSL connections
 - The code automatically enables SSL for Supabase connections
 - If you see SSL errors, make sure you're using the correct connection string
 
 ### Database Not Found
+
 - Make sure you're using the `postgres` database (default)
 - The connection string should end with `/postgres`
 
 ## Security Notes
 
 ⚠️ **Never commit your `.env` file to git!**
+
 - The `.env` file is already in `.gitignore`
 - Keep your database password secure
 - Use environment variables in production
-

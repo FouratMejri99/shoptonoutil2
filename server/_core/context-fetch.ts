@@ -1,3 +1,4 @@
+import { COOKIE_NAME } from "@shared/const";
 import type { FetchCreateContextFnOptions } from "@trpc/server/adapters/fetch";
 import type { User } from "../../drizzle/schema";
 
@@ -25,7 +26,7 @@ export async function createContextFetch(
         .filter(([k]) => k)
     );
 
-    const sessionCookie = cookies["app_session_id"];
+    const sessionCookie = cookies[COOKIE_NAME];
 
     if (sessionCookie) {
       const secret = new TextEncoder().encode(process.env.JWT_SECRET || "");
