@@ -380,6 +380,15 @@ export const appRouter = router({
           });
         }
 
+        // Check if employee is active
+        if (!employee.isActive) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message:
+              "Your account has been deactivated. Please contact an administrator.",
+          });
+        }
+
         const passwordMatch = await bcrypt.compare(
           input.password,
           employee.password

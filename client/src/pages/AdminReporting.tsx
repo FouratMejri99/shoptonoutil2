@@ -12,8 +12,8 @@ import { trpc } from "@/lib/trpc";
 import { motion } from "framer-motion";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { ArrowLeft, Download, Filter } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft, Download, Filter, RefreshCw } from "lucide-react";
+import { useEffect, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -132,15 +132,48 @@ export default function AdminReporting() {
 
   // Fetch monthly report summary
   const { data: monthlySummary, isLoading: loadingSummary } =
-    trpc.admin.getMonthlyReportSummary.useQuery({ year, month });
+    trpc.admin.getMonthlyReportSummary.useQuery(
+      { year, month },
+      {
+        refetchOnWindowFocus: false,
+        refetchInterval: 30000, // Auto-refresh every 30 seconds
+      }
+    );
 
   // Fetch daily report summary
   const { data: dailyReports, isLoading: loadingDaily } =
-    trpc.admin.getDailyReportSummary.useQuery({ startDate, endDate });
+    trpc.admin.getDailyReportSummary.useQuery(
+      { startDate, endDate },
+      {
+        refetchOnWindowFocus: false,
+        refetchInterval: 30000, // Auto-refresh every 30 seconds
+      }
+    );
 
   // Fetch task type distribution
   const { data: taskDistribution, isLoading: loadingTask } =
-    trpc.admin.getTaskTypeDistribution.useQuery({ startDate, endDate });
+    trpc.admin.getTaskTypeDistribution.useQuery(
+      { startDate, endDate },
+      {
+        refetchOnWindowFocus: false,
+        refetchInterval: 30000, // Auto-refresh every 30 seconds
+      }
+    );
+
+  // Track last update time
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // Update last updated time when data changes
+  useEffect(() => {
+    if (monthlySummary || dailyReports || taskDistribution) {
+      setLastUpdated(new Date());
+    }
+  }, [monthlySummary, dailyReports, taskDistribution]);
+
+  // Manual refresh function
+  const handleRefresh = () => {
+    window.location.reload();
+  };
 
   // Transform monthly summary data
   const employeeReports: EmployeeReport[] =
@@ -348,9 +381,27 @@ export default function AdminReporting() {
         >
           <Card className="mb-8 bg-white/80 backdrop-blur-md border-white/20 shadow-lg rounded-3xl">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Filter size={18} className="text-blue-600" />
-                Report Filters
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Filter size={18} className="text-blue-600" />
+                  Report Filters
+                </span>
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  {lastUpdated && (
+                    <span>
+                      Last updated: {lastUpdated.toLocaleTimeString()}
+                    </span>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleRefresh}
+                    className="h-8 w-8 p-0 rounded-full hover:bg-blue-100"
+                    title="Refresh data"
+                  >
+                    <RefreshCw size={16} className="text-blue-600" />
+                  </Button>
+                </div>
               </CardTitle>
             </CardHeader>
             <CardContent>
