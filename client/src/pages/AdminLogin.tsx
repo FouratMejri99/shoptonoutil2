@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { trpc } from "@/lib/trpc";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Lock, ShieldCheck } from "lucide-react";
 import { useState } from "react";
