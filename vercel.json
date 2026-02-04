@@ -3,9 +3,9 @@
   "framework": "vite",
   "buildCommand": "pnpm run build",
   "outputDirectory": "dist/client",
-  "regions": ["iad1"],
   "installCommand": "pnpm install",
   "devCommand": "pnpm run dev",
+  "regions": ["iad1"],
   "rewrites": [
     {
       "source": "/solupedia-admin/api/trpc(.*)",
@@ -22,7 +22,7 @@
   ],
   "headers": [
     {
-      "source": "/api/(.*)",
+      "source": "/solupedia-admin/api/(.*)",
       "headers": [
         {
           "key": "Access-Control-Allow-Origin",
