@@ -10,6 +10,16 @@ import "./index.css";
 
 const queryClient = new QueryClient();
 
+// Get the base URL for API calls - works with /solupedia-admin subpath
+const getBaseUrl = () => {
+  if (typeof window !== "undefined") {
+    return window.location.origin;
+  }
+  return process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:5173";
+};
+
 const redirectToLoginIfUnauthorized = (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;
   if (typeof window === "undefined") return;
@@ -37,11 +47,29 @@ queryClient.getMutationCache().subscribe(event => {
   }
 });
 
+// Determine the API URL based on the current path
+const getApiUrl = () => {
+  const baseUrl = getBaseUrl();
+  // If we're on /solupedia-admin, use the subpath
+  if (
+    typeof window !== "undefined" &&
+    window.location.pathname.startsWith("/solupedia-admin")
+  ) {
+    return `${baseUrl}/solupedia-admin/api/trpc`;
+  }
+  return `${baseUrl}/api/trpc`;
+};
+
 const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({
-      url: `${import.meta.env.BASE_URL}api/trpc`,
+      url: getApiUrl(),
       transformer: superjson,
+      headers() {
+        return {
+          "Content-Type": "application/json",
+        };
+      },
       fetch(input, init) {
         return globalThis.fetch(input, {
           ...(init ?? {}),

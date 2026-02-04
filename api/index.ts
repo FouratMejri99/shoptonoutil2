@@ -4,7 +4,7 @@ import { createContextFetch } from "../server/_core/context-fetch";
 import { appRouter } from "../server/routers";
 
 const handler = async (request: VercelRequest, response: VercelResponse) => {
-  // Handle CORS
+  // Set CORS headers
   response.setHeader("Access-Control-Allow-Origin", "*");
   response.setHeader(
     "Access-Control-Allow-Methods",
@@ -15,20 +15,32 @@ const handler = async (request: VercelRequest, response: VercelResponse) => {
     "Content-Type, Authorization"
   );
 
+  // Handle preflight
   if (request.method === "OPTIONS") {
     return response.status(200).end();
   }
 
-  // Health check
-  if (request.url === "/api/health" && request.method === "GET") {
+  // Parse the pathname from the request URL
+  let pathname = "/";
+  try {
+    const url = new URL(
+      request.url || "/",
+      `https://${request.headers.host || "localhost"}`
+    );
+    pathname = url.pathname;
+  } catch {
+    pathname = request.url || "/";
+  }
+
+  // Health check endpoint
+  if (pathname === "/api/health" && request.method === "GET") {
     return response
       .status(200)
       .json({ status: "ok", timestamp: new Date().toISOString() });
   }
 
-  // Handle tRPC requests
-  const pathname = new URL(request.url || "", `http://${request.headers.host}`)
-    .pathname;
+  // Handle tRPC requests - support both paths
+  // /solupedia-admin/api/trpc/... and /api/trpc/...
   if (
     pathname.startsWith("/api/trpc") ||
     pathname.startsWith("/solupedia-admin/api/trpc")
@@ -38,10 +50,19 @@ const handler = async (request: VercelRequest, response: VercelResponse) => {
       req: request,
       router: appRouter,
       createContext: createContextFetch,
+      onError:
+        process.env.NODE_ENV === "development"
+          ? ({ path, error }) => {
+              console.error(
+                `❌ tRPC failed on ${path ?? "<no-path>"}: ${error.message}`
+              );
+            }
+          : undefined,
     });
   }
 
-  return response.status(404).json({ error: "Not found" });
+  // 404 for unmatched routes
+  return response.status(404).json({ error: "Not found", path: pathname });
 };
 
 export default handler;
