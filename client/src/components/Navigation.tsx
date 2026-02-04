@@ -190,7 +190,7 @@ function Navigation() {
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
                     <div className="w-[220px] p-3 gap-2">
-                      <Link href="/admin/login">
+                      <Link href="/solupedia-admin">
                         <a className="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-50 transition-colors group">
                           <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600 shrink-0">
                             <Shield className="w-4 h-4" />
