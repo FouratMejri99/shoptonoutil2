@@ -47,17 +47,11 @@ queryClient.getMutationCache().subscribe(event => {
   }
 });
 
-// Determine the API URL based on the current path
+// Determine the API URL dynamically on each request
 const getApiUrl = () => {
   const baseUrl = getBaseUrl();
-  // If we're on /solupedia-admin, use the subpath
-  if (
-    typeof window !== "undefined" &&
-    window.location.pathname.startsWith("/solupedia-admin")
-  ) {
-    return `${baseUrl}/solupedia-admin/api/trpc`;
-  }
-  return `${baseUrl}/api/trpc`;
+  // Always use /solupedia-admin prefix since that's where the app is mounted
+  return `${baseUrl}/solupedia-admin/api/trpc`;
 };
 
 const trpcClient = trpc.createClient({
