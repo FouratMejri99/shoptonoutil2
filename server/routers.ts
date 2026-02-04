@@ -478,11 +478,7 @@ export const appRouter = router({
         })
       )
       .query(async ({ input }) => {
-        return getEmployeeTimeRecords(
-          input.employeeId,
-          input.startDate,
-          input.endDate
-        );
+        return getEmployeeTimeRecords(input.employeeId);
       }),
 
     // Update time record
@@ -549,7 +545,7 @@ export const appRouter = router({
         })
       )
       .query(async ({ input }) => {
-        return getEmployeeMonthlyReports(input.employeeId, input.year);
+        return getEmployeeMonthlyReports(input.employeeId);
       }),
   }),
 
