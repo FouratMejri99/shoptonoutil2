@@ -3,7 +3,10 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createContextFetch } from "../server/_core/context-fetch";
 import { appRouter } from "../server/routers";
 
-const handler = async (request: VercelRequest, response: VercelResponse) => {
+export default async function handler(
+  request: VercelRequest,
+  response: VercelResponse
+) {
   // Set CORS headers
   response.setHeader("Access-Control-Allow-Origin", "*");
   response.setHeader(
@@ -20,17 +23,9 @@ const handler = async (request: VercelRequest, response: VercelResponse) => {
     return response.status(200).end();
   }
 
-  // Parse the pathname from the request URL
-  let pathname = "/";
-  try {
-    const url = new URL(
-      request.url || "/",
-      `https://${request.headers.host || "localhost"}`
-    );
-    pathname = url.pathname;
-  } catch {
-    pathname = request.url || "/";
-  }
+  // Get the pathname from the request URL
+  const url = request.url || "/";
+  const pathname = url.split("?")[0];
 
   // Health check endpoint
   if (pathname === "/api/health" && request.method === "GET") {
@@ -39,7 +34,7 @@ const handler = async (request: VercelRequest, response: VercelResponse) => {
       .json({ status: "ok", timestamp: new Date().toISOString() });
   }
 
-  // Handle tRPC requests - support both paths
+  // Handle tRPC requests - match both paths
   // /solupedia-admin/api/trpc/... and /api/trpc/...
   if (
     pathname.startsWith("/api/trpc") ||
@@ -50,19 +45,9 @@ const handler = async (request: VercelRequest, response: VercelResponse) => {
       req: request,
       router: appRouter,
       createContext: createContextFetch,
-      onError:
-        process.env.NODE_ENV === "development"
-          ? ({ path, error }) => {
-              console.error(
-                `❌ tRPC failed on ${path ?? "<no-path>"}: ${error.message}`
-              );
-            }
-          : undefined,
     });
   }
 
   // 404 for unmatched routes
   return response.status(404).json({ error: "Not found", path: pathname });
-};
-
-export default handler;
+}
