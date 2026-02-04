@@ -18,10 +18,176 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, Edit2, FileText, Plus, Search, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import {
+  ArrowLeft,
+  Edit2,
+  FileText,
+  Plus,
+  Search,
+  Trash2,
+  Upload,
+} from "lucide-react";
+import Quill from "quill";
+import "quill/dist/quill.snow.css";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
+
+// Helper function to convert File to data URL
+const fileToDataUrl = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+};
+
+// Custom Quill Editor component compatible with React 19
+function QuillEditor({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const editorRef = useRef<HTMLDivElement>(null);
+  const quillRef = useRef<Quill | null>(null);
+  const isInternalChange = useRef(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const uploadMutation = trpc.blog.uploadImage.useMutation();
+
+  const handleImageUpload = async (file: File) => {
+    try {
+      setIsUploading(true);
+      const dataUrl = await fileToDataUrl(file);
+      const result = await uploadMutation.mutateAsync({
+        fileName: file.name,
+        contentType: file.type,
+        dataUrl,
+      });
+      return result.url;
+    } catch (error: any) {
+      toast.error(error?.message || "Failed to upload image");
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleImageButtonClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Check if it's an image
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    const url = await handleImageUpload(file);
+    if (url && quillRef.current) {
+      const range = quillRef.current.getSelection();
+      if (range) {
+        quillRef.current.insertEmbed(range.index, "image", url);
+      }
+    }
+
+    // Reset input
+    e.target.value = "";
+  };
+
+  useEffect(() => {
+    if (editorRef.current && !quillRef.current) {
+      const quill = new Quill(editorRef.current, {
+        theme: "snow",
+        modules: {
+          toolbar: [
+            [{ header: [1, 2, 3, 4, 5, 6, false] }],
+            ["bold", "italic", "underline", "strike"],
+            [{ color: [] }, { background: [] }],
+            [{ list: "ordered" }, { list: "bullet" }],
+            [{ indent: "-1" }, { indent: "+1" }],
+            [{ align: [] }],
+            ["blockquote", "code-block"],
+            ["link"],
+            ["image"],
+            ["clean"],
+          ],
+        },
+        placeholder: "Write your blog content here...",
+      });
+
+      // Custom image handler
+      const toolbar = quill.getModule("toolbar") as any;
+      toolbar.addHandler("image", handleImageButtonClick);
+
+      quillRef.current = quill;
+
+      // Handle text changes
+      quill.on("text-change", () => {
+        if (isInternalChange.current) {
+          return;
+        }
+        const html = quill.root.innerHTML;
+        onChange(html === "<p><br></p>" ? "" : html);
+      });
+
+      // Set initial value
+      if (value) {
+        quill.root.innerHTML = value;
+      }
+    } else if (quillRef.current && value !== quillRef.current.root.innerHTML) {
+      // Update value from props
+      isInternalChange.current = true;
+      const selection = quillRef.current.getSelection();
+      quillRef.current.root.innerHTML = value;
+      if (selection) {
+        quillRef.current.setSelection(selection);
+      }
+      isInternalChange.current = false;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (quillRef.current && value !== quillRef.current.root.innerHTML) {
+      isInternalChange.current = true;
+      const selection = quillRef.current.getSelection();
+      quillRef.current.root.innerHTML = value;
+      if (selection) {
+        quillRef.current.setSelection(selection);
+      }
+      isInternalChange.current = false;
+    }
+  }, [value]);
+
+  return (
+    <div className="relative">
+      <input
+        type="file"
+        ref={fileInputRef}
+        style={{ display: "none" }}
+        accept="image/*"
+        onChange={handleFileChange}
+      />
+      <div ref={editorRef} className="quill-editor" />
+      {isUploading && (
+        <div className="absolute inset-0 bg-white/50 flex items-center justify-center">
+          <div className="flex items-center gap-2">
+            <Upload className="animate-bounce" size={20} />
+            <span>Uploading...</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function AdminBlog() {
   const [, setLocation] = useLocation();
@@ -386,16 +552,14 @@ export default function AdminBlog() {
 
             <div className="space-y-2">
               <Label htmlFor="content">Content *</Label>
-              <Textarea
-                id="content"
-                value={formData.content}
-                onChange={e =>
-                  setFormData({ ...formData, content: e.target.value })
-                }
-                rows={10}
-                required
-                className="rounded-xl"
-              />
+              <div className="prose-editor">
+                <QuillEditor
+                  value={formData.content}
+                  onChange={(value: string) =>
+                    setFormData({ ...formData, content: value })
+                  }
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -423,62 +587,77 @@ export default function AdminBlog() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="tags">Tags (comma-separated)</Label>
-                <Input
-                  id="tags"
-                  value={formData.tags}
-                  onChange={e =>
-                    setFormData({ ...formData, tags: e.target.value })
-                  }
-                  className="rounded-xl"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="featuredUpload">Featured Image</Label>
-                <input
-                  id="featuredUpload"
-                  type="file"
-                  accept="image/*"
-                  onChange={async e => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    try {
-                      const reader = new FileReader();
-                      reader.onload = async () => {
-                        const dataUrl = reader.result as string;
-                        const res = await uploadMutation.mutateAsync({
+            <div className="space-y-2">
+              <Label htmlFor="tags">Tags (comma separated)</Label>
+              <Input
+                id="tags"
+                value={formData.tags}
+                onChange={e =>
+                  setFormData({ ...formData, tags: e.target.value })
+                }
+                placeholder="e.g., technology, news, updates"
+                className="rounded-xl"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="featuredImage">Featured Image</Label>
+              <div className="flex gap-2">
+                <label
+                  htmlFor="featuredImageUpload"
+                  className="flex-1 flex items-center justify-center px-4 py-2 border border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors"
+                >
+                  <input
+                    type="file"
+                    id="featuredImageUpload"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async e => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+
+                      try {
+                        const dataUrl = await fileToDataUrl(file);
+                        const result = await uploadMutation.mutateAsync({
                           fileName: file.name,
-                          contentType: file.type || "application/octet-stream",
+                          contentType: file.type,
                           dataUrl,
                         });
-                        setFormData({ ...formData, featuredImage: res.url });
-                        toast.success("Image uploaded");
-                      };
-                      reader.readAsDataURL(file);
-                    } catch (err: any) {
-                      toast.error(err?.message || "Failed to upload image");
-                    }
-                  }}
-                  className="block w-full rounded-xl border border-gray-300 bg-white/50 p-2"
-                />
+                        setFormData({ ...formData, featuredImage: result.url });
+                        toast.success("Image uploaded successfully!");
+                      } catch (error: any) {
+                        toast.error(error?.message || "Failed to upload image");
+                      }
+                    }}
+                  />
+                  <Upload className="mr-2" size={18} />
+                  <span>Choose File</span>
+                </label>
                 {formData.featuredImage && (
-                  <div className="mt-2">
-                    <div className="text-xs text-gray-500 mb-1">Preview</div>
-                    <div className="rounded-xl overflow-hidden border border-gray-200">
-                      <img
-                        src={formData.featuredImage}
-                        alt="Preview"
-                        className="w-full h-32 object-cover"
-                      />
-                    </div>
+                  <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-200">
+                    <img
+                      src={formData.featuredImage}
+                      alt="Featured"
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormData({ ...formData, featuredImage: "" })
+                      }
+                      className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-bl"
+                    >
+                      <Trash2 size={12} />
+                    </button>
                   </div>
                 )}
               </div>
+              {uploadMutation.isPending && (
+                <p className="text-sm text-blue-600">Uploading...</p>
+              )}
             </div>
 
-            <div className="flex items-center gap-2 bg-gray-50 p-3 rounded-xl">
+            <div className="flex items-center space-x-2">
               <input
                 type="checkbox"
                 id="published"
@@ -486,10 +665,10 @@ export default function AdminBlog() {
                 onChange={e =>
                   setFormData({ ...formData, published: e.target.checked })
                 }
-                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
               <Label htmlFor="published" className="cursor-pointer">
-                Published
+                Publish immediately
               </Label>
             </div>
 
@@ -501,20 +680,15 @@ export default function AdminBlog() {
                   setShowForm(false);
                   resetForm();
                 }}
-                className="rounded-full"
+                className="rounded-xl"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
-                className="bg-blue-600 hover:bg-blue-700 rounded-full"
-                disabled={createMutation.isPending}
+                className="bg-blue-600 hover:bg-blue-700 rounded-xl"
               >
-                {createMutation.isPending
-                  ? "Creating..."
-                  : editingPost
-                    ? "Update"
-                    : "Create Post"}
+                {editingPost ? "Update Post" : "Create Post"}
               </Button>
             </div>
           </form>

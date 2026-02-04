@@ -184,35 +184,6 @@ export default function EmployeeLogin() {
                   )}
                 </Button>
               </motion.div>
-
-              {import.meta.env.DEV && (
-                <div className="pt-4 text-center">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="rounded-full"
-                    onClick={() => {
-                      localStorage.setItem(
-                        "employeeSession",
-                        JSON.stringify({
-                          id: 1001,
-                          email: "employee.demo@solupedia.com",
-                          firstName: "Demo",
-                          lastName: "Employee",
-                          employeeId: "EMP-DEMO",
-                          loginTime: new Date().toISOString(),
-                        })
-                      );
-                      toast.success("Demo employee activated");
-                      setTimeout(() => {
-                        setLocation("/employee/dashboard");
-                      }, 100);
-                    }}
-                  >
-                    Use Demo Employee
-                  </Button>
-                </div>
-              )}
             </form>
 
             <div className="mt-8 pt-6 border-t border-gray-100 text-center">

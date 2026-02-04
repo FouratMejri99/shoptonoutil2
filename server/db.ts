@@ -78,6 +78,33 @@ export async function createUser(data: InsertUser) {
   return db.insert(users).values(data).returning();
 }
 
+export async function getUserByOpenId(openId: string) {
+  const db = await getDb();
+  if (!db) return null;
+  return db.query.users.findFirst({
+    where: (users, { eq }) => eq(users.openId, openId),
+  });
+}
+
+export async function upsertUser(data: InsertUser) {
+  const db = await getDb();
+  if (!db) return null;
+  return db
+    .insert(users)
+    .values(data)
+    .onConflictDoUpdate({
+      target: users.openId,
+      set: {
+        name: data.name,
+        email: data.email,
+        loginMethod: data.loginMethod,
+        lastSignedIn: data.lastSignedIn,
+        avatarUrl: data.avatarUrl,
+      },
+    })
+    .returning();
+}
+
 export async function createLead(data: InsertLead) {
   const db = await getDb();
   if (!db) return null;

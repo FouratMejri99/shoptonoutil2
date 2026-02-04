@@ -1,13 +1,19 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useLocation } from "wouter";
-import { Eye, EyeOff, Lock, ShieldCheck } from "lucide-react";
-import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { motion } from "framer-motion";
+import { Eye, EyeOff, Lock, ShieldCheck } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useLocation } from "wouter";
 
 export default function AdminLogin() {
   const [, setLocation] = useLocation();
@@ -38,11 +44,14 @@ export default function AdminLogin() {
 
       if (result.success) {
         // Store admin info in localStorage for quick access
-        localStorage.setItem("adminSession", JSON.stringify({
-          id: result.admin.id,
-          email: result.admin.email,
-          loginTime: new Date().toISOString(),
-        }));
+        localStorage.setItem(
+          "adminSession",
+          JSON.stringify({
+            id: result.admin.id,
+            email: result.admin.email,
+            loginTime: new Date().toISOString(),
+          })
+        );
 
         toast.success("Login successful!");
         // Small delay to ensure cookie is set
@@ -68,7 +77,7 @@ export default function AdminLogin() {
         <div className="absolute top-1/2 left-1/2 w-[800px] h-[800px] bg-blue-400/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
       </div>
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
@@ -76,28 +85,39 @@ export default function AdminLogin() {
       >
         {/* Logo */}
         <div className="text-center mb-8">
-          <motion.div 
+          <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 260, damping: 20, delay: 0.1 }}
+            transition={{
+              type: "spring",
+              stiffness: 260,
+              damping: 20,
+              delay: 0.1,
+            }}
             className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl shadow-xl mb-6 transform rotate-3"
           >
             <ShieldCheck className="w-10 h-10 text-white" />
           </motion.div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Solupedia Admin</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            Solupedia Admin
+          </h1>
           <p className="text-gray-600 text-lg">Employee Management Portal</p>
         </div>
 
         {/* Login Card */}
         <Card className="shadow-2xl border-white/20 bg-white/80 backdrop-blur-md rounded-3xl overflow-hidden">
           <CardHeader className="bg-blue-50/50 border-b border-blue-100/50 pb-8 pt-8">
-            <CardTitle className="text-2xl text-center text-blue-900">Admin Login</CardTitle>
-            <CardDescription className="text-center text-gray-600 mt-2">Sign in to manage employee accounts and access</CardDescription>
+            <CardTitle className="text-2xl text-center text-blue-900">
+              Admin Login
+            </CardTitle>
+            <CardDescription className="text-center text-gray-600 mt-2">
+              Sign in to manage employee accounts and access
+            </CardDescription>
           </CardHeader>
           <CardContent className="p-8">
             <form onSubmit={handleLogin} className="space-y-6">
               {error && (
-                <motion.div 
+                <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
                   className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3"
@@ -108,14 +128,16 @@ export default function AdminLogin() {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-gray-700 font-medium">Admin Email</Label>
+                <Label htmlFor="email" className="text-gray-700 font-medium">
+                  Admin Email
+                </Label>
                 <div className="relative">
                   <Input
                     id="email"
                     type="email"
                     placeholder="admin@solupedia.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={e => setEmail(e.target.value)}
                     required
                     disabled={isLoading}
                     className="bg-white/50 border-gray-200 focus:border-blue-500 focus:ring-blue-500 rounded-xl h-12"
@@ -124,14 +146,16 @@ export default function AdminLogin() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-gray-700 font-medium">Password</Label>
+                <Label htmlFor="password" className="text-gray-700 font-medium">
+                  Password
+                </Label>
                 <div className="relative">
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={e => setPassword(e.target.value)}
                     required
                     disabled={isLoading}
                     className="bg-white/50 border-gray-200 focus:border-blue-500 focus:ring-blue-500 pr-12 rounded-xl h-12"
@@ -147,7 +171,10 @@ export default function AdminLogin() {
                 </div>
               </div>
 
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
                 <Button
                   type="submit"
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 rounded-xl text-lg font-semibold shadow-lg shadow-blue-600/20"
@@ -163,29 +190,6 @@ export default function AdminLogin() {
                   )}
                 </Button>
               </motion.div>
-
-              {import.meta.env.DEV && (
-                <div className="pt-4 text-center">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="rounded-full"
-                    onClick={() => {
-                      localStorage.setItem("adminSession", JSON.stringify({
-                        id: 999,
-                        email: "demo@solupedia.com",
-                        loginTime: new Date().toISOString(),
-                      }));
-                      toast.success("Demo admin activated");
-                      setTimeout(() => {
-                        setLocation("/admin/dashboard");
-                      }, 100);
-                    }}
-                  >
-                    Use Demo Admin
-                  </Button>
-                </div>
-              )}
 
               <div className="text-center pt-2">
                 <p className="text-xs text-gray-500 bg-blue-50 inline-block px-3 py-1 rounded-full border border-blue-100">
