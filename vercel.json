@@ -14,14 +14,6 @@
     {
       "source": "/solupedia-admin/(.*)",
       "destination": "/$1"
-    },
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/$1"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/$1"
     }
   ],
   "headers": [
