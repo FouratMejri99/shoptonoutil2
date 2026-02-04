@@ -8,7 +8,7 @@
     "dev:client": "vite",
     "build": "pnpm run build:client && pnpm run build:api",
     "build:client": "vite build",
-    "build:api": "node -e \"const fs=require('fs'), path=require('path'); ['dist/api','dist/server','dist/drizzle'].forEach(d=>{try{fs.mkdirSync(d,{recursive:true})}catch(e){}}); fs.copyFileSync('api/index.ts','dist/api/index.ts'); function copyDir(src,dst){fs.mkdirSync(dst,{recursive:true});fs.readdirSync(src,{withFileTypes:true}).forEach(f=>{const s=path.join(src,f.name),d=path.join(dst,f.name);f.isDirectory()?copyDir(s,d):fs.copyFileSync(s,d)})} copyDir('server','dist/server'); copyDir('drizzle','dist/drizzle')\"",
+    "build:api": "node -e \"const fs=require('fs'), path=require('path'); ['dist/api','dist/server','dist/drizzle','dist/shared'].forEach(d=>{try{fs.mkdirSync(d,{recursive:true})}catch(e){}}); fs.copyFileSync('api/index.ts','dist/api/index.ts'); function copyDir(src,dst){fs.mkdirSync(dst,{recursive:true});fs.readdirSync(src,{withFileTypes:true}).forEach(f=>{const s=path.join(src,f.name),d=path.join(dst,f.name);f.isDirectory()?copyDir(s,d):fs.copyFileSync(s,d)})} copyDir('server','dist/server'); copyDir('drizzle','dist/drizzle'); copyDir('shared','dist/shared')\"",
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "start:vercel": "node dist/api/index.js",
     "check": "tsc --noEmit",

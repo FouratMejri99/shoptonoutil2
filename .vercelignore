@@ -21,7 +21,10 @@ coverage
 *.test.tsx
 
 # Database
-drizzle
+# drizzle
+
+# Supabase (not needed at runtime)
+supabase
 
 # Scripts
 scripts
