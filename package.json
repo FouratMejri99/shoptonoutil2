@@ -8,7 +8,7 @@
     "dev:client": "vite",
     "build": "pnpm run build:client && pnpm run build:api",
     "build:client": "vite build",
-    "build:api": "esbuild api/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist/api --external:drizzle-orm --external:postgres --external:bcryptjs --external:jose --external:@trpc/server --external:@tanstack/react-query --external:superjson",
+    "build:api": "tsx api/index.ts --bundle --platform=node --format=esm --outdir=dist/api --external:drizzle-orm --external:postgres --external:bcryptjs --external:jose --external:@trpc/server --external:@tanstack/react-query --external:superjson",
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "start:vercel": "node dist/api/index.js",
     "check": "tsc --noEmit",
