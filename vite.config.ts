@@ -5,6 +5,7 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  base: process.env.VERCEL ? "/solupedia-admin/" : "./",
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "client", "src"),
