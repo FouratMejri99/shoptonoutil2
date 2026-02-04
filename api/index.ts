@@ -27,7 +27,11 @@ const handler = async (request: VercelRequest, response: VercelResponse) => {
   }
 
   // Handle tRPC requests
-  if (request.url?.startsWith("/api/trpc")) {
+  const pathname = request.nextUrl?.pathname || request.url || "";
+  if (
+    pathname.startsWith("/api/trpc") ||
+    pathname.startsWith("/solupedia-admin/api/trpc")
+  ) {
     return fetchRequestHandler({
       endpoint: "/api/trpc",
       req: request,

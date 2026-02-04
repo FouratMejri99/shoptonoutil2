@@ -8,6 +8,10 @@
   "devCommand": "pnpm run dev",
   "rewrites": [
     {
+      "source": "/solupedia-admin/api/trpc(.*)",
+      "destination": "/api/trpc$1"
+    },
+    {
       "source": "/solupedia-admin/api/(.*)",
       "destination": "/api/$1"
     },
