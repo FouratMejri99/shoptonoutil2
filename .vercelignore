@@ -26,8 +26,8 @@ coverage
 # Supabase (not needed at runtime)
 supabase
 
-# Scripts (not needed at runtime)
-scripts
+# Scripts (needed for build)
+# scripts
 
 # Server and shared directories are needed for API
 !server
