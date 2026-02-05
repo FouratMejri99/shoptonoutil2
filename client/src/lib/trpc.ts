@@ -172,36 +172,35 @@ export const trpc = {
       }
     ),
     getMonthlyReportSummary: Object.assign(
-      createMutationHook((data: { year: number; month: number }) =>
+      createQueryHook((data: { year: number; month: number }) =>
         adminService.getMonthlyReportSummary(data.year, data.month)
       ),
       {
-        useMutation: () =>
-          createMutationHook((data: { year: number; month: number }) =>
-            adminService.getMonthlyReportSummary(data.year, data.month)
-          ),
+        useQuery: createQueryHook((data: { year: number; month: number }) =>
+          adminService.getMonthlyReportSummary(data.year, data.month)
+        ),
       }
     ),
     getDailyReportSummary: Object.assign(
-      createMutationHook((data: { startDate: string; endDate: string }) =>
+      createQueryHook((data: { startDate: string; endDate: string }) =>
         adminService.getDailyReportSummary(data.startDate, data.endDate)
       ),
       {
-        useMutation: () =>
-          createMutationHook((data: { startDate: string; endDate: string }) =>
+        useQuery: createQueryHook(
+          (data: { startDate: string; endDate: string }) =>
             adminService.getDailyReportSummary(data.startDate, data.endDate)
-          ),
+        ),
       }
     ),
     getTaskTypeDistribution: Object.assign(
-      createMutationHook((data: { startDate: string; endDate: string }) =>
+      createQueryHook((data: { startDate: string; endDate: string }) =>
         adminService.getTaskTypeDistribution(data.startDate, data.endDate)
       ),
       {
-        useMutation: () =>
-          createMutationHook((data: { startDate: string; endDate: string }) =>
+        useQuery: createQueryHook(
+          (data: { startDate: string; endDate: string }) =>
             adminService.getTaskTypeDistribution(data.startDate, data.endDate)
-          ),
+        ),
       }
     ),
     seedSampleReports: Object.assign(

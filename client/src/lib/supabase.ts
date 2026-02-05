@@ -407,33 +407,24 @@ export const employeeService = {
   },
 };
 
+// Admin credentials - single hardcoded admin
+const ADMIN_EMAIL = "admin@solupedia.com";
+const ADMIN_PASSWORD = "Solupedia2024!";
+
 // Admin operations (simplified - in production, use Supabase Edge Functions)
 export const adminService = {
-  async login(email: string, _password: string) {
-    try {
-      const [admin] = await dbService.select("adminCredentials", {
-        eq: { email },
-      });
-      // Return admin if found, otherwise return a placeholder for demo
-      if (admin) {
-        return admin;
-      }
-      // Placeholder admin for demo/testing
+  async login(email: string, password: string) {
+    // Only allow login with the hardcoded admin credential
+    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
       return {
         id: 1,
-        email,
-        role: "admin",
-        createdAt: new Date().toISOString(),
-      };
-    } catch {
-      // If table doesn't exist yet, return placeholder
-      return {
-        id: 1,
-        email,
+        email: ADMIN_EMAIL,
         role: "admin",
         createdAt: new Date().toISOString(),
       };
     }
+    // Throw error for invalid credentials
+    throw new Error("Invalid admin credentials");
   },
 
   async getAllEmployees() {
