@@ -20,7 +20,7 @@
       "destination": "/:path*"
     }
   ],
-  "header": [
+  "headers": [
     {
       "source": "/(.*)",
       "headers": [
