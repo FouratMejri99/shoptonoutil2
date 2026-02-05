@@ -3,7 +3,7 @@
   "framework": "vite",
   "buildCommand": "pnpm run build",
   "outputDirectory": "dist/client",
-  "installCommand": "pnpm install",
+  "installCommand": "pnpm install --no-frozen-lockfile",
   "devCommand": "pnpm run dev",
   "regions": ["iad1"],
   "rewrites": [

@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx watch server/_core/index.ts",
     "dev:client": "vite",
-    "build": "pnpm run build:client",
-    "build:client": "vite build",
+    "build": "npx pnpm run build:client",
+    "build:client": "node scripts/fix-esbuild-permissions.mjs && vite build",
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "start:vercel": "node dist/api/index.js",
     "check": "tsc --noEmit",
@@ -21,7 +21,8 @@
     "db:encode-password": "node scripts/encode-password.mjs",
     "db:check-status": "node scripts/check-supabase-status.mjs",
     "db:get-connection": "node scripts/get-connection-string.mjs",
-    "supabase:setup": "pnpm run db:test && pnpm run db:push && node scripts/init-admin.mjs",
+    "fix-permissions": "node scripts/fix-esbuild-permissions.mjs",
+    "supabase:setup": "npx pnpm run db:test && npx pnpm run db:push && node scripts/init-admin.mjs",
     "supabase:seed-admin": "node scripts/init-admin.mjs"
   },
   "dependencies": {
@@ -134,6 +135,7 @@
     "postcss": "^8.4.47",
     "prettier": "^3.3.3",
     "prettier-plugin-tailwindcss": "^0.6.8",
+    "pnpm": "^10.0.0",
     "tailwindcss": "^4.1.18",
     "tsx": "^4.19.1",
     "typescript": "^5.6.3",
