@@ -2,8 +2,7 @@
 node_modules
 
 # Build outputs
-dist/client/assets
-dist/api/node_modules
+dist
 
 # Configuration
 *.log
@@ -21,17 +20,13 @@ coverage
 *.test.tsx
 
 # Database
-# drizzle
+drizzle
 
 # Supabase (not needed at runtime)
 supabase
 
-# Scripts (needed for build)
-# scripts
-
-# Server and shared directories are needed for API
-!server
-!shared
+# Scripts
+scripts
 
 # Temporary
 *.tmp

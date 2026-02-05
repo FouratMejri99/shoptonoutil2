@@ -2,24 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "vite",
   "buildCommand": "pnpm run build",
-  "outputDirectory": "dist/client",
+  "outputDirectory": "dist",
   "installCommand": "pnpm install --no-frozen-lockfile",
   "devCommand": "pnpm run dev",
   "regions": ["iad1"],
-  "rewrites": [
-    {
-      "source": "/solupedia-admin/api/trpc/:path*",
-      "destination": "/api/trpc/:path*"
-    },
-    {
-      "source": "/solupedia-admin/api/:path*",
-      "destination": "/api/:path*"
-    },
-    {
-      "source": "/solupedia-admin/:path*",
-      "destination": "/:path*"
-    }
-  ],
   "headers": [
     {
       "source": "/(.*)",

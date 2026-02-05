@@ -1,5 +1,0 @@
-# This file is for reference only - Hostinger doesn't use render.yaml
-# For Hostinger Node.js hosting:
-# 1. Upload all files except node_modules
-# 2. Run "npm install" or "pnpm install" in your terminal
-# 3. Start with: pnpm start
