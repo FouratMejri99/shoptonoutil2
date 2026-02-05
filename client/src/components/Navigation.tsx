@@ -184,7 +184,7 @@ function Navigation() {
             <NavigationMenu>
               <NavigationMenuList>
                 <NavigationMenuItem>
-                  <NavigationMenuTrigger className="bg-transparent hover:bg-gray-50 rounded-full px-4 text-sm font-medium text-gray-600">
+                  <NavigationMenuTrigger className="bg-transparent hover:bg-blue-50 border border-gray-200 hover:border-blue-200 rounded-full px-4 text-sm font-medium text-gray-700 hover:text-blue-600 transition-all">
                     <User className="w-4 h-4 mr-2" />
                     Login
                   </NavigationMenuTrigger>

@@ -49,9 +49,15 @@ queryClient.getMutationCache().subscribe(event => {
 
 // Determine the API URL dynamically on each request
 const getApiUrl = () => {
+  // Use VITE_API_URL if set (for separate backend deployment like Render)
+  const apiUrl = import.meta.env.VITE_API_URL;
+  if (apiUrl) {
+    return `${apiUrl}/api/trpc`;
+  }
+
+  // Fallback to same-origin for local development
   const baseUrl = getBaseUrl();
-  // Always use /solupedia-admin prefix since that's where the app is mounted
-  return `${baseUrl}/solupedia-admin/api/trpc`;
+  return `${baseUrl}/api/trpc`;
 };
 
 const trpcClient = trpc.createClient({

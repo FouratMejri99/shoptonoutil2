@@ -16,10 +16,24 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script
-      defer
-      src="%VITE_ANALYTICS_ENDPOINT%/umami"
-      data-website-id="%VITE_ANALYTICS_WEBSITE_ID%"
-    ></script>
+    <!-- Analytics - only load if properly configured -->
+    <template id="analytics-script">
+      <script
+        defer
+        src="%VITE_ANALYTICS_ENDPOINT%/umami"
+        data-website-id="%VITE_ANALYTICS_WEBSITE_ID%"
+      ></script>
+    </template>
+    <script>
+      (function () {
+        const endpoint = "%VITE_ANALYTICS_ENDPOINT%";
+        const websiteId = "%VITE_ANALYTICS_WEBSITE_ID%";
+        if (endpoint && websiteId && endpoint !== "local-dev") {
+          const template = document.getElementById("analytics-script");
+          const script = template.content.cloneNode(true);
+          document.body.appendChild(script);
+        }
+      })();
+    </script>
   </body>
 </html>

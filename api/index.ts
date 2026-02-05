@@ -7,8 +7,20 @@ export default async function handler(
   request: VercelRequest,
   response: VercelResponse
 ) {
-  // Set CORS headers
-  response.setHeader("Access-Control-Allow-Origin", "*");
+  // Get allowed origins from environment
+  const allowedOrigins = (
+    process.env.ALLOWED_ORIGINS ||
+    "http://localhost:5173,https://app.solupedia.com,https://www.solupedia.com"
+  ).split(",");
+
+  const origin = request.headers.origin || "";
+
+  // Set CORS headers - allow request origin if it's in the allowed list
+  if (allowedOrigins.includes(origin) || allowedOrigins.includes("*")) {
+    response.setHeader("Access-Control-Allow-Origin", origin || "*");
+  } else {
+    response.setHeader("Access-Control-Allow-Origin", "");
+  }
   response.setHeader(
     "Access-Control-Allow-Methods",
     "GET, POST, PUT, DELETE, OPTIONS"
@@ -17,6 +29,7 @@ export default async function handler(
     "Access-Control-Allow-Headers",
     "Content-Type, Authorization"
   );
+  response.setHeader("Access-Control-Allow-Credentials", "true");
 
   // Handle preflight
   if (request.method === "OPTIONS") {

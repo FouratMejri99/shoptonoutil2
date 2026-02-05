@@ -33,7 +33,9 @@ async function startServer() {
   // Validate required environment variables
   if (!ENV.databaseUrl && process.env.NODE_ENV === "production") {
     console.error("[Server] ❌ ERROR: DATABASE_URL is required in production");
-    console.error("[Server] Please set DATABASE_URL in your environment variables");
+    console.error(
+      "[Server] Please set DATABASE_URL in your environment variables"
+    );
     process.exit(1);
   }
 
@@ -44,15 +46,41 @@ async function startServer() {
       await getDb();
       console.log("[Server] ✅ Database connection ready");
     } catch (error) {
-      console.error("[Server] ⚠️  Database connection failed, but continuing...");
-      console.error("[Server] Some features may not work until database is available");
+      console.error(
+        "[Server] ⚠️  Database connection failed, but continuing..."
+      );
+      console.error(
+        "[Server] Some features may not work until database is available"
+      );
     }
   } else {
-    console.warn("[Server] ⚠️  DATABASE_URL not set - database features will be unavailable");
+    console.warn(
+      "[Server] ⚠️  DATABASE_URL not set - database features will be unavailable"
+    );
   }
 
   const app = express();
   const server = createServer(app);
+
+  // Configure CORS for cross-origin requests
+  const allowedOrigins = (
+    process.env.ALLOWED_ORIGINS ||
+    "http://localhost:5173,https://app.solupedia.com,https://www.solupedia.com"
+  ).split(",");
+
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin) || allowedOrigins.includes("*")) {
+          return callback(null, true);
+        }
+        return callback(new Error("Not allowed by CORS"));
+      },
+      credentials: true,
+    })
+  );
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
@@ -82,7 +110,9 @@ async function startServer() {
 
   server.listen(port, () => {
     console.log(`[Server] 🚀 Server running on http://localhost:${port}/`);
-    console.log(`[Server] Environment: ${process.env.NODE_ENV || "development"}`);
+    console.log(
+      `[Server] Environment: ${process.env.NODE_ENV || "development"}`
+    );
   });
 }
 
