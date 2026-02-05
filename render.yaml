@@ -3,7 +3,7 @@ services:
     name: solupedia-backend
     env: node
     buildCommand: pnpm install --frozen-lockfile
-    startCommand: pnpm run start:render
+    startCommand: cross-env NODE_ENV=production npx tsx server/_core/index.ts
     envVars:
       - key: NODE_ENV
         value: production
