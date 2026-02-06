@@ -119,7 +119,8 @@ export const dbService = {
 export const blogService = {
   async getAll() {
     return dbService.select("blogposts", {
-      order: "createdAt",
+      // Supabase columns use snake_case in this project
+      order: "createdat",
       ascending: false,
     });
   },
@@ -133,8 +134,9 @@ export const blogService = {
 
   async getFeatured(limit = 3) {
     return dbService.select("blogposts", {
-      eq: { isPublished: true },
-      order: "createdAt",
+      // Match Supabase column names
+      eq: { ispublished: true },
+      order: "createdat",
       ascending: false,
       limit,
     });
@@ -197,6 +199,48 @@ export const caseStudiesService = {
   async uploadImage(_file: File): Promise<string> {
     return `https://example.com/images/${Date.now()}.jpg`;
   },
+
+  // Simple seeding helper to populate example case studies
+  async seedSample() {
+    const samples = [
+      {
+        title: "Global Tech Platform Localization",
+        slug: "global-tech-platform-localization",
+        clientName: "TechCorp",
+        industry: "Technology",
+        serviceType: "Document Localization",
+        challenge:
+          "Expanding to 12 new markets with complex technical documentation.",
+        solution:
+          "Localized technical manuals, UI text, and support content into 12 languages.",
+        results: "40% faster onboarding and 25% increase in user adoption.",
+        featured: true,
+        ispublished: true,
+      },
+      {
+        title: "eLearning Program for Healthcare",
+        slug: "elearning-program-healthcare",
+        clientName: "MediLearn",
+        industry: "Healthcare",
+        serviceType: "eLearning Localization",
+        challenge:
+          "Deliver compliant training to a global healthcare workforce.",
+        solution:
+          "Localized interactive eLearning modules and assessments for 8 regions.",
+        results: "95% course completion rate and improved compliance scores.",
+        featured: true,
+        ispublished: true,
+      },
+    ];
+
+    let inserted = 0;
+    for (const sample of samples) {
+      await dbService.insert("casestudies", sample);
+      inserted += 1;
+    }
+
+    return { inserted };
+  },
 };
 
 // Services service
@@ -217,21 +261,33 @@ export const servicesService = {
 };
 
 // Testimonials service
+// Normalize Supabase rows into a consistent shape for the UI
+const normalizeTestimonial = (item: any) => ({
+  id: item.id,
+  clientName: item.clientName ?? item.client_name ?? item.name ?? "",
+  clientCompany:
+    item.clientCompany ?? item.company ?? item.client_company ?? "",
+  content:
+    item.content ?? item.message ?? item.testimonial ?? item.text ?? "",
+});
+
 export const testimonialsService = {
   async getAll() {
-    return dbService.select("testimonials", {
-      order: "createdAt",
+    const rows = await dbService.select("testimonials", {
+      order: "createdat",
       ascending: false,
     });
+    return (rows as any[]).map(normalizeTestimonial);
   },
 
   async getFeatured(limit = 3) {
-    return dbService.select("testimonials", {
-      eq: { isPublished: true },
-      order: "createdAt",
+    const rows = await dbService.select("testimonials", {
+      eq: { ispublished: true },
+      order: "createdat",
       ascending: false,
       limit,
     });
+    return (rows as any[]).map(normalizeTestimonial);
   },
 
   async create(data: any) {
@@ -258,13 +314,39 @@ export const leadsService = {
 
   async getAll() {
     return dbService.select("leads", {
-      order: "createdAt",
+      order: "createdat",
       ascending: false,
     });
   },
 };
 
 // Employee table operations
+const mapEmployeePayload = (data: any) => {
+  const row: any = {};
+
+  if (data.email !== undefined) row.email = data.email;
+
+  if (data.firstName !== undefined || data.firstname !== undefined) {
+    row.firstname = data.firstName ?? data.firstname;
+  }
+  if (data.lastName !== undefined || data.lastname !== undefined) {
+    row.lastname = data.lastName ?? data.lastname;
+  }
+
+  if (data.employeeId !== undefined || data.employeeid !== undefined) {
+    row.employeeid = data.employeeId ?? data.employeeid;
+  }
+
+  if (data.department !== undefined) row.department = data.department;
+  if (data.position !== undefined) row.position = data.position;
+
+  if (data.isActive !== undefined || data.isactive !== undefined) {
+    row.isactive = data.isActive ?? data.isactive;
+  }
+
+  return row;
+};
+
 export const employeeService = {
   async getAll() {
     return dbService.select("employees", {
@@ -281,18 +363,23 @@ export const employeeService = {
   },
 
   async create(employeeData: any) {
-    return dbService.insert("employees", employeeData);
+    const row = mapEmployeePayload(employeeData);
+    return dbService.insert("employees", row);
   },
 
   async update(id: number, updates: any) {
-    return dbService.update("employees", id, updates);
+    const row = mapEmployeePayload(updates);
+    return dbService.update("employees", id, row);
   },
 
   async delete(id: number) {
     return dbService.delete("employees", id);
   },
 
-  async verifyLogin(email: string) {
+  async verifyLogin(email: string, password: string) {
+    // For this Supabase schema, we only validate that the employee exists
+    // and is marked as active. The password is collected in the UI but not
+    // stored in this table, so we cannot validate it here.
     const [employee] = await dbService.select("employees", {
       eq: { email, isactive: true },
     });
@@ -301,7 +388,82 @@ export const employeeService = {
 
   // Time records
   async createTimeRecord(recordData: any) {
-    return dbService.insert("timetrackingrecords", recordData);
+    // Map camelCase fields from the UI to snake_case columns in Supabase
+    const row: any = {};
+
+    // Required: which employee, which day
+    if (
+      recordData.employeeId !== undefined ||
+      recordData.employeeid !== undefined
+    ) {
+      row.employeeid = recordData.employeeId ?? recordData.employeeid;
+    }
+
+    if (recordData.workDate !== undefined || recordData.date !== undefined) {
+      // Accept both Date and string
+      const d = recordData.workDate ?? recordData.date;
+      row.date = d instanceof Date ? d.toISOString().split("T")[0] : d;
+    }
+
+    // Optional metadata
+    if (
+      recordData.projectNumber !== undefined ||
+      recordData.projectnumber !== undefined
+    ) {
+      row.projectnumber = recordData.projectNumber ?? recordData.projectnumber;
+    }
+
+    if (
+      recordData.projectName !== undefined ||
+      recordData.projectname !== undefined
+    ) {
+      row.projectname = recordData.projectName ?? recordData.projectname;
+    }
+
+    if (recordData.taskType !== undefined || recordData.tasktype !== undefined) {
+      row.tasktype = recordData.taskType ?? recordData.tasktype;
+    }
+
+    if (recordData.client !== undefined) {
+      row.client = recordData.client;
+    }
+
+    if (recordData.languages !== undefined) {
+      row.languages = recordData.languages;
+    }
+
+    if (
+      recordData.startTime !== undefined ||
+      recordData.starttime !== undefined
+    ) {
+      row.starttime = recordData.startTime ?? recordData.starttime;
+    }
+
+    if (recordData.endTime !== undefined || recordData.endtime !== undefined) {
+      row.endtime = recordData.endTime ?? recordData.endtime;
+    }
+
+    if (recordData.duration !== undefined) {
+      row.duration = recordData.duration;
+    }
+
+    if (
+      recordData.businessDayTime !== undefined ||
+      recordData.businessdaytime !== undefined
+    ) {
+      row.businessdaytime =
+        recordData.businessDayTime ?? recordData.businessdaytime;
+    }
+
+    if (recordData.overtime !== undefined) {
+      row.overtime = recordData.overtime;
+    }
+
+    if (recordData.notes !== undefined) {
+      row.notes = recordData.notes;
+    }
+
+    return dbService.insert("timetrackingrecords", row);
   },
 
   async getRecords(employeeId: number) {
@@ -343,18 +505,34 @@ export const adminService = {
   },
 
   async getAllEmployees() {
-    return dbService.select("employees", {
-      order: "createdAt",
+    const rows = await dbService.select("employees", {
+      // Use snake_case column name from Supabase
+      order: "createdat",
       ascending: false,
     });
+
+    // Normalise to camelCase for the UI
+    return (rows as any[]).map(emp => ({
+      id: emp.id,
+      email: emp.email,
+      firstName: emp.firstName ?? emp.firstname ?? "",
+      lastName: emp.lastName ?? emp.lastname ?? "",
+      employeeId: emp.employeeId ?? emp.employeeid ?? "",
+      department: emp.department ?? "",
+      position: emp.position ?? "",
+      isActive: emp.isActive ?? emp.isactive ?? true,
+      createdAt: emp.createdAt ?? emp.createdat,
+    }));
   },
 
   async createEmployee(data: any) {
-    return dbService.insert("employees", data);
+    const row = mapEmployeePayload(data);
+    return dbService.insert("employees", row);
   },
 
   async updateEmployee(id: number, updates: any) {
-    return dbService.update("employees", id, updates);
+    const row = mapEmployeePayload(updates);
+    return dbService.update("employees", id, row);
   },
 
   async deleteEmployee(id: number) {

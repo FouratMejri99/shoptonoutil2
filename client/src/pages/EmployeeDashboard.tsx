@@ -106,22 +106,65 @@ export default function EmployeeDashboard() {
   // Update records when dbRecords changes
   useEffect(() => {
     if (dbRecords) {
-      const transformedRecords: TimeRecord[] = dbRecords.map((record: any) => ({
-        id: record.id,
-        workDate: record.workDate
-          ? new Date(record.workDate).toISOString().split("T")[0]
-          : "",
-        projectNumber: record.projectNumber || "",
-        projectName: record.projectName || "",
-        taskType: record.taskType || "",
-        client: record.client || "",
-        languages: record.languages || "",
-        startTime: record.startTime || "",
-        endTime: record.endTime || "",
-        duration: parseFloat(record.duration) || 0,
-        businessDayTime: parseFloat(record.businessDayTime) || 0,
-        overtime: parseFloat(record.overtime) || 0,
-      }));
+      const transformedRecords: TimeRecord[] = dbRecords.map((record: any) => {
+        const workDate = record.date
+          ? new Date(record.date).toISOString().split("T")[0]
+          : "";
+        const projectNumber = record.projectnumber || "";
+        const projectName = record.projectname || "";
+        const taskType = record.tasktype || "";
+        const client = record.client || "";
+        const languages = record.languages || "";
+        const startTime = record.starttime || "";
+        const endTime = record.endtime || "";
+        const duration = parseFloat(record.duration) || 0;
+
+        // Recompute business hours and overtime on the fly from start/end
+        let businessDayTime = 0;
+        let overtime = 0;
+        if (startTime && endTime) {
+          const [startHour, startMin] = startTime.split(":").map(Number);
+          const [endHour, endMin] = endTime.split(":").map(Number);
+          const startMinutes = startHour * 60 + startMin;
+          const endMinutes = endHour * 60 + endMin;
+
+          const businessStartMinutes = 9 * 60;
+          const businessEndMinutes = 17 * 60;
+
+          if (
+            startMinutes >= businessEndMinutes ||
+            endMinutes <= businessStartMinutes
+          ) {
+            overtime = duration;
+          } else if (
+            startMinutes >= businessStartMinutes &&
+            endMinutes <= businessEndMinutes
+          ) {
+            businessDayTime = duration;
+          } else {
+            const overlapStart = Math.max(startMinutes, businessStartMinutes);
+            const overlapEnd = Math.min(endMinutes, businessEndMinutes);
+            businessDayTime =
+              Math.round(((overlapEnd - overlapStart) / 60) * 100) / 100;
+            overtime = Math.round((duration - businessDayTime) * 100) / 100;
+          }
+        }
+
+        return {
+          id: record.id,
+          workDate,
+          projectNumber,
+          projectName,
+          taskType,
+          client,
+          languages,
+          startTime,
+          endTime,
+          duration,
+          businessDayTime,
+          overtime,
+        };
+      });
       setRecords(transformedRecords);
     }
   }, [dbRecords]);
@@ -255,12 +298,19 @@ export default function EmployeeDashboard() {
           languages: formData.languages,
           startTime: startStr,
           endTime: endStr,
+          duration,
           notes: formData.notes,
         });
         toast.success("Time record saved successfully!");
         refetchRecords();
-      } catch (error) {
-        toast.error("Failed to save time record");
+      } catch (error: any) {
+        // Surface Supabase error details for easier debugging
+        console.error("Failed to save time record (live timer):", error);
+        const message =
+          error?.message ??
+          error?.error?.message ??
+          "Failed to save time record";
+        toast.error(message);
       }
     }
 
@@ -340,12 +390,19 @@ export default function EmployeeDashboard() {
           languages: formData.languages,
           startTime: formData.startTime,
           endTime: formData.endTime,
+          duration,
           notes: formData.notes,
         });
         toast.success("Time record saved successfully!");
         refetchRecords();
-      } catch (error) {
-        toast.error("Failed to save time record");
+      } catch (error: any) {
+        // Surface Supabase error details for easier debugging
+        console.error("Failed to save time record (manual):", error);
+        const message =
+          error?.message ??
+          error?.error?.message ??
+          "Failed to save time record";
+        toast.error(message);
       }
     }
 

@@ -364,6 +364,11 @@ export const trpc = {
         return caseStudiesService.uploadImage(file);
       }),
     },
+    seed: {
+      useMutation: createMutationHook(async () => {
+        return caseStudiesService.seedSample();
+      }),
+    },
   },
   services: {
     list: {
@@ -400,7 +405,27 @@ export const trpc = {
     login: {
       useMutation: createMutationHook(
         async (data: { email: string; password: string }) => {
-          return authService.signIn(data.email, data.password);
+          // Use employees table for login instead of Supabase auth
+          const employee = await employeeService.verifyLogin(
+            data.email,
+            data.password
+          );
+
+          if (!employee) {
+            throw new Error("Invalid employee credentials");
+          }
+
+          // Normalise field names from snake_case to camelCase for the UI
+          return {
+            id: (employee as any).id,
+            email: (employee as any).email,
+            firstName:
+              (employee as any).firstName ?? (employee as any).firstname,
+            lastName:
+              (employee as any).lastName ?? (employee as any).lastname,
+            employeeId:
+              (employee as any).employeeId ?? (employee as any).employeeid,
+          };
         }
       ),
     },
