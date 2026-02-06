@@ -70,10 +70,9 @@ export default function EmployeeDashboard() {
 
   // tRPC query for fetching records
   const { data: dbRecords, refetch: refetchRecords } =
-    trpc.employee.getRecords.useQuery(
-      { employeeId: employeeId || 0 },
-      { enabled: !!employeeId }
-    );
+    trpc.employee.getRecords.useQuery(employeeId || 0, {
+      enabled: !!employeeId,
+    });
 
   // Fetch records from database on mount
   useEffect(() => {
@@ -421,9 +420,8 @@ export default function EmployeeDashboard() {
 
   const handleLogout = () => {
     localStorage.removeItem("employeeSession");
-    setLocation("/employee/login");
     localStorage.removeItem("employeeEmail");
-    window.location.href = "/employee/login";
+    setLocation("/");
   };
 
   const handleDeleteRecord = async (id: number) => {

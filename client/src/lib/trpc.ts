@@ -316,9 +316,11 @@ export const trpc = {
       }),
     },
     uploadImage: {
-      useMutation: createMutationHook(async (file: File) => {
-        return blogService.uploadImage(file);
-      }),
+      useMutation: createMutationHook(
+        async (data: { fileName: string; contentType: string; dataUrl: string }) => {
+          return blogService.uploadImage(data);
+        }
+      ),
     },
   },
   caseStudies: {
@@ -360,9 +362,11 @@ export const trpc = {
       }),
     },
     uploadImage: {
-      useMutation: createMutationHook(async (file: File) => {
-        return caseStudiesService.uploadImage(file);
-      }),
+      useMutation: createMutationHook(
+        async (data: { fileName: string; contentType: string; dataUrl: string }) => {
+          return caseStudiesService.uploadImage(data);
+        }
+      ),
     },
     seed: {
       useMutation: createMutationHook(async () => {

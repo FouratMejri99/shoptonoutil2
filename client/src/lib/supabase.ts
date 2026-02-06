@@ -119,8 +119,7 @@ export const dbService = {
 export const blogService = {
   async getAll() {
     return dbService.select("blogposts", {
-      // Supabase columns use snake_case in this project
-      order: "createdat",
+      order: "createdAt",
       ascending: false,
     });
   },
@@ -134,9 +133,8 @@ export const blogService = {
 
   async getFeatured(limit = 3) {
     return dbService.select("blogposts", {
-      // Match Supabase column names
-      eq: { ispublished: true },
-      order: "createdat",
+      eq: { published: true },
+      order: "publishedAt",
       ascending: false,
       limit,
     });
@@ -154,8 +152,30 @@ export const blogService = {
     return dbService.delete("blogposts", id);
   },
 
-  async uploadImage(_file: File): Promise<string> {
-    return `https://example.com/images/${Date.now()}.jpg`;
+  // Upload blog images to Supabase storage bucket
+  async uploadImage(input: {
+    fileName: string;
+    contentType: string;
+    dataUrl: string;
+  }): Promise<{ url: string }> {
+    const { fileName, contentType, dataUrl } = input;
+    // Convert data URL to Blob reliably in the browser
+    const blob = await (await fetch(dataUrl)).blob();
+
+    const path = `blog/${Date.now()}-${fileName}`;
+    const { error } = await supabase.storage
+      .from("public-assets")
+      .upload(path, blob, {
+        contentType,
+        upsert: true,
+      });
+    if (error) throw error;
+
+    const { data } = supabase.storage
+      .from("public-assets")
+      .getPublicUrl(path);
+
+    return { url: data.publicUrl };
   },
 };
 
@@ -163,7 +183,7 @@ export const blogService = {
 export const caseStudiesService = {
   async getAll() {
     return dbService.select("casestudies", {
-      order: "createdat",
+      order: "createdAt",
       ascending: false,
     });
   },
@@ -177,8 +197,8 @@ export const caseStudiesService = {
 
   async getFeatured(limit = 3) {
     return dbService.select("casestudies", {
-      eq: { ispublished: true },
-      order: "createdat",
+      eq: { featured: true },
+      order: "createdAt",
       ascending: false,
       limit,
     });
@@ -196,8 +216,30 @@ export const caseStudiesService = {
     return dbService.delete("casestudies", id);
   },
 
-  async uploadImage(_file: File): Promise<string> {
-    return `https://example.com/images/${Date.now()}.jpg`;
+  // Upload case study images to Supabase storage bucket
+  async uploadImage(input: {
+    fileName: string;
+    contentType: string;
+    dataUrl: string;
+  }): Promise<{ url: string }> {
+    const { fileName, contentType, dataUrl } = input;
+    // Convert data URL to Blob reliably in the browser
+    const blob = await (await fetch(dataUrl)).blob();
+
+    const path = `case-studies/${Date.now()}-${fileName}`;
+    const { error } = await supabase.storage
+      .from("public-assets")
+      .upload(path, blob, {
+        contentType,
+        upsert: true,
+      });
+    if (error) throw error;
+
+    const { data } = supabase.storage
+      .from("public-assets")
+      .getPublicUrl(path);
+
+    return { url: data.publicUrl };
   },
 
   // Simple seeding helper to populate example case studies
@@ -215,7 +257,6 @@ export const caseStudiesService = {
           "Localized technical manuals, UI text, and support content into 12 languages.",
         results: "40% faster onboarding and 25% increase in user adoption.",
         featured: true,
-        ispublished: true,
       },
       {
         title: "eLearning Program for Healthcare",
@@ -229,17 +270,17 @@ export const caseStudiesService = {
           "Localized interactive eLearning modules and assessments for 8 regions.",
         results: "95% course completion rate and improved compliance scores.",
         featured: true,
-        ispublished: true,
       },
     ];
 
-    let inserted = 0;
-    for (const sample of samples) {
-      await dbService.insert("casestudies", sample);
-      inserted += 1;
-    }
+    // Use upsert on slug so seeding can be run multiple times safely
+    const { data, error } = await supabase
+      .from("casestudies")
+      .upsert(samples, { onConflict: "slug" });
 
-    return { inserted };
+    if (error) throw error;
+
+    return { inserted: data?.length ?? 0 };
   },
 };
 
@@ -539,24 +580,172 @@ export const adminService = {
     return dbService.delete("employees", id);
   },
 
+  // Reporting helpers built from timetrackingrecords + employees
   async getMonthlyReportSummary(year: number, month: number) {
-    return dbService.select("monthlyreports", {
-      eq: { year, month },
+    // Load all employees for name/metadata
+    const employees = (await dbService.select<any>("employees")) || [];
+    // Load all time records (small volume expected)
+    const records = (await dbService.select<any>("timetrackingrecords", {
+      order: "date",
+      ascending: true,
+    })) as any[];
+
+    // Filter records to requested month (based on date column)
+    const monthlyRecords = records.filter(r => {
+      if (!r.date) return false;
+      const d = new Date(r.date);
+      return d.getFullYear() === year && d.getMonth() + 1 === month;
     });
+
+    // Aggregate by employee
+    const byEmployee = new Map<
+      number,
+      {
+        employeeId: number;
+        firstName: string;
+        lastName: string;
+        totalHours: number;
+        businessDayHours: number;
+        overtimeHours: number;
+        projectIds: Set<string>;
+      }
+    >();
+
+    for (const rec of monthlyRecords) {
+      const id = rec.employeeid as number;
+      if (!id) continue;
+
+      const empRow = employees.find((e: any) => e.id === id) ?? {};
+      const key = id;
+      if (!byEmployee.has(key)) {
+        byEmployee.set(key, {
+          employeeId: id,
+          firstName: empRow.firstname ?? empRow.firstName ?? "",
+          lastName: empRow.lastname ?? empRow.lastName ?? "",
+          totalHours: 0,
+          businessDayHours: 0,
+          overtimeHours: 0,
+          projectIds: new Set<string>(),
+        });
+      }
+
+      const agg = byEmployee.get(key)!;
+      const duration = parseFloat(rec.duration) || 0;
+      const business = parseFloat(rec.businessdaytime) || 0;
+      const overtime = parseFloat(rec.overtime) || 0;
+
+      agg.totalHours += duration;
+      agg.businessDayHours += business;
+      agg.overtimeHours += overtime;
+
+      const projectKey =
+        (rec.projectnumber as string) ||
+        (rec.projectname as string) ||
+        `${rec.date}-${rec.tasktype || ""}`;
+      agg.projectIds.add(projectKey);
+    }
+
+    // Shape data to what AdminReporting expects
+    return Array.from(byEmployee.values()).map(emp => ({
+      employeeId: emp.employeeId,
+      firstName: emp.firstName,
+      lastName: emp.lastName,
+      totalHours: emp.totalHours,
+      businessDayHours: emp.businessDayHours,
+      overtimeHours: emp.overtimeHours,
+      projectCount: emp.projectIds.size,
+    }));
   },
 
   async getDailyReportSummary(startDate: string, endDate: string) {
-    return dbService.select("timetrackingrecords", {
+    const records = (await dbService.select<any>("timetrackingrecords", {
       order: "date",
-      ascending: false,
-    });
+      ascending: true,
+    })) as any[];
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    const byDate = new Map<
+      string,
+      { date: string; totalHours: number; overtimeHours: number; employeeIds: Set<number> }
+    >();
+
+    for (const rec of records) {
+      if (!rec.date) continue;
+      const d = new Date(rec.date);
+      if (d < start || d > end) continue;
+
+      const key = rec.date as string;
+      if (!byDate.has(key)) {
+        byDate.set(key, {
+          date: key,
+          totalHours: 0,
+          overtimeHours: 0,
+          employeeIds: new Set<number>(),
+        });
+      }
+
+      const agg = byDate.get(key)!;
+      const duration = parseFloat(rec.duration) || 0;
+      const overtime = parseFloat(rec.overtime) || 0;
+
+      agg.totalHours += duration;
+      agg.overtimeHours += overtime;
+      if (rec.employeeid) {
+        agg.employeeIds.add(rec.employeeid as number);
+      }
+    }
+
+    return Array.from(byDate.values()).map(day => ({
+      date: day.date,
+      totalHours: day.totalHours,
+      employeeCount: day.employeeIds.size,
+      overtimeHours: day.overtimeHours,
+    }));
   },
 
   async getTaskTypeDistribution(startDate: string, endDate: string) {
-    return dbService.select("timetrackingrecords", {
+    const records = (await dbService.select<any>("timetrackingrecords", {
       order: "date",
-      ascending: false,
-    });
+      ascending: true,
+    })) as any[];
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    const byTask = new Map<string, number>();
+
+    for (const rec of records) {
+      if (!rec.date) continue;
+      const d = new Date(rec.date);
+      if (d < start || d > end) continue;
+
+      const rawType = (rec.tasktype as string) || "other";
+      // Normalise to readable labels used in UI color map
+      const taskType = (() => {
+        switch (rawType) {
+          case "translation":
+            return "Translation";
+          case "review":
+            return "Review";
+          case "qa":
+            return "QA";
+          case "desktop_publishing":
+            return "Desktop Publishing";
+          default:
+            return "Other";
+        }
+      })();
+
+      const duration = parseFloat(rec.duration) || 0;
+      byTask.set(taskType, (byTask.get(taskType) || 0) + duration);
+    }
+
+    return Array.from(byTask.entries()).map(([taskType, totalHours]) => ({
+      taskType,
+      totalHours,
+    }));
   },
 
   async seedSampleReports() {

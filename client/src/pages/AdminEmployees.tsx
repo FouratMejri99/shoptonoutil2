@@ -175,7 +175,7 @@ export default function AdminEmployees() {
 
   const handleLogout = () => {
     localStorage.removeItem("adminSession");
-    window.location.href = "/solupedia-admin";
+    window.location.href = "/";
   };
 
   const filteredEmployees = employees.filter(
