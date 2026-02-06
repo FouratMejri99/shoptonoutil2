@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { trpc } from "@/lib/trpc";
+import emailjs from "@emailjs/browser";
 import { motion } from "framer-motion";
 import {
   CheckCircle,
@@ -13,6 +13,13 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+
+// EmailJS configuration - Replace with your actual EmailJS credentials
+const EMAILJS_CONFIG = {
+  serviceId: import.meta.env.VITE_EMAILJS_SERVICE_ID || "YOUR_SERVICE_ID",
+  templateId: import.meta.env.VITE_EMAILJS_TEMPLATE_ID || "YOUR_TEMPLATE_ID",
+  publicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY || "YOUR_PUBLIC_KEY",
+};
 
 // Image for Contact page
 const contactImage = "/On3htFLwCrvj.jpg";
@@ -27,23 +34,7 @@ export default function Contact() {
     message: "",
   });
 
-  const submitLead = trpc.leads.submit.useMutation({
-    onSuccess: () => {
-      toast.success("Thank you! We'll be in touch soon.");
-      setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        company: "",
-        serviceType: "",
-        message: "",
-      });
-    },
-    onError: error => {
-      toast.error("Failed to submit form. Please try again.");
-      console.error(error);
-    },
-  });
+  const [isSending, setIsSending] = useState(false);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -54,12 +45,42 @@ export default function Contact() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    submitLead.mutate({
-      ...formData,
-      source: "contact_form",
-    });
+    setIsSending(true);
+
+    try {
+      // Send email via EmailJS
+      await emailjs.send(
+        EMAILJS_CONFIG.serviceId,
+        EMAILJS_CONFIG.templateId,
+        {
+          from_name: formData.name,
+          from_email: formData.email,
+          phone: formData.phone,
+          company: formData.company,
+          service_type: formData.serviceType,
+          message: formData.message,
+          reply_to: formData.email,
+        },
+        EMAILJS_CONFIG.publicKey
+      );
+
+      toast.success("Thank you! We'll be in touch soon.");
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        company: "",
+        serviceType: "",
+        message: "",
+      });
+    } catch (error) {
+      console.error("Failed to send email:", error);
+      toast.error("Failed to send message. Please try again.");
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -347,10 +368,10 @@ export default function Contact() {
 
                 <Button
                   type="submit"
-                  disabled={submitLead.isPending}
+                  disabled={isSending}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 rounded-xl text-lg font-semibold shadow-lg shadow-blue-600/20 hover:shadow-xl transition-all"
                 >
-                  {submitLead.isPending ? "Sending..." : "Send Message"}{" "}
+                  {isSending ? "Sending..." : "Send Message"}{" "}
                   <Send className="ml-2 w-4 h-4" />
                 </Button>
               </form>

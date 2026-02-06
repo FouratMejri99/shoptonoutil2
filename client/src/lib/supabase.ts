@@ -118,21 +118,21 @@ export const dbService = {
 // Blog service
 export const blogService = {
   async getAll() {
-    return dbService.select("blog_posts", {
+    return dbService.select("blogposts", {
       order: "createdAt",
       ascending: false,
     });
   },
 
   async getBySlug(slug: string) {
-    const [data] = await dbService.select("blog_posts", {
+    const [data] = await dbService.select("blogposts", {
       eq: { slug },
     });
     return data;
   },
 
   async getFeatured(limit = 3) {
-    return dbService.select("blog_posts", {
+    return dbService.select("blogposts", {
       eq: { isPublished: true },
       order: "createdAt",
       ascending: false,
@@ -140,42 +140,19 @@ export const blogService = {
     });
   },
 
-  async create(postData: {
-    title: string;
-    slug: string;
-    content: string;
-    excerpt?: string;
-    coverImage?: string;
-    author?: string;
-    isPublished?: boolean;
-    category?: string;
-  }) {
-    return dbService.insert("blog_posts", postData);
+  async create(postData: any) {
+    return dbService.insert("blogposts", postData);
   },
 
-  async update(
-    id: number,
-    updates: Partial<{
-      title: string;
-      slug: string;
-      content: string;
-      excerpt: string;
-      coverImage: string;
-      author: string;
-      isPublished: boolean;
-      category: string;
-    }>
-  ) {
-    return dbService.update("blog_posts", id, updates);
+  async update(id: number, updates: any) {
+    return dbService.update("blogposts", id, updates);
   },
 
   async delete(id: number) {
-    return dbService.delete("blog_posts", id);
+    return dbService.delete("blogposts", id);
   },
 
   async uploadImage(_file: File): Promise<string> {
-    // Note: In production, implement proper image upload to Supabase Storage
-    // This is a placeholder that returns a mock URL
     return `https://example.com/images/${Date.now()}.jpg`;
   },
 };
@@ -183,71 +160,38 @@ export const blogService = {
 // Case Studies service
 export const caseStudiesService = {
   async getAll() {
-    return dbService.select("case_studies", {
-      order: "createdAt",
+    return dbService.select("casestudies", {
+      order: "createdat",
       ascending: false,
     });
   },
 
   async getBySlug(slug: string) {
-    const [data] = await dbService.select("case_studies", {
+    const [data] = await dbService.select("casestudies", {
       eq: { slug },
     });
     return data;
   },
 
   async getFeatured(limit = 3) {
-    return dbService.select("case_studies", {
-      eq: { isPublished: true },
-      order: "createdAt",
+    return dbService.select("casestudies", {
+      eq: { ispublished: true },
+      order: "createdat",
       ascending: false,
       limit,
     });
   },
 
-  async create(studyData: {
-    title: string;
-    slug: string;
-    content: string;
-    clientName?: string;
-    industry?: string;
-    coverImage?: string;
-    challenge?: string;
-    solution?: string;
-    results?: string;
-    isPublished?: boolean;
-  }) {
-    return dbService.insert("case_studies", studyData);
+  async create(studyData: any) {
+    return dbService.insert("casestudies", studyData);
   },
 
-  async update(
-    id: number,
-    updates: Partial<{
-      title: string;
-      slug: string;
-      content: string;
-      clientName: string;
-      industry: string;
-      coverImage: string;
-      challenge: string;
-      solution: string;
-      results: string;
-      isPublished: boolean;
-    }>
-  ) {
-    return dbService.update("case_studies", id, updates);
+  async update(id: number, updates: any) {
+    return dbService.update("casestudies", id, updates);
   },
 
   async delete(id: number) {
-    return dbService.delete("case_studies", id);
-  },
-
-  async seed() {
-    // Note: In production, seed data would be inserted via Supabase dashboard or migration
-    return {
-      success: true,
-      message: "Seed functionality requires Edge Function",
-    };
+    return dbService.delete("casestudies", id);
   },
 
   async uploadImage(_file: File): Promise<string> {
@@ -290,14 +234,7 @@ export const testimonialsService = {
     });
   },
 
-  async create(data: {
-    clientName: string;
-    company?: string;
-    content: string;
-    rating?: number;
-    avatarUrl?: string;
-    isPublished?: boolean;
-  }) {
+  async create(data: any) {
     return dbService.insert("testimonials", data);
   },
 };
@@ -331,7 +268,7 @@ export const leadsService = {
 export const employeeService = {
   async getAll() {
     return dbService.select("employees", {
-      order: "createdAt",
+      order: "createdat",
       ascending: false,
     });
   },
@@ -343,30 +280,11 @@ export const employeeService = {
     return data;
   },
 
-  async create(employeeData: {
-    email: string;
-    firstName: string;
-    lastName: string;
-    employeeId: string;
-    department?: string;
-    position?: string;
-    isActive?: boolean;
-  }) {
+  async create(employeeData: any) {
     return dbService.insert("employees", employeeData);
   },
 
-  async update(
-    id: number,
-    updates: Partial<{
-      email: string;
-      firstName: string;
-      lastName: string;
-      employeeId: string;
-      department: string;
-      position: string;
-      isActive: boolean;
-    }>
-  ) {
+  async update(id: number, updates: any) {
     return dbService.update("employees", id, updates);
   },
 
@@ -376,54 +294,51 @@ export const employeeService = {
 
   async verifyLogin(email: string) {
     const [employee] = await dbService.select("employees", {
-      eq: { email, isActive: true },
+      eq: { email, isactive: true },
     });
     return employee;
   },
 
   // Time records
-  async createTimeRecord(recordData: {
-    employeeId: number;
-    clockIn?: string;
-    clockOut?: string;
-    date: string;
-    hoursWorked?: number;
-    taskDescription?: string;
-    taskType?: string;
-  }) {
-    return dbService.insert("time_records", recordData);
+  async createTimeRecord(recordData: any) {
+    return dbService.insert("timetrackingrecords", recordData);
   },
 
   async getRecords(employeeId: number) {
-    return dbService.select("time_records", {
-      eq: { employeeId },
+    return dbService.select("timetrackingrecords", {
+      eq: { employeeid: employeeId },
       order: "date",
       ascending: false,
     });
   },
 
   async deleteTimeRecord(id: number) {
-    return dbService.delete("time_records", id);
+    return dbService.delete("timetrackingrecords", id);
   },
 };
 
-// Admin credentials - single hardcoded admin
-const ADMIN_EMAIL = "admin@solupedia.com";
-const ADMIN_PASSWORD = "Solupedia2024!";
-
-// Admin operations (simplified - in production, use Supabase Edge Functions)
+// Admin operations
 export const adminService = {
   async login(email: string, password: string) {
-    // Only allow login with the hardcoded admin credential
-    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+    const [admin] = await dbService.select<{
+      id: number;
+      email: string;
+      password: string;
+      role?: string;
+      createdat?: string;
+    }>("admincredentials", {
+      eq: { email, password },
+    });
+
+    if (admin) {
       return {
-        id: 1,
-        email: ADMIN_EMAIL,
-        role: "admin",
-        createdAt: new Date().toISOString(),
+        id: admin.id,
+        email: admin.email,
+        role: admin.role || "admin",
+        createdAt: admin.createdat,
       };
     }
-    // Throw error for invalid credentials
+
     throw new Error("Invalid admin credentials");
   },
 
@@ -434,30 +349,11 @@ export const adminService = {
     });
   },
 
-  async createEmployee(data: {
-    email: string;
-    firstName: string;
-    lastName: string;
-    employeeId: string;
-    department?: string;
-    position?: string;
-    isActive?: boolean;
-  }) {
+  async createEmployee(data: any) {
     return dbService.insert("employees", data);
   },
 
-  async updateEmployee(
-    id: number,
-    updates: Partial<{
-      email: string;
-      firstName: string;
-      lastName: string;
-      employeeId: string;
-      department: string;
-      position: string;
-      isActive: boolean;
-    }>
-  ) {
+  async updateEmployee(id: number, updates: any) {
     return dbService.update("employees", id, updates);
   },
 
@@ -465,23 +361,21 @@ export const adminService = {
     return dbService.delete("employees", id);
   },
 
-  // Reports
   async getMonthlyReportSummary(year: number, month: number) {
-    // In production, this would be a complex query or Edge Function
-    return dbService.select("time_records", {
-      eq: { taskType: "billable" },
+    return dbService.select("monthlyreports", {
+      eq: { year, month },
     });
   },
 
   async getDailyReportSummary(startDate: string, endDate: string) {
-    return dbService.select("time_records", {
+    return dbService.select("timetrackingrecords", {
       order: "date",
       ascending: false,
     });
   },
 
   async getTaskTypeDistribution(startDate: string, endDate: string) {
-    return dbService.select("time_records", {
+    return dbService.select("timetrackingrecords", {
       order: "date",
       ascending: false,
     });

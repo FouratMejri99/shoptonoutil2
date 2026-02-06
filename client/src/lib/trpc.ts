@@ -1,6 +1,8 @@
 // Mock tRPC client for frontend-only Supabase architecture
 // This provides a compatible API for existing components
 
+import { useCallback, useEffect, useState } from "react";
+
 import {
   adminService,
   authService,
@@ -12,426 +14,423 @@ import {
   testimonialsService,
 } from "./supabase";
 
-// Helper to create query hooks
-function createQueryHook<T>(queryFn: () => Promise<T>) {
-  let data: T | undefined;
-  let isLoading = false;
-  let error: Error | null = null;
+// Helper to create a query hook with useQuery pattern
+function createQueryHook<T, P>(queryFn: (params: P) => Promise<T>) {
+  const useQuery = (_options?: { retry?: boolean }) => {
+    const [data, setData] = useState<T | undefined>(undefined);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<Error | null>(null);
 
-  const hook = (options?: { enabled?: boolean; retry?: number }) => {
-    if (options?.enabled === false) {
-      return { data: undefined, isLoading: false, error: null };
-    }
+    const refetch = useCallback(async () => {
+      setIsLoading(true);
+      try {
+        const result = await queryFn({} as P);
+        setData(result);
+        setError(null);
+        return result;
+      } catch (e) {
+        setError(e as Error);
+        setData(undefined);
+        throw e;
+      } finally {
+        setIsLoading(false);
+      }
+    }, []);
 
-    isLoading = true;
-    queryFn()
-      .then(result => {
-        data = result;
-        error = null;
-      })
-      .catch(e => {
-        error = e;
-        data = undefined;
-      })
-      .finally(() => {
-        isLoading = false;
-      });
+    useEffect(() => {
+      queryFn({} as P)
+        .then(result => {
+          setData(result);
+          setError(null);
+        })
+        .catch(e => {
+          setError(e as Error);
+          setData(undefined);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    }, []);
 
-    return { data, isLoading, error };
+    return { data, isLoading, error, refetch };
   };
 
-  return hook;
+  return useQuery;
 }
 
-// Mock mutation helpers
-function createMutationHook<T, U>(mutationFn: (data: T) => Promise<U>) {
-  const mutationObj = {
-    mutate: async (
-      data: T,
-      options?: {
-        onSuccess?: (result: U) => void;
-        onError?: (error: Error) => void;
-      }
-    ) => {
+// For queries with parameters
+function createParameterizedQueryHook<T, P>(
+  queryFn: (params: P) => Promise<T>
+) {
+  const useQuery = (params: P, _options?: { retry?: boolean }) => {
+    const [data, setData] = useState<T | undefined>(undefined);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<Error | null>(null);
+
+    const refetch = useCallback(async () => {
+      setIsLoading(true);
       try {
-        const result = await mutationFn(data);
-        options?.onSuccess?.(result);
+        const result = await queryFn(params);
+        setData(result);
+        setError(null);
         return result;
-      } catch (error) {
-        options?.onError?.(error as Error);
-        throw error;
+      } catch (e) {
+        setError(e as Error);
+        setData(undefined);
+        throw e;
+      } finally {
+        setIsLoading(false);
       }
-    },
-    mutateAsync: async (
-      data: T,
-      options?: {
-        onSuccess?: (result: U) => void;
-        onError?: (error: Error) => void;
-      }
-    ) => {
-      try {
-        const result = await mutationFn(data);
-        options?.onSuccess?.(result);
-        return result;
-      } catch (error) {
-        options?.onError?.(error as Error);
-        throw error;
-      }
-    },
+    }, [params]);
+
+    useEffect(() => {
+      queryFn(params)
+        .then(result => {
+          setData(result);
+          setError(null);
+        })
+        .catch(e => {
+          setError(e as Error);
+          setData(undefined);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    }, [JSON.stringify(params)]);
+
+    return { data, isLoading, error, refetch };
   };
 
-  // Support both patterns: trpc.leads.subscribeNewsletter.useMutation() and trpc.leads.submit.mutate()
-  Object.defineProperty(mutationObj, "useMutation", {
-    value: () => mutationObj,
-    writable: true,
-    configurable: true,
-  });
+  return useQuery;
+}
 
-  return mutationObj;
+// Create a mutation hook
+function createMutationHook<T, U>(mutationFn: (data: T) => Promise<U>) {
+  const useMutation = () => {
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<Error | null>(null);
+
+    const mutate = async (
+      data: T,
+      options?: {
+        onSuccess?: (result: U) => void;
+        onError?: (error: Error) => void;
+      }
+    ) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const result = await mutationFn(data);
+        options?.onSuccess?.(result);
+        return result;
+      } catch (e) {
+        const error = e as Error;
+        setError(error);
+        options?.onError?.(error);
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const mutateAsync = async (
+      data: T,
+      options?: {
+        onSuccess?: (result: U) => void;
+        onError?: (error: Error) => void;
+      }
+    ) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const result = await mutationFn(data);
+        options?.onSuccess?.(result);
+        return result;
+      } catch (e) {
+        const error = e as Error;
+        setError(error);
+        options?.onError?.(error);
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    return { mutate, mutateAsync, isLoading, error };
+  };
+
+  return useMutation;
+}
+
+// Create utils object with invalidate
+function createUtils() {
+  const cache = new Map<string, { data: any }>();
+  const listeners = new Set<(key: string) => void>();
+
+  const invalidate = (key: string) => {
+    cache.delete(key);
+    listeners.forEach(fn => fn(key));
+  };
+
+  const setData = (key: string, data: any) => {
+    cache.set(key, { data });
+  };
+
+  const getData = (key: string) => {
+    return cache.get(key)?.data;
+  };
+
+  return {
+    invalidate,
+    setData,
+    getData,
+    subscribe: (listener: (key: string) => void) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
 }
 
 // Create a mock tRPC-like object
 export const trpc = {
   auth: {
     me: {
-      useQuery: (options?: { retry?: boolean }) => {
-        return createQueryHook(async () => {
-          const user = await authService.getUser();
-          return { user };
-        })(options as any);
-      },
+      useQuery: createQueryHook(async () => {
+        const user = await authService.getUser();
+        return { user };
+      }),
     },
     logout: {
-      useMutation: () => {
-        return createMutationHook(async () => {
-          await authService.signOut();
-        });
-      },
+      useMutation: createMutationHook(async () => {
+        await authService.signOut();
+      }),
     },
   },
   adminAuth: {
-    login: Object.assign(
-      createMutationHook((data: { email: string; password: string }) =>
-        adminService.login(data.email, data.password).then(admin => ({
-          success: true,
-          admin,
-        }))
+    login: {
+      useMutation: createMutationHook(
+        async (data: { email: string; password: string }) => {
+          const admin = await adminService.login(data.email, data.password);
+          return { success: true, admin };
+        }
       ),
-      {
-        useMutation: () =>
-          createMutationHook((data: { email: string; password: string }) =>
-            adminService.login(data.email, data.password).then(admin => ({
-              success: true,
-              admin,
-            }))
-          ),
-      }
-    ),
+    },
   },
   admin: {
-    login: Object.assign(
-      createMutationHook((data: { email: string; password: string }) =>
-        adminService.login(data.email, data.password)
+    login: {
+      useMutation: createMutationHook(
+        async (data: { email: string; password: string }) => {
+          return adminService.login(data.email, data.password);
+        }
       ),
-      {
-        useMutation: () =>
-          createMutationHook((data: { email: string; password: string }) =>
-            adminService.login(data.email, data.password)
-          ),
-      }
-    ),
-    getAllEmployees: Object.assign(
-      createQueryHook(() => adminService.getAllEmployees()),
-      {
-        useQuery: createQueryHook(() => adminService.getAllEmployees()),
-      }
-    ),
-    createEmployee: Object.assign(
-      createMutationHook((data: any) => adminService.createEmployee(data)),
-      {
-        useMutation: () =>
-          createMutationHook((data: any) => adminService.createEmployee(data)),
-      }
-    ),
-    updateEmployee: Object.assign(
-      createMutationHook((data: { id: number; updates: any }) =>
-        adminService.updateEmployee(data.id, data.updates)
+    },
+    getAllEmployees: {
+      useQuery: createQueryHook(async () => {
+        return adminService.getAllEmployees();
+      }),
+    },
+    createEmployee: {
+      useMutation: createMutationHook(async (data: any) => {
+        return adminService.createEmployee(data);
+      }),
+    },
+    updateEmployee: {
+      useMutation: createMutationHook(
+        async (data: { id: number; updates: any }) => {
+          return adminService.updateEmployee(data.id, data.updates);
+        }
       ),
-      {
-        useMutation: () =>
-          createMutationHook((data: { id: number; updates: any }) =>
-            adminService.updateEmployee(data.id, data.updates)
-          ),
-      }
-    ),
-    deleteEmployee: Object.assign(
-      createMutationHook((id: number) => adminService.deleteEmployee(id)),
-      {
-        useMutation: () =>
-          createMutationHook((id: number) => adminService.deleteEmployee(id)),
-      }
-    ),
-    getMonthlyReportSummary: Object.assign(
-      createQueryHook((data: { year: number; month: number }) =>
-        adminService.getMonthlyReportSummary(data.year, data.month)
+    },
+    deleteEmployee: {
+      useMutation: createMutationHook(async (id: number) => {
+        return adminService.deleteEmployee(id);
+      }),
+    },
+    getMonthlyReportSummary: {
+      useQuery: createParameterizedQueryHook(
+        async (params: { year: number; month: number }) => {
+          return adminService.getMonthlyReportSummary(
+            params.year,
+            params.month
+          );
+        }
       ),
-      {
-        useQuery: createQueryHook((data: { year: number; month: number }) =>
-          adminService.getMonthlyReportSummary(data.year, data.month)
-        ),
-      }
-    ),
-    getDailyReportSummary: Object.assign(
-      createQueryHook((data: { startDate: string; endDate: string }) =>
-        adminService.getDailyReportSummary(data.startDate, data.endDate)
+    },
+    getDailyReportSummary: {
+      useQuery: createParameterizedQueryHook(
+        async (params: { startDate: string; endDate: string }) => {
+          return adminService.getDailyReportSummary(
+            params.startDate,
+            params.endDate
+          );
+        }
       ),
-      {
-        useQuery: createQueryHook(
-          (data: { startDate: string; endDate: string }) =>
-            adminService.getDailyReportSummary(data.startDate, data.endDate)
-        ),
-      }
-    ),
-    getTaskTypeDistribution: Object.assign(
-      createQueryHook((data: { startDate: string; endDate: string }) =>
-        adminService.getTaskTypeDistribution(data.startDate, data.endDate)
+    },
+    getTaskTypeDistribution: {
+      useQuery: createParameterizedQueryHook(
+        async (params: { startDate: string; endDate: string }) => {
+          return adminService.getTaskTypeDistribution(
+            params.startDate,
+            params.endDate
+          );
+        }
       ),
-      {
-        useQuery: createQueryHook(
-          (data: { startDate: string; endDate: string }) =>
-            adminService.getTaskTypeDistribution(data.startDate, data.endDate)
-        ),
-      }
-    ),
-    seedSampleReports: Object.assign(
-      createMutationHook(() => adminService.seedSampleReports()),
-      {
-        useMutation: () =>
-          createMutationHook(() => adminService.seedSampleReports()),
-      }
-    ),
+    },
+    seedSampleReports: {
+      useMutation: createMutationHook(async () => {
+        return adminService.seedSampleReports();
+      }),
+    },
   },
   blog: {
-    list: Object.assign(
-      createQueryHook(() => blogService.getFeatured()),
-      {
-        useQuery: createQueryHook(() => blogService.getFeatured()),
-      }
-    ),
-    all: Object.assign(
-      createQueryHook(() => blogService.getAll()),
-      {
-        useQuery: createQueryHook(() => blogService.getAll()),
-      }
-    ),
-    bySlug: (slug: string) =>
-      Object.assign(
-        createQueryHook(() => blogService.getBySlug(slug)),
-        {
-          useQuery: createQueryHook(() => blogService.getBySlug(slug)),
+    list: {
+      useQuery: createQueryHook(async () => {
+        return blogService.getFeatured();
+      }),
+    },
+    all: {
+      useQuery: createQueryHook(async () => {
+        return blogService.getAll();
+      }),
+    },
+    bySlug: {
+      useQuery: createParameterizedQueryHook(async (slug: string) => {
+        return blogService.getBySlug(slug);
+      }),
+    },
+    create: {
+      useMutation: createMutationHook(async (data: any) => {
+        return blogService.create(data);
+      }),
+    },
+    update: {
+      useMutation: createMutationHook(
+        async (data: { id: number; updates: any }) => {
+          return blogService.update(data.id, data.updates);
         }
       ),
-    create: Object.assign(
-      createMutationHook((data: any) => blogService.create(data)),
-      {
-        useMutation: () =>
-          createMutationHook((data: any) => blogService.create(data)),
-      }
-    ),
-    update: Object.assign(
-      createMutationHook((data: { id: number; updates: any }) =>
-        blogService.update(data.id, data.updates)
-      ),
-      {
-        useMutation: () =>
-          createMutationHook((data: { id: number; updates: any }) =>
-            blogService.update(data.id, data.updates)
-          ),
-      }
-    ),
-    delete: Object.assign(
-      createMutationHook((id: number) => blogService.delete(id)),
-      {
-        useMutation: () =>
-          createMutationHook((id: number) => blogService.delete(id)),
-      }
-    ),
-    uploadImage: Object.assign(
-      createMutationHook((file: File) => blogService.uploadImage(file)),
-      {
-        useMutation: () =>
-          createMutationHook((file: File) => blogService.uploadImage(file)),
-      }
-    ),
+    },
+    delete: {
+      useMutation: createMutationHook(async (id: number) => {
+        return blogService.delete(id);
+      }),
+    },
+    uploadImage: {
+      useMutation: createMutationHook(async (file: File) => {
+        return blogService.uploadImage(file);
+      }),
+    },
   },
   caseStudies: {
-    list: Object.assign(
-      createQueryHook(() => caseStudiesService.getAll()),
-      {
-        useQuery: createQueryHook(() => caseStudiesService.getAll()),
-      }
-    ),
-    all: Object.assign(
-      createQueryHook(() => caseStudiesService.getAll()),
-      {
-        useQuery: createQueryHook(() => caseStudiesService.getAll()),
-      }
-    ),
-    featured: Object.assign(
-      createQueryHook(() => caseStudiesService.getFeatured()),
-      {
-        useQuery: createQueryHook(() => caseStudiesService.getFeatured()),
-      }
-    ),
-    bySlug: (slug: string) =>
-      Object.assign(
-        createQueryHook(() => caseStudiesService.getBySlug(slug)),
-        {
-          useQuery: createQueryHook(() => caseStudiesService.getBySlug(slug)),
+    list: {
+      useQuery: createQueryHook(async () => {
+        return caseStudiesService.getAll();
+      }),
+    },
+    all: {
+      useQuery: createQueryHook(async () => {
+        return caseStudiesService.getAll();
+      }),
+    },
+    featured: {
+      useQuery: createQueryHook(async () => {
+        return caseStudiesService.getFeatured();
+      }),
+    },
+    bySlug: {
+      useQuery: createParameterizedQueryHook(async (slug: string) => {
+        return caseStudiesService.getBySlug(slug);
+      }),
+    },
+    create: {
+      useMutation: createMutationHook(async (data: any) => {
+        return caseStudiesService.create(data);
+      }),
+    },
+    update: {
+      useMutation: createMutationHook(
+        async (data: { id: number; updates: any }) => {
+          return caseStudiesService.update(data.id, data.updates);
         }
       ),
-    create: Object.assign(
-      createMutationHook((data: any) => caseStudiesService.create(data)),
-      {
-        useMutation: () =>
-          createMutationHook((data: any) => caseStudiesService.create(data)),
-      }
-    ),
-    update: Object.assign(
-      createMutationHook((data: { id: number; updates: any }) =>
-        caseStudiesService.update(data.id, data.updates)
-      ),
-      {
-        useMutation: () =>
-          createMutationHook((data: { id: number; updates: any }) =>
-            caseStudiesService.update(data.id, data.updates)
-          ),
-      }
-    ),
-    delete: Object.assign(
-      createMutationHook((id: number) => caseStudiesService.delete(id)),
-      {
-        useMutation: () =>
-          createMutationHook((id: number) => caseStudiesService.delete(id)),
-      }
-    ),
-    seed: Object.assign(
-      createMutationHook(() => caseStudiesService.seed()),
-      {
-        useMutation: () => createMutationHook(() => caseStudiesService.seed()),
-      }
-    ),
-    uploadImage: Object.assign(
-      createMutationHook((file: File) => caseStudiesService.uploadImage(file)),
-      {
-        useMutation: () =>
-          createMutationHook((file: File) =>
-            caseStudiesService.uploadImage(file)
-          ),
-      }
-    ),
+    },
+    delete: {
+      useMutation: createMutationHook(async (id: number) => {
+        return caseStudiesService.delete(id);
+      }),
+    },
+    uploadImage: {
+      useMutation: createMutationHook(async (file: File) => {
+        return caseStudiesService.uploadImage(file);
+      }),
+    },
   },
   services: {
-    list: Object.assign(
-      createQueryHook(() => servicesService.getAll()),
-      {
-        useQuery: createQueryHook(() => servicesService.getAll()),
-      }
-    ),
+    list: {
+      useQuery: createQueryHook(async () => {
+        return servicesService.getAll();
+      }),
+    },
   },
   testimonials: {
-    list: Object.assign(
-      createQueryHook(() => testimonialsService.getAll()),
-      {
-        useQuery: createQueryHook(() => testimonialsService.getAll()),
-      }
-    ),
-    featured: Object.assign(
-      createQueryHook(() => testimonialsService.getFeatured()),
-      {
-        useQuery: createQueryHook(() => testimonialsService.getFeatured()),
-      }
-    ),
+    list: {
+      useQuery: createQueryHook(async () => {
+        return testimonialsService.getAll();
+      }),
+    },
+    featured: {
+      useQuery: createQueryHook(async () => {
+        return testimonialsService.getFeatured();
+      }),
+    },
   },
   leads: {
-    submit: Object.assign(
-      createMutationHook((data: any) => leadsService.submit(data)),
-      {
-        useMutation: () =>
-          createMutationHook((data: any) => leadsService.submit(data)),
-      }
-    ),
-    subscribeNewsletter: Object.assign(
-      createMutationHook((email: string) =>
-        leadsService.subscribeNewsletter(email)
-      ),
-      {
-        useMutation: () =>
-          createMutationHook((email: string) =>
-            leadsService.subscribeNewsletter(email)
-          ),
-      }
-    ),
+    submit: {
+      useMutation: createMutationHook(async (data: any) => {
+        return leadsService.submit(data);
+      }),
+    },
+    subscribeNewsletter: {
+      useMutation: createMutationHook(async (email: string) => {
+        return leadsService.subscribeNewsletter(email);
+      }),
+    },
   },
   employee: {
-    login: Object.assign(
-      createMutationHook((data: { email: string; password: string }) =>
-        authService.signIn(data.email, data.password)
-      ),
-      {
-        useMutation: () =>
-          createMutationHook((data: { email: string; password: string }) =>
-            authService.signIn(data.email, data.password)
-          ),
-      }
-    ),
-    getRecords: (employeeId: number) =>
-      Object.assign(
-        createQueryHook(() => employeeService.getRecords(employeeId)),
-        {
-          useQuery: createQueryHook(() =>
-            employeeService.getRecords(employeeId)
-          ),
+    login: {
+      useMutation: createMutationHook(
+        async (data: { email: string; password: string }) => {
+          return authService.signIn(data.email, data.password);
         }
       ),
-    createTimeRecord: Object.assign(
-      createMutationHook((data: any) => employeeService.createTimeRecord(data)),
-      {
-        useMutation: () =>
-          createMutationHook((data: any) =>
-            employeeService.createTimeRecord(data)
-          ),
-      }
-    ),
-    deleteRecord: Object.assign(
-      createMutationHook((id: number) => employeeService.deleteTimeRecord(id)),
-      {
-        useMutation: () =>
-          createMutationHook((id: number) =>
-            employeeService.deleteTimeRecord(id)
-          ),
-      }
-    ),
+    },
+    getRecords: {
+      useQuery: createParameterizedQueryHook(async (employeeId: number) => {
+        return employeeService.getRecords(employeeId);
+      }),
+    },
+    createTimeRecord: {
+      useMutation: createMutationHook(async (data: any) => {
+        return employeeService.createTimeRecord(data);
+      }),
+    },
+    deleteRecord: {
+      useMutation: createMutationHook(async (id: number) => {
+        return employeeService.deleteTimeRecord(id);
+      }),
+    },
   },
   ai: {
-    chat: Object.assign(
-      createMutationHook((data: { messages: any[] }) =>
-        Promise.resolve({
+    chat: {
+      useMutation: createMutationHook(async (data: { messages: any[] }) => {
+        return {
           choices: [{ message: { content: "AI response placeholder" } }],
-        })
-      ),
-      {
-        useMutation: () =>
-          createMutationHook((data: { messages: any[] }) =>
-            Promise.resolve({
-              choices: [{ message: { content: "AI response placeholder" } }],
-            })
-          ),
-      }
-    ),
+        };
+      }),
+    },
   },
-  useUtils: () => ({}),
+  useUtils: () => createUtils(),
 };
 
-// Re-export for compatibility (placeholder - actual TRPCClientError not needed for mock)
+// Re-export for compatibility
 export type TRPCClientError = any;

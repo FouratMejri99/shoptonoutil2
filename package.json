@@ -6,9 +6,11 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "postinstall": "node -e \"try { require('child_process').execSync('chmod +x node_modules/.pnpm/@esbuild+linux-x64@*/node_modules/@esbuild/linux-x64/bin/esbuild', { stdio: 'ignore' }); } catch (e) { try { require('child_process').execSync('chmod +x node_modules/esbuild/bin/esbuild', { stdio: 'ignore' }); } catch (e) {} }\""
   },
   "dependencies": {
+    "@emailjs/browser": "^4.4.1",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
