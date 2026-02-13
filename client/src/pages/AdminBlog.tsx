@@ -212,6 +212,8 @@ export default function AdminBlog() {
   const updateMutation = trpc.blog.update.useMutation();
   const deleteMutation = trpc.blog.delete.useMutation();
   const uploadMutation = trpc.blog.uploadImage.useMutation();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   // Check admin session on mount
   useEffect(() => {
@@ -224,17 +226,19 @@ export default function AdminBlog() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
       if (editingPost) {
         // Update existing post
         await updateMutation.mutateAsync({
           id: editingPost.id,
-          ...formData,
+          updates: formData,
         });
         toast.success("Blog post updated successfully!");
         setShowForm(false);
         resetForm();
-        utils.blog.all.invalidate();
+        utils.invalidate("blog.all");
+        setIsSubmitting(false);
         return;
       }
 
@@ -255,21 +259,26 @@ export default function AdminBlog() {
       toast.success("Blog post created successfully!");
       setShowForm(false);
       resetForm();
-      utils.blog.all.invalidate();
+      utils.invalidate("blog.all");
+      setIsSubmitting(false);
     } catch (error: any) {
       toast.error(error?.message || "Failed to create blog post");
+      setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm("Are you sure you want to delete this blog post?")) return;
+    setDeletingId(id);
 
     try {
       await deleteMutation.mutateAsync(id);
       toast.success("Blog post deleted successfully!");
-      utils.blog.all.invalidate();
+      utils.invalidate("blog.all");
+      setDeletingId(null);
     } catch (error: any) {
       toast.error(error?.message || "Failed to delete blog post");
+      setDeletingId(null);
     }
   };
 
@@ -463,10 +472,20 @@ export default function AdminBlog() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleDelete(post.id)}
+                            disabled={deletingId === post.id}
                             className="flex-1 rounded-full hover:bg-red-50 text-red-600 hover:text-red-700"
                           >
-                            <Trash2 size={14} className="mr-1" />
-                            Delete
+                            {deletingId === post.id ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin mr-1" />
+                                Deleting...
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 size={14} className="mr-1" />
+                                Delete
+                              </>
+                            )}
                           </Button>
                         </div>
                       </CardContent>
@@ -680,15 +699,24 @@ export default function AdminBlog() {
                   setShowForm(false);
                   resetForm();
                 }}
+                disabled={isSubmitting}
                 className="rounded-xl"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
+                disabled={isSubmitting}
                 className="bg-blue-600 hover:bg-blue-700 rounded-xl"
               >
-                {editingPost ? "Update Post" : "Create Post"}
+                {isSubmitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin mr-2" />
+                    {editingPost ? "Updating..." : "Creating..."}
+                  </>
+                ) : (
+                  <>{editingPost ? "Update Post" : "Create Post"}</>
+                )}
               </Button>
             </div>
           </form>

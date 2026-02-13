@@ -60,6 +60,8 @@ export default function AdminCaseStudies() {
   const deleteMutation = trpc.caseStudies.delete.useMutation();
   const seedMutation = trpc.caseStudies.seed.useMutation();
   const uploadImageMutation = trpc.caseStudies.uploadImage.useMutation();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   // Check admin session on mount
   useEffect(() => {
@@ -72,16 +74,18 @@ export default function AdminCaseStudies() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
       if (editingStudy) {
         await updateMutation.mutateAsync({
           id: editingStudy.id,
-          ...formData,
+          updates: formData,
         });
         toast.success("Case study updated successfully!");
         setShowForm(false);
         resetForm();
-        utils.caseStudies.all.invalidate();
+        utils.invalidate("caseStudies.all");
+        setIsSubmitting(false);
         return;
       }
 
@@ -100,21 +104,26 @@ export default function AdminCaseStudies() {
       toast.success("Case study created successfully!");
       setShowForm(false);
       resetForm();
-      utils.caseStudies.all.invalidate();
+      utils.invalidate("caseStudies.all");
+      setIsSubmitting(false);
     } catch (error: any) {
       toast.error(error?.message || "Failed to create case study");
+      setIsSubmitting(false);
     }
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm("Are you sure you want to delete this case study?")) return;
+    setDeletingId(id);
 
     try {
       await deleteMutation.mutateAsync(id);
       toast.success("Case study deleted successfully!");
-      utils.caseStudies.all.invalidate();
+      utils.invalidate("caseStudies.all");
+      setDeletingId(null);
     } catch (error: any) {
       toast.error(error?.message || "Failed to delete case study");
+      setDeletingId(null);
     }
   };
 
@@ -232,15 +241,15 @@ export default function AdminCaseStudies() {
                   try {
                     const result = await seedMutation.mutateAsync();
                     toast.success(`Seeded ${result.inserted} case studies!`);
-                    utils.caseStudies.all.invalidate();
+                    utils.invalidate("caseStudies.all");
                   } catch (error) {
                     toast.error("Failed to seed case studies");
                   }
                 }}
-                disabled={seedMutation.isPending}
+                disabled={seedMutation.isLoading}
                 className="rounded-full hover:bg-green-50 hover:border-green-200"
               >
-                {seedMutation.isPending ? "Seeding..." : "Seed Sample Data"}
+                {seedMutation.isLoading ? "Seeding..." : "Seed Sample Data"}
               </Button>
               <Button
                 onClick={() => {
@@ -346,10 +355,20 @@ export default function AdminCaseStudies() {
                             variant="outline"
                             size="sm"
                             onClick={() => handleDelete(study.id)}
+                            disabled={deletingId === study.id}
                             className="flex-1 rounded-full hover:bg-red-50 hover:text-red-600 hover:border-red-300 text-red-600"
                           >
-                            <Trash2 size={14} className="mr-1" />
-                            Delete
+                            {deletingId === study.id ? (
+                              <>
+                                <div className="w-4 h-4 border-2 border-red-300 border-t-red-600 rounded-full animate-spin mr-1" />
+                                Deleting...
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 size={14} className="mr-1" />
+                                Delete
+                              </>
+                            )}
                           </Button>
                         </div>
                       </CardContent>
@@ -510,7 +529,7 @@ export default function AdminCaseStudies() {
                 <div className="flex items-center gap-4">
                   <label className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors">
                     <Upload size={18} />
-                    {uploadImageMutation.isPending
+                    {uploadImageMutation.isLoading
                       ? "Uploading..."
                       : "Upload Image"}
                     <input
@@ -518,7 +537,7 @@ export default function AdminCaseStudies() {
                       accept="image/*"
                       onChange={handleImageUpload}
                       className="hidden"
-                      disabled={uploadImageMutation.isPending}
+                      disabled={uploadImageMutation.isLoading}
                     />
                   </label>
                   {formData.imageUrl && (
@@ -617,14 +636,19 @@ export default function AdminCaseStudies() {
               </Button>
               <Button
                 type="submit"
-                disabled={createMutation.isPending || updateMutation.isPending}
+                disabled={isSubmitting}
                 className="bg-blue-600 hover:bg-blue-700 rounded-full shadow-lg shadow-blue-600/20"
               >
-                {createMutation.isPending || updateMutation.isPending
-                  ? "Saving..."
-                  : editingStudy
-                    ? "Update Case Study"
-                    : "Create Case Study"}
+                {isSubmitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/50 border-t-white rounded-full animate-spin mr-2" />
+                    {editingStudy ? "Updating..." : "Creating..."}
+                  </>
+                ) : editingStudy ? (
+                  "Update Case Study"
+                ) : (
+                  "Create Case Study"
+                )}
               </Button>
             </div>
           </form>

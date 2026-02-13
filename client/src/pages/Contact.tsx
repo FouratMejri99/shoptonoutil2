@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import emailjs from "@emailjs/browser";
 import { motion } from "framer-motion";
 import {
   CheckCircle,
@@ -14,12 +13,9 @@ import {
 import { useState } from "react";
 import { toast } from "sonner";
 
-// EmailJS configuration - Replace with your actual EmailJS credentials
-const EMAILJS_CONFIG = {
-  serviceId: import.meta.env.VITE_EMAILJS_SERVICE_ID || "YOUR_SERVICE_ID",
-  templateId: import.meta.env.VITE_EMAILJS_TEMPLATE_ID || "YOUR_TEMPLATE_ID",
-  publicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY || "YOUR_PUBLIC_KEY",
-};
+// Formspree configuration - Create a free form at https://formspree.io/
+const FORMSPREE_FORM_ID = import.meta.env.VITE_FORMSPREE_FORM_ID || "";
+const USE_FORMSPREE = !!FORMSPREE_FORM_ID;
 
 // Image for Contact page
 const contactImage = "/On3htFLwCrvj.jpg";
@@ -50,34 +46,73 @@ export default function Contact() {
     setIsSending(true);
 
     try {
-      // Send email via EmailJS
-      await emailjs.send(
-        EMAILJS_CONFIG.serviceId,
-        EMAILJS_CONFIG.templateId,
-        {
-          from_name: formData.name,
-          from_email: formData.email,
-          phone: formData.phone,
-          company: formData.company,
-          service_type: formData.serviceType,
-          message: formData.message,
-          reply_to: formData.email,
-        },
-        EMAILJS_CONFIG.publicKey
-      );
+      if (USE_FORMSPREE) {
+        // Send via Formspree
+        const response = await fetch(
+          `https://formspree.io/f/${FORMSPREE_FORM_ID}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify({
+              name: formData.name,
+              email: formData.email,
+              phone: formData.phone,
+              company: formData.company,
+              "service-type": formData.serviceType,
+              message: formData.message,
+            }),
+          }
+        );
 
-      toast.success("Thank you! We'll be in touch soon.");
-      setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        company: "",
-        serviceType: "",
-        message: "",
-      });
-    } catch (error) {
-      console.error("Failed to send email:", error);
-      toast.error("Failed to send message. Please try again.");
+        if (response.ok) {
+          toast.success("Thank you! We'll be in touch soon.");
+          setFormData({
+            name: "",
+            email: "",
+            phone: "",
+            company: "",
+            serviceType: "",
+            message: "",
+          });
+        } else {
+          throw new Error("Formspree submission failed");
+        }
+      } else {
+        // Fallback: mailto link
+        const subject = encodeURIComponent(
+          `New Contact Form Submission - ${formData.name}`
+        );
+        const body = encodeURIComponent(`
+Name: ${formData.name}
+Email: ${formData.email}
+Phone: ${formData.phone || "Not provided"}
+Company: ${formData.company || "Not provided"}
+Service Type: ${formData.serviceType || "Not specified"}
+
+Message:
+${formData.message}
+        `);
+        window.location.href = `mailto:info@solupedia.com?subject=${subject}&body=${body}`;
+        toast.success(
+          "Your email client should open now. Please send the email to complete your submission."
+        );
+        setFormData({
+          name: "",
+          email: "",
+          phone: "",
+          company: "",
+          serviceType: "",
+          message: "",
+        });
+      }
+    } catch (error: any) {
+      console.error("Failed to send message:", error);
+      toast.error(
+        "Failed to send message. Please try again or email us directly at info@solupedia.com"
+      );
     } finally {
       setIsSending(false);
     }
@@ -122,9 +157,9 @@ export default function Contact() {
               {
                 icon: Phone,
                 title: "Phone",
-                content: "+1 (910) 626-8525",
+                content: "+20 01555335577",
                 sub: "Mon-Fri, 9AM-5PM EST",
-                link: "tel:+19106268525",
+                link: "tel:+2001555335577",
               },
               {
                 icon: Mail,
@@ -209,7 +244,7 @@ export default function Contact() {
                   </p>
                   <div className="flex flex-wrap gap-3">
                     {[
-                      { icon: Phone, text: "+1 (910) 626-8525" },
+                      { icon: Phone, text: "+20 01555335577" },
                       { icon: Mail, text: "info@solupedia.com" },
                       { icon: MapPin, text: "London, UK" },
                     ].map((item, idx) => (

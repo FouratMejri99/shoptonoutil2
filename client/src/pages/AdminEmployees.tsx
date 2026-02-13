@@ -85,7 +85,6 @@ export default function AdminEmployees() {
       if (editingId) {
         // Update existing employee
         const updates: any = {
-          id: editingId,
           email: formData.email,
           firstName: formData.firstName,
           lastName: formData.lastName,
@@ -99,7 +98,10 @@ export default function AdminEmployees() {
           updates.password = formData.password;
         }
 
-        await updateEmployeeMutation.mutateAsync(updates);
+        await updateEmployeeMutation.mutateAsync({
+          id: editingId,
+          updates,
+        });
         toast.success("Employee updated successfully");
         setEditingId(null);
       } else {
@@ -162,7 +164,7 @@ export default function AdminEmployees() {
     try {
       await updateEmployeeMutation.mutateAsync({
         id,
-        isActive: !currentStatus,
+        updates: { isActive: !currentStatus },
       });
       toast.success(
         currentStatus ? "Employee deactivated" : "Employee activated"

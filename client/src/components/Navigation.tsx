@@ -335,7 +335,7 @@ function Navigation() {
                     Portal Login
                   </div>
                   <div className="space-y-2">
-                    <Link href="/admin/login">
+                    <Link href="/solupedia-admin">
                       <a className="flex items-center gap-3 p-3 rounded-lg bg-red-50 hover:bg-red-100 transition-colors">
                         <Shield className="w-5 h-5 text-red-600" />
                         <div>

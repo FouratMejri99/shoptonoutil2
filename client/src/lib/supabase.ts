@@ -113,6 +113,11 @@ export const dbService = {
     const { error } = await supabase.from(table).delete().eq("id", id);
     if (error) throw error;
   },
+
+  async deleteByField(table: string, field: string, value: any) {
+    const { error } = await supabase.from(table).delete().eq(field, value);
+    if (error) throw error;
+  },
 };
 
 // Blog service
@@ -171,9 +176,7 @@ export const blogService = {
       });
     if (error) throw error;
 
-    const { data } = supabase.storage
-      .from("public-assets")
-      .getPublicUrl(path);
+    const { data } = supabase.storage.from("public-assets").getPublicUrl(path);
 
     return { url: data.publicUrl };
   },
@@ -235,9 +238,7 @@ export const caseStudiesService = {
       });
     if (error) throw error;
 
-    const { data } = supabase.storage
-      .from("public-assets")
-      .getPublicUrl(path);
+    const { data } = supabase.storage.from("public-assets").getPublicUrl(path);
 
     return { url: data.publicUrl };
   },
@@ -305,11 +306,33 @@ export const servicesService = {
 // Normalize Supabase rows into a consistent shape for the UI
 const normalizeTestimonial = (item: any) => ({
   id: item.id,
-  clientName: item.clientName ?? item.client_name ?? item.name ?? "",
+  clientName:
+    item.clientname ??
+    item.clientName ??
+    item.client_name ??
+    item.name ??
+    item.author ??
+    "",
   clientCompany:
-    item.clientCompany ?? item.company ?? item.client_company ?? "",
+    item.clientcompany ??
+    item.clientCompany ??
+    item.client_company ??
+    item.company ??
+    "",
   content:
-    item.content ?? item.message ?? item.testimonial ?? item.text ?? "",
+    item.content ??
+    item.message ??
+    item.testimonial ??
+    item.text ??
+    item.testimony ??
+    "",
+  avatar:
+    item.avatar ??
+    item.avatarUrl ??
+    item.clientAvatar ??
+    item.image ??
+    item.photo ??
+    "",
 });
 
 export const testimonialsService = {
@@ -461,7 +484,10 @@ export const employeeService = {
       row.projectname = recordData.projectName ?? recordData.projectname;
     }
 
-    if (recordData.taskType !== undefined || recordData.tasktype !== undefined) {
+    if (
+      recordData.taskType !== undefined ||
+      recordData.tasktype !== undefined
+    ) {
       row.tasktype = recordData.taskType ?? recordData.tasktype;
     }
 
@@ -580,6 +606,14 @@ export const adminService = {
     return dbService.delete("employees", id);
   },
 
+  async deleteEmployeeRecords(employeeId: number) {
+    await dbService.deleteByField(
+      "timetrackingrecords",
+      "employeeid",
+      employeeId
+    );
+  },
+
   // Reporting helpers built from timetrackingrecords + employees
   async getMonthlyReportSummary(year: number, month: number) {
     // Load all employees for name/metadata
@@ -668,7 +702,12 @@ export const adminService = {
 
     const byDate = new Map<
       string,
-      { date: string; totalHours: number; overtimeHours: number; employeeIds: Set<number> }
+      {
+        date: string;
+        totalHours: number;
+        overtimeHours: number;
+        employeeIds: Set<number>;
+      }
     >();
 
     for (const rec of records) {
@@ -748,10 +787,66 @@ export const adminService = {
     }));
   },
 
-  async seedSampleReports() {
+  async seedSampleReports(year: number, month: number) {
+    // Get employees first
+    const employees = (await dbService.select<any>("employees")) || [];
+
+    if (employees.length === 0) {
+      return {
+        success: false,
+        message: "No employees found. Please add employees first.",
+      };
+    }
+
+    // Sample data for seeding
+    const sampleRecords = [];
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    for (const emp of employees) {
+      // Create records for each day in the month (excluding weekends)
+      for (let day = 1; day <= daysInMonth; day++) {
+        const date = new Date(year, month - 1, day);
+        const dayOfWeek = date.getDay();
+
+        // Skip weekends
+        if (dayOfWeek === 0 || dayOfWeek === 6) continue;
+
+        // Random hours between 6-10
+        const totalHours = 6 + Math.random() * 4;
+
+        // Business hours (first 8 hours)
+        const businessHours = Math.min(totalHours, 8);
+
+        // Overtime (hours above 8)
+        const overtimeHours = Math.max(0, totalHours - 8);
+
+        sampleRecords.push({
+          employeeid: emp.id,
+          date: date.toISOString().split("T")[0],
+          duration: totalHours.toFixed(2),
+          businessdaytime: businessHours.toFixed(2),
+          overtime: overtimeHours.toFixed(2),
+          projectnumber: ["Project A", "Project B", "Project C"][
+            Math.floor(Math.random() * 3)
+          ],
+          tasktype: ["Translation", "Review", "QA", "Desktop Publishing"][
+            Math.floor(Math.random() * 4)
+          ],
+        });
+      }
+    }
+
+    // Insert all records
+    const results = [];
+    for (const record of sampleRecords) {
+      const result = await dbService.insert("timetrackingrecords", record);
+      results.push(result);
+    }
+
     return {
       success: true,
-      message: "Seed functionality requires Edge Function",
+      created: results.length,
+      message: `Successfully created ${results.length} sample time tracking records`,
     };
   },
 };

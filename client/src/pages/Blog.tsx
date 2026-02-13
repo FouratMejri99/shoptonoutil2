@@ -4,56 +4,44 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import { motion } from "framer-motion";
 import { ArrowRight, Calendar, User } from "lucide-react";
+import { useState, type FormEvent } from "react";
+import { toast } from "sonner";
 import { Link } from "wouter";
 
+interface BlogPost {
+  id: string | number;
+  title: string;
+  slug: string;
+  category?: string;
+  author?: string;
+  publishedAt?: string | Date | null;
+  featuredImage?: string;
+  excerpt?: string;
+}
+
 export default function Blog() {
-  const {
-    data: posts,
-    isLoading,
-    error,
-  } = trpc.blog.list.useQuery(undefined, {
-    retry: false,
-    refetchOnWindowFocus: false,
+  const { data: posts, isLoading } = trpc.blog.list.useQuery<BlogPost[]>();
+
+  const [email, setEmail] = useState("");
+
+  const subscribeNewsletter = trpc.leads.subscribeNewsletter.useMutation({
+    onSuccess: () => {
+      toast.success("Successfully subscribed to our newsletter!");
+      setEmail("");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to subscribe. Please try again.");
+    },
   });
 
-  // Static blog posts from Solupedia.com
-  const staticPosts = [
-    {
-      id: 1,
-      title: "Articulate Storyline or Adobe Captivate",
-      slug: "articulate-storyline-adobe-captivate",
-      category: "eLearning Localization",
-      author: "Solupedia",
-      publishedAt: new Date("2023-02-16"),
-      featuredImage: "/blog-articulate-captivate.webp",
-      excerpt:
-        "Which eLearning authoring tool is the better choice for localization: Articulate Storyline or Adobe Captivate? When it comes to e-learning authoring tools, both tools offer a range of features to support robust localization capabilities.",
-    },
-    {
-      id: 2,
-      title: "MadCap Flare Localization",
-      slug: "madcap-flare-localization",
-      category: "Documents Localization",
-      author: "Solupedia",
-      publishedAt: new Date("2022-08-29"),
-      featuredImage: "/blog-madcap-flare.webp",
-      excerpt:
-        "MadCap Flare is a popular software tool used for creating and publishing technical documentation, help files, and online help systems. One of the key benefits of using MadCap Flare is its ability to localize content efficiently.",
-    },
-    {
-      id: 3,
-      title: "Video Localization Considerations",
-      slug: "video-localization-considerations",
-      category: "Video Localization",
-      author: "Solupedia",
-      publishedAt: new Date("2022-08-24"),
-      featuredImage: "/blog-video-localization.webp",
-      excerpt:
-        "As the world becomes increasingly connected, more and more video content is being shared across borders and languages. Localizing video content involves adapting it for a particular region or language, which can be a complex process.",
-    },
-  ];
+  const handleSubscribe = (e: FormEvent) => {
+    e.preventDefault();
+    if (email) {
+      subscribeNewsletter.mutate(email);
+    }
+  };
 
-  const formatDate = (date: Date | null) => {
+  const formatDate = (date: string | Date | null | undefined) => {
     if (!date) return "";
     return new Date(date).toLocaleDateString("en-US", {
       year: "numeric",
@@ -170,147 +158,12 @@ export default function Blog() {
                 </motion.div>
               ))}
             </div>
-          ) : error ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {staticPosts.map((post, idx) => (
-                <motion.div
-                  key={post.id}
-                  initial={{ opacity: 0, y: 50 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-50px" }}
-                  transition={{ duration: 0.5, delay: idx * 0.1 }}
-                  whileHover={{ y: -8, transition: { duration: 0.2 } }}
-                >
-                  <Link href={`/blog/${post.slug}`}>
-                    <Card className="h-full hover:shadow-xl transition-all cursor-pointer flex flex-col overflow-hidden border-none shadow-lg bg-white/80 backdrop-blur-sm">
-                      {post.featuredImage && (
-                        <motion.div className="w-full h-56 bg-gray-200 overflow-hidden relative group">
-                          <img
-                            src={post.featuredImage}
-                            alt={post.title}
-                            className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        </motion.div>
-                      )}
-                      <CardHeader className="flex-1 pb-2">
-                        {post.category && (
-                          <motion.div
-                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mb-3 w-fit"
-                            initial={{ opacity: 0 }}
-                            whileInView={{ opacity: 1 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: idx * 0.1 + 0.2 }}
-                          >
-                            {post.category}
-                          </motion.div>
-                        )}
-                        <CardTitle className="text-xl font-bold text-gray-900 leading-tight group-hover:text-blue-600 transition-colors">
-                          {post.title}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="flex-1 flex flex-col justify-between pt-0">
-                        {post.excerpt && (
-                          <p className="text-gray-600 text-sm line-clamp-3 mb-6 leading-relaxed">
-                            {post.excerpt}
-                          </p>
-                        )}
-                        <div className="flex items-center justify-between border-t border-gray-100 pt-4 mt-auto">
-                          <div className="flex items-center gap-4 text-xs text-gray-500">
-                            {post.author && (
-                              <div className="flex items-center gap-1.5 font-medium">
-                                <User size={14} className="text-blue-500" />
-                                <span>{post.author}</span>
-                              </div>
-                            )}
-                            {post.publishedAt && (
-                              <div className="flex items-center gap-1.5">
-                                <Calendar size={14} className="text-blue-500" />
-                                <span>{formatDate(post.publishedAt)}</span>
-                              </div>
-                            )}
-                          </div>
-                          <ArrowRight
-                            size={16}
-                            className="text-blue-600 transform group-hover:translate-x-1 transition-transform"
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                </motion.div>
-              ))}
-            </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {staticPosts.map((post, idx) => (
-                <motion.div
-                  key={post.id}
-                  initial={{ opacity: 0, y: 50 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, margin: "-50px" }}
-                  transition={{ duration: 0.5, delay: idx * 0.1 }}
-                  whileHover={{ y: -8, transition: { duration: 0.2 } }}
-                >
-                  <Link href={`/blog/${post.slug}`}>
-                    <Card className="h-full hover:shadow-xl transition-all cursor-pointer flex flex-col overflow-hidden border-none shadow-lg bg-white/80 backdrop-blur-sm">
-                      {post.featuredImage && (
-                        <motion.div className="w-full h-56 bg-gray-200 overflow-hidden relative group">
-                          <img
-                            src={post.featuredImage}
-                            alt={post.title}
-                            className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        </motion.div>
-                      )}
-                      <CardHeader className="flex-1 pb-2">
-                        {post.category && (
-                          <motion.div
-                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mb-3 w-fit"
-                            initial={{ opacity: 0 }}
-                            whileInView={{ opacity: 1 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: idx * 0.1 + 0.2 }}
-                          >
-                            {post.category}
-                          </motion.div>
-                        )}
-                        <CardTitle className="text-xl font-bold text-gray-900 leading-tight group-hover:text-blue-600 transition-colors">
-                          {post.title}
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="flex-1 flex flex-col justify-between pt-0">
-                        {post.excerpt && (
-                          <p className="text-gray-600 text-sm line-clamp-3 mb-6 leading-relaxed">
-                            {post.excerpt}
-                          </p>
-                        )}
-                        <div className="flex items-center justify-between border-t border-gray-100 pt-4 mt-auto">
-                          <div className="flex items-center gap-4 text-xs text-gray-500">
-                            {post.author && (
-                              <div className="flex items-center gap-1.5 font-medium">
-                                <User size={14} className="text-blue-500" />
-                                <span>{post.author}</span>
-                              </div>
-                            )}
-                            {post.publishedAt && (
-                              <div className="flex items-center gap-1.5">
-                                <Calendar size={14} className="text-blue-500" />
-                                <span>{formatDate(post.publishedAt)}</span>
-                              </div>
-                            )}
-                          </div>
-                          <ArrowRight
-                            size={16}
-                            className="text-blue-600 transform group-hover:translate-x-1 transition-transform"
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                </motion.div>
-              ))}
+            <div className="text-center py-20">
+              <p className="text-gray-600 text-lg">No blog posts found.</p>
+              <p className="text-gray-500 text-sm mt-2">
+                Check back later for new content.
+              </p>
             </div>
           )}
         </div>
@@ -339,15 +192,26 @@ export default function Blog() {
                 insights, industry trends, and Solupedia updates delivered to
                 your inbox.
               </p>
-              <form className="flex flex-col sm:flex-row gap-3">
+              <form
+                onSubmit={handleSubscribe}
+                className="flex flex-col sm:flex-row gap-3"
+              >
                 <input
                   type="email"
                   placeholder="Enter your email address"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
                   className="flex-1 px-6 py-4 rounded-full border-none focus:ring-2 focus:ring-white/50 bg-white/10 text-white placeholder-blue-200 backdrop-blur-sm"
                   required
                 />
-                <Button className="bg-white text-blue-600 hover:bg-blue-50 h-14 px-8 rounded-full text-lg font-semibold shadow-lg transition-all">
-                  Subscribe
+                <Button
+                  type="submit"
+                  disabled={subscribeNewsletter.isLoading}
+                  className="bg-white text-blue-600 hover:bg-blue-50 h-14 px-8 rounded-full text-lg font-semibold shadow-lg transition-all"
+                >
+                  {subscribeNewsletter.isLoading
+                    ? "Subscribing..."
+                    : "Subscribe"}
                 </Button>
               </form>
               <p className="text-blue-200 text-sm mt-4">

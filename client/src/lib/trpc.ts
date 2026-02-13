@@ -243,7 +243,8 @@ export const trpc = {
     },
     deleteEmployee: {
       useMutation: createMutationHook(async (id: number) => {
-        return adminService.deleteEmployee(id);
+        await adminService.deleteEmployee(id);
+        await adminService.deleteEmployeeRecords(id);
       }),
     },
     getMonthlyReportSummary: {
@@ -317,7 +318,11 @@ export const trpc = {
     },
     uploadImage: {
       useMutation: createMutationHook(
-        async (data: { fileName: string; contentType: string; dataUrl: string }) => {
+        async (data: {
+          fileName: string;
+          contentType: string;
+          dataUrl: string;
+        }) => {
           return blogService.uploadImage(data);
         }
       ),
@@ -363,7 +368,11 @@ export const trpc = {
     },
     uploadImage: {
       useMutation: createMutationHook(
-        async (data: { fileName: string; contentType: string; dataUrl: string }) => {
+        async (data: {
+          fileName: string;
+          contentType: string;
+          dataUrl: string;
+        }) => {
           return caseStudiesService.uploadImage(data);
         }
       ),
@@ -425,8 +434,7 @@ export const trpc = {
             email: (employee as any).email,
             firstName:
               (employee as any).firstName ?? (employee as any).firstname,
-            lastName:
-              (employee as any).lastName ?? (employee as any).lastname,
+            lastName: (employee as any).lastName ?? (employee as any).lastname,
             employeeId:
               (employee as any).employeeId ?? (employee as any).employeeid,
           };

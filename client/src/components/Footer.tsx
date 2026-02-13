@@ -174,10 +174,10 @@ function Footer() {
                   <Phone size={12} />
                 </div>
                 <a
-                  href="tel:+1910626852"
+                  href="tel:+2001555335577"
                   className="hover:text-white transition py-1"
                 >
-                  +1 (910) 626-8525
+                  +20 01555335577
                 </a>
               </li>
               <li className="flex items-start gap-3 group">

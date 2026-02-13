@@ -1,45 +1,86 @@
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, CheckCircle, BookOpen, ArrowRight } from "lucide-react";
-import { trpc } from "@/lib/trpc";
-import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { ArrowRight, BookOpen, CheckCircle, Download } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+
+// Formspree configuration - Create a free form at https://formspree.io/
+const FORMSPREE_FORM_ID = import.meta.env.VITE_FORMSPREE_LEAD_FORM_ID || "";
+const USE_FORMSPREE = !!FORMSPREE_FORM_ID;
 
 export default function LeadMagnet() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    company: ""
+    company: "",
   });
   const [submitted, setSubmitted] = useState(false);
-
-  const submitLead = trpc.leads.submit.useMutation({
-    onSuccess: () => {
-      toast.success("Thank you! Check your email for the guide.");
-      setSubmitted(true);
-      setTimeout(() => {
-        setFormData({ name: "", email: "", company: "" });
-        setSubmitted(false);
-      }, 3000);
-    },
-    onError: (error) => {
-      toast.error("Failed to submit. Please try again.");
-      console.error(error);
-    }
-  });
+  const [isSending, setIsSending] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    submitLead.mutate({
-      ...formData,
-      source: "lead_magnet"
-    });
+    setIsSending(true);
+
+    try {
+      if (USE_FORMSPREE) {
+        // Send via Formspree
+        const response = await fetch(
+          `https://formspree.io/f/${FORMSPREE_FORM_ID}`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+            },
+            body: JSON.stringify({
+              name: formData.name,
+              email: formData.email,
+              company: formData.company,
+              source: "lead_magnet",
+            }),
+          }
+        );
+
+        if (response.ok) {
+          toast.success("Thank you! Check your email for the guide.");
+          setSubmitted(true);
+          setTimeout(() => {
+            setFormData({ name: "", email: "", company: "" });
+            setSubmitted(false);
+          }, 3000);
+        } else {
+          throw new Error("Formspree submission failed");
+        }
+      } else {
+        // Fallback: mailto link
+        const subject = encodeURIComponent(
+          `Free Guide Request - ${formData.name}`
+        );
+        const body = encodeURIComponent(`
+Name: ${formData.name}
+Email: ${formData.email}
+Company: ${formData.company || "Not provided"}
+
+Source: lead_magnet
+        `);
+        window.location.href = `mailto:info@solupedia.com?subject=${subject}&body=${body}`;
+        toast.success(
+          "Your email client should open now. Please send the email to download the guide."
+        );
+        setFormData({ name: "", email: "", company: "" });
+      }
+    } catch (error) {
+      toast.error("Failed to submit. Please try again.");
+      console.error(error);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   return (
@@ -66,7 +107,8 @@ export default function LeadMagnet() {
               The Ultimate Guide to eLearning Localization
             </h1>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-8">
-              Master the essentials of localizing educational content for global audiences with our comprehensive guide.
+              Master the essentials of localizing educational content for global
+              audiences with our comprehensive guide.
             </p>
           </motion.div>
         </div>
@@ -87,7 +129,9 @@ export default function LeadMagnet() {
                   <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600">
                     <BookOpen className="w-7 h-7" />
                   </div>
-                  <h2 className="text-3xl font-bold text-gray-900">What You'll Learn</h2>
+                  <h2 className="text-3xl font-bold text-gray-900">
+                    What You'll Learn
+                  </h2>
                 </div>
 
                 <div className="space-y-4 mb-8">
@@ -99,15 +143,15 @@ export default function LeadMagnet() {
                     "Quality assurance processes for learning content",
                     "Common pitfalls and how to avoid them",
                     "ROI calculation for localization projects",
-                    "Future trends in global learning"
+                    "Future trends in global learning",
                   ].map((item, idx) => (
-                    <motion.div 
-                      key={idx} 
+                    <motion.div
+                      key={idx}
                       className="flex items-start gap-3"
                       initial={{ opacity: 0, x: -10 }}
                       whileInView={{ opacity: 1, x: 0 }}
                       viewport={{ once: true }}
-                      transition={{ duration: 0.3, delay: 0.3 + (idx * 0.05) }}
+                      transition={{ duration: 0.3, delay: 0.3 + idx * 0.05 }}
                     >
                       <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                         <CheckCircle className="w-3.5 h-3.5 text-green-600" />
@@ -118,19 +162,25 @@ export default function LeadMagnet() {
                 </div>
 
                 <div className="bg-blue-50/80 p-6 rounded-2xl border border-blue-100">
-                  <h3 className="font-bold text-lg mb-3 text-blue-900">Guide Includes:</h3>
+                  <h3 className="font-bold text-lg mb-3 text-blue-900">
+                    Guide Includes:
+                  </h3>
                   <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <li className="flex items-center gap-2 text-gray-700">
-                      <span className="text-blue-600 font-bold">✓</span> 40+ pages of insights
+                      <span className="text-blue-600 font-bold">✓</span> 40+
+                      pages of insights
                     </li>
                     <li className="flex items-center gap-2 text-gray-700">
-                      <span className="text-blue-600 font-bold">✓</span> Real-world case studies
+                      <span className="text-blue-600 font-bold">✓</span>{" "}
+                      Real-world case studies
                     </li>
                     <li className="flex items-center gap-2 text-gray-700">
-                      <span className="text-blue-600 font-bold">✓</span> Practical checklists
+                      <span className="text-blue-600 font-bold">✓</span>{" "}
+                      Practical checklists
                     </li>
                     <li className="flex items-center gap-2 text-gray-700">
-                      <span className="text-blue-600 font-bold">✓</span> Resource recommendations
+                      <span className="text-blue-600 font-bold">✓</span>{" "}
+                      Resource recommendations
                     </li>
                   </ul>
                 </div>
@@ -153,12 +203,13 @@ export default function LeadMagnet() {
                     Download Free Guide
                   </CardTitle>
                   <p className="text-blue-100 mt-2 opacity-90">
-                    Join 2,000+ learning professionals who have downloaded this guide.
+                    Join 2,000+ learning professionals who have downloaded this
+                    guide.
                   </p>
                 </CardHeader>
                 <CardContent className="p-8">
                   {submitted ? (
-                    <motion.div 
+                    <motion.div
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       className="text-center py-12"
@@ -166,9 +217,12 @@ export default function LeadMagnet() {
                       <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
                         <CheckCircle className="w-10 h-10 text-green-600" />
                       </div>
-                      <h3 className="text-2xl font-bold text-gray-900 mb-2">Thank You!</h3>
+                      <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                        Thank You!
+                      </h3>
                       <p className="text-gray-600 text-lg">
-                        Check your email for the guide. It should arrive in a few moments.
+                        Check your email for the guide. It should arrive in a
+                        few moments.
                       </p>
                     </motion.div>
                   ) : (
@@ -219,12 +273,12 @@ export default function LeadMagnet() {
 
                       <Button
                         type="submit"
-                        disabled={submitLead.isPending}
+                        disabled={isSending}
                         className="w-full bg-blue-600 hover:bg-blue-700 text-lg py-6 rounded-xl shadow-lg hover:shadow-xl transition-all"
                       >
                         <span className="flex items-center gap-2">
-                          {submitLead.isPending ? "Sending..." : "Get Free Guide"}
-                          {!submitLead.isPending && <ArrowRight size={20} />}
+                          {isSending ? "Sending..." : "Get Free Guide"}
+                          {!isSending && <ArrowRight size={20} />}
                         </span>
                       </Button>
 
@@ -236,7 +290,7 @@ export default function LeadMagnet() {
                 </CardContent>
               </Card>
 
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.6 }}
@@ -244,7 +298,8 @@ export default function LeadMagnet() {
               >
                 <div className="w-1.5 h-full bg-yellow-400 rounded-full flex-shrink-0"></div>
                 <p className="text-sm text-yellow-800">
-                  <strong>Limited Time:</strong> Get instant access to the guide plus exclusive tips and resources delivered to your inbox.
+                  <strong>Limited Time:</strong> Get instant access to the guide
+                  plus exclusive tips and resources delivered to your inbox.
                 </p>
               </motion.div>
             </motion.div>
@@ -256,9 +311,12 @@ export default function LeadMagnet() {
       <section className="py-20 relative z-10">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold mb-4 text-gray-900">Why This Guide?</h2>
+            <h2 className="text-4xl font-bold mb-4 text-gray-900">
+              Why This Guide?
+            </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              eLearning localization is complex. This guide cuts through the confusion and provides actionable insights.
+              eLearning localization is complex. This guide cuts through the
+              confusion and provides actionable insights.
             </p>
           </div>
 
@@ -266,16 +324,16 @@ export default function LeadMagnet() {
             {[
               {
                 title: "Save Time",
-                desc: "Learn from our 18 years of experience. Avoid common mistakes and accelerate your localization timeline."
+                desc: "Learn from our 18 years of experience. Avoid common mistakes and accelerate your localization timeline.",
               },
               {
                 title: "Reduce Costs",
-                desc: "Understand best practices that help you optimize your localization budget and maximize ROI."
+                desc: "Understand best practices that help you optimize your localization budget and maximize ROI.",
               },
               {
                 title: "Expand Globally",
-                desc: "Get the knowledge you need to successfully launch your eLearning content in new markets."
-              }
+                desc: "Get the knowledge you need to successfully launch your eLearning content in new markets.",
+              },
             ].map((item, idx) => (
               <motion.div
                 key={idx}
@@ -286,7 +344,9 @@ export default function LeadMagnet() {
               >
                 <Card className="h-full bg-white/80 backdrop-blur-md border-white/20 shadow-lg hover:shadow-xl transition-all rounded-3xl overflow-hidden">
                   <CardHeader className="bg-blue-50/50">
-                    <CardTitle className="text-blue-900">{item.title}</CardTitle>
+                    <CardTitle className="text-blue-900">
+                      {item.title}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
                     <p className="text-gray-600 leading-relaxed">{item.desc}</p>
@@ -301,19 +361,29 @@ export default function LeadMagnet() {
       {/* About the Author */}
       <section className="py-20 relative z-10 bg-gradient-to-b from-transparent to-blue-50/50">
         <div className="container mx-auto px-4">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             className="max-w-4xl mx-auto"
           >
-            <h2 className="text-3xl font-bold mb-8 text-center text-gray-900">About the Author</h2>
+            <h2 className="text-3xl font-bold mb-8 text-center text-gray-900">
+              About the Author
+            </h2>
             <div className="bg-white/90 backdrop-blur-md p-10 rounded-3xl shadow-lg border border-white/40">
               <p className="text-gray-700 mb-6 text-lg leading-relaxed">
-                This guide was created by the <span className="font-bold text-blue-600">Solupedia team</span>, industry leaders with nearly two decades of experience in localization. We've worked with hundreds of organizations to successfully localize their eLearning content for global audiences.
+                This guide was created by the{" "}
+                <span className="font-bold text-blue-600">Solupedia team</span>,
+                industry leaders with nearly two decades of experience in
+                localization. We've worked with hundreds of organizations to
+                successfully localize their eLearning content for global
+                audiences.
               </p>
               <p className="text-gray-700 text-lg leading-relaxed">
-                Our expertise spans multiple industries including technology, healthcare, finance, and education. We've learned what works, what doesn't, and how to navigate the complexities of global learning.
+                Our expertise spans multiple industries including technology,
+                healthcare, finance, and education. We've learned what works,
+                what doesn't, and how to navigate the complexities of global
+                learning.
               </p>
             </div>
           </motion.div>
@@ -323,7 +393,7 @@ export default function LeadMagnet() {
       {/* CTA Section */}
       <section className="py-24 relative z-10">
         <div className="container mx-auto px-4">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -331,18 +401,22 @@ export default function LeadMagnet() {
           >
             <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 opacity-50"></div>
             <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-800 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 opacity-50"></div>
-            
+
             <div className="relative z-10 p-12 md:p-20 text-center">
-              <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">Ready to Localize Your eLearning?</h2>
+              <h2 className="text-4xl md:text-5xl font-bold mb-6 text-white">
+                Ready to Localize Your eLearning?
+              </h2>
               <p className="text-xl text-blue-100 mb-10 max-w-2xl mx-auto">
-                After reading the guide, let's discuss how Solupedia can help you bring your courses to global audiences.
+                After reading the guide, let's discuss how Solupedia can help
+                you bring your courses to global audiences.
               </p>
               <Button
                 size="lg"
                 className="bg-white text-blue-600 hover:bg-blue-50 h-14 px-10 rounded-full text-lg font-semibold shadow-lg hover:shadow-xl transition-all"
-                onClick={() => window.location.href = "/contact"}
+                onClick={() => (window.location.href = "/contact")}
               >
-                Schedule a Consultation <ArrowRight className="ml-2" size={20} />
+                Schedule a Consultation{" "}
+                <ArrowRight className="ml-2" size={20} />
               </Button>
             </div>
           </motion.div>

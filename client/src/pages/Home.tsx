@@ -79,17 +79,30 @@ export default function Home() {
   const staticTestimonials = [
     {
       id: 1,
-      clientName: "Global Corp",
+      clientName: "John Smith",
       clientRole: "CEO",
-      content: "Solupedia transformed our global outreach",
+      content:
+        "Solupedia transformed our global outreach with their exceptional localization services. The team was professional, responsive, and delivered beyond our expectations.",
       company: "TechCorp",
+      avatar: "/avatar1.png",
     },
     {
       id: 2,
       clientName: "Maria Garcia",
       clientRole: "Training Director",
-      content: "Exceptional localization quality and turnaround time",
+      content:
+        "Exceptional localization quality and turnaround time. Solupedia helped us reach learners across 20+ countries with perfectly adapted content.",
       company: "EduLearn",
+      avatar: "/avatar2.png",
+    },
+    {
+      id: 3,
+      clientName: "Sarah Johnson",
+      clientRole: "Marketing Director",
+      content:
+        "The attention to detail and cultural adaptation was impressive. Our video content resonated perfectly with international audiences.",
+      company: "Global Media",
+      avatar: "/avatar3.jpg",
     },
   ];
 
@@ -112,7 +125,11 @@ export default function Home() {
   const displayServices =
     services && services.length > 0 ? services : staticServices;
   const displayTestimonials =
-    testimonials && testimonials.length > 0 ? testimonials : staticTestimonials;
+    testimonials && testimonials.length > 0
+      ? testimonials.filter(
+          t => t.clientName || t.clientname || t.name || t.author
+        )
+      : staticTestimonials;
   const displayCaseStudies =
     caseStudies && caseStudies.length > 0 ? caseStudies : staticCaseStudies;
 
@@ -323,7 +340,7 @@ export default function Home() {
                       {service.desc}
                     </p>
                     <Link
-                      href={`/services/${service.title.toLowerCase().replace(/\s+/g, "-")}`}
+                      href={`/services/${service.title.toLowerCase().replace(/[\s/]+/g, "-")}`}
                     >
                       <Button
                         variant="ghost"
@@ -486,15 +503,29 @@ export default function Home() {
                         "{testimonial.content}"
                       </p>
                       <div className="flex items-center gap-4 pt-6 border-t border-gray-100">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold">
-                          {testimonial.clientName.charAt(0)}
-                        </div>
+                        {testimonial.avatar ? (
+                          <img
+                            src={testimonial.avatar}
+                            alt={testimonial.clientName}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold">
+                            {testimonial.clientName.charAt(0)}
+                          </div>
+                        )}
                         <div>
                           <p className="font-bold text-gray-900">
-                            {testimonial.clientName}
+                            {testimonial.clientName ||
+                              testimonial.clientname ||
+                              testimonial.name ||
+                              "Client"}
                           </p>
                           <p className="text-sm text-blue-600 font-medium">
-                            {testimonial.clientCompany}
+                            {testimonial.clientCompany ||
+                              testimonial.clientcompany ||
+                              testimonial.company ||
+                              ""}
                           </p>
                         </div>
                       </div>
@@ -527,50 +558,51 @@ export default function Home() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-8">
               {displayCaseStudies.slice(0, 2).map((study, idx) => (
-                <motion.div
-                  key={study.id}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: idx * 0.2 }}
-                  className="group cursor-pointer"
-                >
-                  <div className="bg-gray-50 rounded-3xl overflow-hidden border border-gray-100 hover:border-blue-200 transition-all duration-300 hover:shadow-2xl">
-                    <div className="p-8 md:p-10">
-                      <div className="flex justify-between items-start mb-6">
-                        <div className="px-4 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase tracking-wide">
-                          {study.industry}
+                <Link key={study.id} href={`/case-studies/${study.slug}`}>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: idx * 0.2 }}
+                    className="group cursor-pointer"
+                  >
+                    <div className="bg-gray-50 rounded-3xl overflow-hidden border border-gray-100 hover:border-blue-200 transition-all duration-300 hover:shadow-2xl">
+                      <div className="p-8 md:p-10">
+                        <div className="flex justify-between items-start mb-6">
+                          <div className="px-4 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase tracking-wide">
+                            {study.industry}
+                          </div>
+                          <ArrowRight className="text-gray-300 group-hover:text-blue-600 transition-colors transform group-hover:translate-x-1" />
                         </div>
-                        <ArrowRight className="text-gray-300 group-hover:text-blue-600 transition-colors transform group-hover:translate-x-1" />
-                      </div>
-                      <h3 className="text-2xl font-bold mb-4 group-hover:text-blue-700 transition-colors">
-                        {study.title}
-                      </h3>
-                      <p className="text-gray-600 mb-6 line-clamp-3">
-                        {study.solution}
-                      </p>
+                        <h3 className="text-2xl font-bold mb-4 group-hover:text-blue-700 transition-colors">
+                          {study.title}
+                        </h3>
+                        <p className="text-gray-600 mb-6 line-clamp-3">
+                          {study.solution}
+                        </p>
 
-                      <div className="grid grid-cols-2 gap-4 mt-8 pt-8 border-t border-gray-200">
-                        <div>
-                          <p className="text-xs text-gray-500 uppercase font-semibold mb-1">
-                            Challenge
-                          </p>
-                          <p className="text-sm font-medium text-gray-900 line-clamp-2">
-                            {study.challenge}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500 uppercase font-semibold mb-1">
-                            Result
-                          </p>
-                          <p className="text-sm font-bold text-blue-600 line-clamp-2">
-                            {study.results}
-                          </p>
+                        <div className="grid grid-cols-2 gap-4 mt-8 pt-8 border-t border-gray-200">
+                          <div>
+                            <p className="text-xs text-gray-500 uppercase font-semibold mb-1">
+                              Challenge
+                            </p>
+                            <p className="text-sm font-medium text-gray-900 line-clamp-2">
+                              {study.challenge}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-gray-500 uppercase font-semibold mb-1">
+                              Result
+                            </p>
+                            <p className="text-sm font-bold text-blue-600 line-clamp-2">
+                              {study.results}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </motion.div>
+                  </motion.div>
+                </Link>
               ))}
             </div>
           </div>

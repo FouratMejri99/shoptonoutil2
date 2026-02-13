@@ -6,6 +6,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import Footer from "./components/Footer";
 import Navigation from "./components/Navigation";
 import { PageLoader } from "./components/PageLoader";
+import { ScrollToTop } from "./components/ScrollToTop";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
 // Lazy load all pages for better performance and code splitting
@@ -75,6 +76,7 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
+          <ScrollToTop />
           <Toaster />
           <div className="flex flex-col min-h-screen">
             {!isPortalPage && <Navigation />}
