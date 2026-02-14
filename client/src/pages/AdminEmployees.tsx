@@ -19,6 +19,8 @@ import {
   Search,
   Trash2,
   Users,
+  UserX,
+  UserCheck,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -216,6 +218,22 @@ export default function AdminEmployees() {
               </div>
             </div>
             <div className="flex gap-3">
+              <Link href="/admin/change-password">
+                <Button
+                  variant="ghost"
+                  className="rounded-full hover:bg-blue-50 text-blue-600 hover:text-blue-700"
+                >
+                  Change Password
+                </Button>
+              </Link>
+              <Link href="/admin/subscribers">
+                <Button
+                  variant="ghost"
+                  className="rounded-full hover:bg-blue-50 text-blue-600 hover:text-blue-700"
+                >
+                  Subscribers
+                </Button>
+              </Link>
               <Link href="/admin/reporting">
                 <Button
                   variant="ghost"
@@ -651,13 +669,13 @@ export default function AdminEmployees() {
                                   }
                                   className={`h-8 w-8 p-0 rounded-full ${emp.isActive ? "hover:bg-orange-100 text-orange-600" : "hover:bg-green-100 text-green-600"}`}
                                   title={
-                                    emp.isActive ? "Deactivate" : "Activate"
+                                    emp.isActive ? "Deactivate User" : "Activate User"
                                   }
                                 >
                                   {emp.isActive ? (
-                                    <EyeOff size={16} />
+                                    <UserX size={16} />
                                   ) : (
-                                    <Eye size={16} />
+                                    <UserCheck size={16} />
                                   )}
                                 </Button>
                               </div>

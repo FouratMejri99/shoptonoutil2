@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Lock, ShieldCheck } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 
@@ -22,6 +22,14 @@ export default function AdminLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Check if already logged in and redirect to dashboard
+  useEffect(() => {
+    const adminSession = localStorage.getItem("adminSession");
+    if (adminSession) {
+      setLocation("/admin/employees");
+    }
+  }, [setLocation]);
 
   const loginMutation = trpc.adminAuth.login.useMutation();
 

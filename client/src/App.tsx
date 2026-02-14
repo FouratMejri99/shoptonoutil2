@@ -30,6 +30,8 @@ const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AdminBlog = lazy(() => import("./pages/AdminBlog"));
 const AdminCaseStudies = lazy(() => import("./pages/AdminCaseStudies"));
+const AdminChangePassword = lazy(() => import("./pages/AdminChangePassword"));
+const AdminSubscribers = lazy(() => import("./pages/AdminSubscribers"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function Router() {
@@ -49,14 +51,15 @@ function Router() {
         <Route path={"/contact"} component={Contact} />
         <Route path={"/industries/:industry"} component={IndustryLanding} />
         <Route path={"/lead-magnet"} component={LeadMagnet} />
-        <Route path={"/employee/login"} component={EmployeeLogin} />
-        <Route path={"/employee/dashboard"} component={EmployeeDashboard} />
+        {/* Admin routes - hidden from public navigation */}
         <Route path={"/admin/reporting"} component={AdminReporting} />
         <Route path={"/admin/employees"} component={AdminEmployees} />
         <Route path={"/solupedia-admin"} component={AdminLogin} />
         <Route path={"/admin/dashboard"} component={AdminDashboard} />
         <Route path={"/admin/blog"} component={AdminBlog} />
         <Route path={"/admin/case-studies"} component={AdminCaseStudies} />
+        <Route path="/admin/change-password" component={AdminChangePassword} />
+        <Route path="/admin/subscribers" component={AdminSubscribers} />
         <Route path={"/404"} component={NotFound} />
         <Route component={NotFound} />
       </Switch>

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { leadsService } from "@/lib/supabase";
 import { motion } from "framer-motion";
 import {
   CheckCircle,
@@ -12,10 +13,6 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-
-// Formspree configuration - Create a free form at https://formspree.io/
-const FORMSPREE_FORM_ID = import.meta.env.VITE_FORMSPREE_FORM_ID || "";
-const USE_FORMSPREE = !!FORMSPREE_FORM_ID;
 
 // Image for Contact page
 const contactImage = "/On3htFLwCrvj.jpg";
@@ -46,68 +43,29 @@ export default function Contact() {
     setIsSending(true);
 
     try {
-      if (USE_FORMSPREE) {
-        // Send via Formspree
-        const response = await fetch(
-          `https://formspree.io/f/${FORMSPREE_FORM_ID}`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "application/json",
-            },
-            body: JSON.stringify({
-              name: formData.name,
-              email: formData.email,
-              phone: formData.phone,
-              company: formData.company,
-              "service-type": formData.serviceType,
-              message: formData.message,
-            }),
-          }
-        );
+      // Determine subscription type based on service type
+      const isQuoteRequest = formData.serviceType && formData.serviceType !== "";
+      
+      // Submit to database - this will also send admin notifications and confirmation email
+      await leadsService.submit({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        company: formData.company,
+        message: formData.message,
+        serviceInterest: formData.serviceType,
+        type: isQuoteRequest ? 'quote_request' : 'lead'
+      });
 
-        if (response.ok) {
-          toast.success("Thank you! We'll be in touch soon.");
-          setFormData({
-            name: "",
-            email: "",
-            phone: "",
-            company: "",
-            serviceType: "",
-            message: "",
-          });
-        } else {
-          throw new Error("Formspree submission failed");
-        }
-      } else {
-        // Fallback: mailto link
-        const subject = encodeURIComponent(
-          `New Contact Form Submission - ${formData.name}`
-        );
-        const body = encodeURIComponent(`
-Name: ${formData.name}
-Email: ${formData.email}
-Phone: ${formData.phone || "Not provided"}
-Company: ${formData.company || "Not provided"}
-Service Type: ${formData.serviceType || "Not specified"}
-
-Message:
-${formData.message}
-        `);
-        window.location.href = `mailto:info@solupedia.com?subject=${subject}&body=${body}`;
-        toast.success(
-          "Your email client should open now. Please send the email to complete your submission."
-        );
-        setFormData({
-          name: "",
-          email: "",
-          phone: "",
-          company: "",
-          serviceType: "",
-          message: "",
-        });
-      }
+      toast.success("Thank you! We'll be in touch soon.");
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        company: "",
+        serviceType: "",
+        message: "",
+      });
     } catch (error: any) {
       console.error("Failed to send message:", error);
       toast.error(
@@ -495,9 +453,8 @@ ${formData.message}
                     <div className="flex-1">
                       <h3 className="font-bold text-xl mb-2">Quick Response</h3>
                       <p className="text-blue-100 leading-relaxed">
-                        We typically respond to inquiries within 24 hours. For
-                        urgent matters, please call us directly at +1 (910)
-                        626-8525.
+                        We typically respond to inquiries within 24 hours. <br/>For
+                        urgent matters, please call us directly at +20 01555335577
                       </p>
                     </div>
                   </div>

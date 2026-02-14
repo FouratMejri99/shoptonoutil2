@@ -281,7 +281,7 @@ export const caseStudiesService = {
 
     if (error) throw error;
 
-    return { inserted: data?.length ?? 0 };
+    return { inserted: samples.length };
   },
 };
 
@@ -360,6 +360,8 @@ export const testimonialsService = {
 };
 
 // Leads service
+type SubscriptionType = 'lead' | 'newsletter' | 'quote_request';
+
 export const leadsService = {
   async submit(data: {
     name: string;
@@ -368,19 +370,120 @@ export const leadsService = {
     phone?: string;
     message?: string;
     serviceInterest?: string;
+    type?: SubscriptionType;
   }) {
-    return dbService.insert("leads", data);
+    const leadData = {
+      ...data,
+      type: data.type || 'lead',
+      createdat: new Date().toISOString(),
+    };
+    const result = await dbService.insert("leads", leadData);
+    
+    // Send email notification to admins
+    await leadsService.sendAdminNotification(leadData);
+    
+    return result;
   },
 
-  async subscribeNewsletter(email: string) {
-    return dbService.insert("newsletter_subscriptions", { email });
+  async subscribeNewsletter(email: string, type: SubscriptionType = 'newsletter') {
+    const subscriptionData = {
+      email,
+      type,
+      subscribedat: new Date().toISOString(),
+    };
+    const result = await dbService.insert("newsletter_subscriptions", subscriptionData);
+    
+    // Send admin notification
+    await leadsService.sendAdminNotification({
+      email,
+      type,
+      name: 'Newsletter Subscriber',
+    });
+    
+    // Send confirmation email to subscriber
+    await leadsService.sendConfirmationEmail(email, type);
+    
+    return result;
+  },
+
+  async sendAdminNotification(data: {
+    name?: string;
+    email: string;
+    company?: string;
+    phone?: string;
+    message?: string;
+    serviceInterest?: string;
+    type?: SubscriptionType;
+  }) {
+    // In production, this would send emails via a backend service
+    // For now, we'll log and simulate the notification
+    const adminEmails = ['weseily@gmail.com', 'info@solupedia.com'];
+    const typeLabels: Record<SubscriptionType, string> = {
+      'lead': 'Contact Form Lead',
+      'newsletter': 'Newsletter Subscription',
+      'quote_request': 'Quote Request',
+    };
+    
+    console.log('Admin notification would be sent to:', adminEmails);
+    console.log('Type:', typeLabels[data.type || 'lead']);
+    console.log('Data:', data);
+    
+    // Simulate sending (in production, integrate with email service like SendGrid, AWS SES, etc.)
+    return { success: true, message: 'Admin notification queued' };
+  },
+
+  async sendConfirmationEmail(email: string, type: SubscriptionType) {
+    // In production, this would send a confirmation email
+    console.log('Confirmation email would be sent to:', email);
+    console.log('Type:', type);
+    
+    const messages: Record<SubscriptionType, string> = {
+      'lead': 'Thank you for contacting us! We will be in touch shortly.',
+      'newsletter': 'Thank you for subscribing to our newsletter!',
+      'quote_request': 'Thank you for your quote request. We will get back to you within 24 hours.',
+    };
+    
+    console.log('Message:', messages[type]);
+    
+    return { success: true, message: 'Confirmation email queued' };
+  },
+
+  async getAllLeads(type?: SubscriptionType) {
+    const options: any = { order: "createdat", ascending: false };
+    if (type) {
+      options.eq = { type };
+    }
+    return dbService.select("leads", options);
+  },
+
+  async getAllSubscriptions(type?: SubscriptionType) {
+    const options: any = { order: "subscribedat", ascending: false };
+    if (type) {
+      options.eq = { type };
+    }
+    return dbService.select("newsletter_subscriptions", options);
   },
 
   async getAll() {
-    return dbService.select("leads", {
+    // Get all leads
+    const leads = await dbService.select("leads", {
       order: "createdat",
       ascending: false,
     });
+    // Get all newsletter subscriptions
+    const subscriptions = await dbService.select("newsletter_subscriptions", {
+      order: "subscribedat",
+      ascending: false,
+    });
+    // Combine and return
+    return {
+      leads,
+      subscriptions,
+      all: [
+        ...leads.map((l: any) => ({ ...l, source: 'lead' })),
+        ...subscriptions.map((s: any) => ({ ...s, source: 'newsletter' })),
+      ],
+    };
   },
 };
 

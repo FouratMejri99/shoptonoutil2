@@ -409,8 +409,23 @@ export const trpc = {
       }),
     },
     subscribeNewsletter: {
-      useMutation: createMutationHook(async (email: string) => {
-        return leadsService.subscribeNewsletter(email);
+      useMutation: createMutationHook(async (data: { email: string; type?: 'lead' | 'newsletter' | 'quote_request' }) => {
+        return leadsService.subscribeNewsletter(data.email, data.type || 'newsletter');
+      }),
+    },
+    getAll: {
+      useQuery: createQueryHook(async () => {
+        return leadsService.getAll();
+      }),
+    },
+    getLeads: {
+      useQuery: createParameterizedQueryHook(async (type?: string) => {
+        return leadsService.getAllLeads(type as any);
+      }),
+    },
+    getSubscriptions: {
+      useQuery: createParameterizedQueryHook(async (type?: string) => {
+        return leadsService.getAllSubscriptions(type as any);
       }),
     },
   },

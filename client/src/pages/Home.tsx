@@ -16,27 +16,11 @@ import {
 import { Link } from "wouter";
 
 export default function Home() {
-  const { data: services, isLoading: servicesLoading } =
-    trpc.services.list.useQuery(undefined, {
-      retry: 1,
-      staleTime: 5 * 60 * 1000, // Cache for 5 minutes
-      refetchOnWindowFocus: false, // Prevent refetch on window focus
-    });
-  const { data: testimonials, isLoading: testimonialsLoading } =
-    trpc.testimonials.featured.useQuery(undefined, {
-      retry: 1,
-      staleTime: 5 * 60 * 1000,
-      refetchOnWindowFocus: false,
-    });
-  const { data: caseStudies, isLoading: caseStudiesLoading } =
-    trpc.caseStudies.featured.useQuery(undefined, {
-      retry: 1,
-      staleTime: 5 * 60 * 1000,
-      refetchOnWindowFocus: false,
-    });
+  const { data: services, isLoading: servicesLoading } = trpc.services.list.useQuery();
+  const { data: testimonials, isLoading: testimonialsLoading } = trpc.testimonials.list.useQuery();
+  const { data: caseStudies, isLoading: caseStudiesLoading } = trpc.caseStudies.list.useQuery();
 
-  const isLoading =
-    servicesLoading || testimonialsLoading || caseStudiesLoading;
+  const isLoading = servicesLoading || testimonialsLoading || caseStudiesLoading;
 
   // Show skeleton while loading, but only for initial load
   if (isLoading) {
@@ -122,16 +106,10 @@ export default function Home() {
   ];
 
   // Use static data if API data is empty or missing
-  const displayServices =
-    services && services.length > 0 ? services : staticServices;
-  const displayTestimonials =
-    testimonials && testimonials.length > 0
-      ? testimonials.filter(
-          t => t.clientName || t.clientname || t.name || t.author
-        )
-      : staticTestimonials;
-  const displayCaseStudies =
-    caseStudies && caseStudies.length > 0 ? caseStudies : staticCaseStudies;
+  const displayServices = services && services.length > 0 ? services : staticServices;
+  const displayTestimonials = testimonials && testimonials.length > 0 ? testimonials : staticTestimonials;
+  const displayCaseStudies = caseStudies && caseStudies.length > 0 ? caseStudies : staticCaseStudies;
+  const displaySuccessStories = caseStudies && caseStudies.length > 0 ? caseStudies : staticCaseStudies;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -269,6 +247,233 @@ export default function Home() {
             </motion.div>
           </div>
         </div>
+      </section>
+
+      {/* Trusted By - Sliding News Ticker */}
+      <section className="py-6 bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900 overflow-hidden">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-4">
+            <p className="text-blue-200 text-xs font-medium uppercase tracking-widest">
+              Trusted by industry leaders worldwide
+            </p>
+          </div>
+          <div className="relative">
+            {/* Gradient overlays for smooth edges */}
+            <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-blue-900 to-transparent z-10"></div>
+            <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-blue-900 to-transparent z-10"></div>
+            
+            {/* Infinite scrolling container - CSS animation for seamless loop */}
+            <div className="overflow-hidden">
+              <div className="flex gap-16 whitespace-nowrap animate-infinite-scroll">
+                {/* First set of company logos */}
+                <div className="flex items-center gap-16 min-w-[180px]">
+                  <div className="flex items-center gap-2">
+                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="#4285F4"/>
+                      <circle cx="12" cy="8" r="2" fill="white"/>
+                      <circle cx="8" cy="14" r="2" fill="white"/>
+                      <circle cx="16" cy="14" r="2" fill="white"/>
+                    </svg>
+                    <span className="text-xl font-bold text-white">Google</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2L2 7v10l10 5 10-5V7L12 2z" fill="#0668E1"/>
+                      <path d="M12 22l10-5" stroke="white" strokeWidth="2"/>
+                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">M</text>
+                    </svg>
+                    <span className="text-xl font-bold text-white">Meta</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="#FF9900"/>
+                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">a</text>
+                    </svg>
+                    <span className="text-xl font-bold text-white">Amazon</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
+                      <rect x="3" y="3" width="7" height="7" fill="#00A4EF"/>
+                      <rect x="14" y="3" width="7" height="7" fill="#7FBA00"/>
+                      <rect x="3" y="14" width="7" height="7" fill="#F25022"/>
+                      <rect x="14" y="14" width="7" height="7" fill="#FFB900"/>
+                    </svg>
+                    <span className="text-xl font-bold text-white">Microsoft</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2C9.79 2 8 3.79 8 6c0 1.1.45 2.1 1.17 2.83L12 6l2.83 2.83C15.55 8.1 16 7.1 16 6c0-2.21-1.79-4-4-4z" fill="#A2AAAD"/>
+                      <path d="M12 10l-4.17 4.17C6.14 15.86 5 18.31 5 21c0 2.76 2.24 5 5 5s5-2.24 5-5c0-2.69-1.14-5.14-2.83-6.83L12 10z" fill="#A2AAAD"/>
+                    </svg>
+                    <span className="text-xl font-bold text-white">Apple</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
+                      <rect x="2" y="2" width="20" height="20" rx="3" fill="#05296B"/>
+                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">IBM</text>
+                    </svg>
+                    <span className="text-xl font-bold text-white">IBM</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="#00A1E0"/>
+                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">SF</text>
+                    </svg>
+                    <span className="text-xl font-bold text-white">Salesforce</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
+                      <rect x="3" y="3" width="18" height="18" rx="3" fill="#FF0000"/>
+                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">Ai</text>
+                    </svg>
+                    <span className="text-xl font-bold text-white">Adobe</span>
+                  </div>
+                </div>
+                {/* Duplicate set for seamless infinite loop */}
+                <div className="flex items-center gap-16 min-w-[180px]">
+                  <div className="flex items-center gap-2">
+                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="#4285F4"/>
+                      <circle cx="12" cy="8" r="2" fill="white"/>
+                      <circle cx="8" cy="14" r="2" fill="white"/>
+                      <circle cx="16" cy="14" r="2" fill="white"/>
+                    </svg>
+                    <span className="text-xl font-bold text-white">Google</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2L2 7v10l10 5 10-5V7L12 2z" fill="#0668E1"/>
+                      <path d="M12 22l10-5" stroke="white" strokeWidth="2"/>
+                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">M</text>
+                    </svg>
+                    <span className="text-xl font-bold text-white">Meta</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="#FF9900"/>
+                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">a</text>
+                    </svg>
+                    <span className="text-xl font-bold text-white">Amazon</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
+                      <rect x="3" y="3" width="7" height="7" fill="#00A4EF"/>
+                      <rect x="14" y="3" width="7" height="7" fill="#7FBA00"/>
+                      <rect x="3" y="14" width="7" height="7" fill="#F25022"/>
+                      <rect x="14" y="14" width="7" height="7" fill="#FFB900"/>
+                    </svg>
+                    <span className="text-xl font-bold text-white">Microsoft</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2C9.79 2 8 3.79 8 6c0 1.1.45 2.1 1.17 2.83L12 6l2.83 2.83C15.55 8.1 16 7.1 16 6c0-2.21-1.79-4-4-4z" fill="#A2AAAD"/>
+                      <path d="M12 10l-4.17 4.17C6.14 15.86 5 18.31 5 21c0 2.76 2.24 5 5 5s5-2.24 5-5c0-2.69-1.14-5.14-2.83-6.83L12 10z" fill="#A2AAAD"/>
+                    </svg>
+                    <span className="text-xl font-bold text-white">Apple</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
+                      <rect x="2" y="2" width="20" height="20" rx="3" fill="#05296B"/>
+                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">IBM</text>
+                    </svg>
+                    <span className="text-xl font-bold text-white">IBM</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="#00A1E0"/>
+                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">SF</text>
+                    </svg>
+                    <span className="text-xl font-bold text-white">Salesforce</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
+                      <rect x="3" y="3" width="18" height="18" rx="3" fill="#FF0000"/>
+                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">Ai</text>
+                    </svg>
+                    <span className="text-xl font-bold text-white">Adobe</span>
+                  </div>
+                </div>
+                {/* Third set for truly seamless infinite scroll */}
+                <div className="flex items-center gap-16 min-w-[180px]">
+                  <div className="flex items-center gap-2">
+                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="#4285F4"/>
+                      <circle cx="12" cy="8" r="2" fill="white"/>
+                      <circle cx="8" cy="14" r="2" fill="white"/>
+                      <circle cx="16" cy="14" r="2" fill="white"/>
+                    </svg>
+                    <span className="text-xl font-bold text-white">Google</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2L2 7v10l10 5 10-5V7L12 2z" fill="#0668E1"/>
+                      <path d="M12 22l10-5" stroke="white" strokeWidth="2"/>
+                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">M</text>
+                    </svg>
+                    <span className="text-xl font-bold text-white">Meta</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="#FF9900"/>
+                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">a</text>
+                    </svg>
+                    <span className="text-xl font-bold text-white">Amazon</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
+                      <rect x="3" y="3" width="7" height="7" fill="#00A4EF"/>
+                      <rect x="14" y="3" width="7" height="7" fill="#7FBA00"/>
+                      <rect x="3" y="14" width="7" height="7" fill="#F25022"/>
+                      <rect x="14" y="14" width="7" height="7" fill="#FFB900"/>
+                    </svg>
+                    <span className="text-xl font-bold text-white">Microsoft</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2C9.79 2 8 3.79 8 6c0 1.1.45 2.1 1.17 2.83L12 6l2.83 2.83C15.55 8.1 16 7.1 16 6c0-2.21-1.79-4-4-4z" fill="#A2AAAD"/>
+                      <path d="M12 10l-4.17 4.17C6.14 15.86 5 18.31 5 21c0 2.76 2.24 5 5 5s5-2.24 5-5c0-2.69-1.14-5.14-2.83-6.83L12 10z" fill="#A2AAAD"/>
+                    </svg>
+                    <span className="text-xl font-bold text-white">Apple</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
+                      <rect x="2" y="2" width="20" height="20" rx="3" fill="#05296B"/>
+                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">IBM</text>
+                    </svg>
+                    <span className="text-xl font-bold text-white">IBM</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" fill="#00A1E0"/>
+                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">SF</text>
+                    </svg>
+                    <span className="text-xl font-bold text-white">Salesforce</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
+                      <rect x="3" y="3" width="18" height="18" rx="3" fill="#FF0000"/>
+                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">Ai</text>
+                    </svg>
+                    <span className="text-xl font-bold text-white">Adobe</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <style>{`
+          @keyframes infinite-scroll {
+            0% {
+              transform: translateX(0);
+            }
+            100% {
+              transform: translateX(-33.33%);
+            }
+          }
+          .animate-infinite-scroll {
+            animation: infinite-scroll 30s linear infinite;
+          }
+        `}</style>
       </section>
 
       {/* Services Overview - Modern Grid */}
@@ -468,7 +673,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Testimonials - Styled */}
+      {/* Client Success Stories - Using Testimonials */}
       {displayTestimonials && displayTestimonials.length > 0 && (
         <section className="py-24 bg-gray-50">
           <div className="container mx-auto px-4">
@@ -477,12 +682,12 @@ export default function Home() {
                 Client Success Stories
               </h2>
               <p className="text-xl text-gray-600">
-                Don't just take our word for it.
+                Real results from our valued clients.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {displayTestimonials.map((testimonial, idx) => (
+              {displayTestimonials.slice(0, 3).map((testimonial: any, idx: number) => (
                 <motion.div
                   key={testimonial.id}
                   initial={{ opacity: 0, y: 30 }}
@@ -500,32 +705,18 @@ export default function Home() {
                         ))}
                       </div>
                       <p className="text-gray-700 mb-8 italic text-lg leading-relaxed flex-1">
-                        "{testimonial.content}"
+                        "{testimonial.content || testimonial.clientCompany || 'Excellent service!'}"
                       </p>
                       <div className="flex items-center gap-4 pt-6 border-t border-gray-100">
-                        {testimonial.avatar ? (
-                          <img
-                            src={testimonial.avatar}
-                            alt={testimonial.clientName}
-                            className="w-10 h-10 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold">
-                            {testimonial.clientName.charAt(0)}
-                          </div>
-                        )}
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold">
+                          {(testimonial.clientName || 'C').charAt(0)}
+                        </div>
                         <div>
                           <p className="font-bold text-gray-900">
-                            {testimonial.clientName ||
-                              testimonial.clientname ||
-                              testimonial.name ||
-                              "Client"}
+                            {testimonial.clientName || 'Client'}
                           </p>
                           <p className="text-sm text-blue-600 font-medium">
-                            {testimonial.clientCompany ||
-                              testimonial.clientcompany ||
-                              testimonial.company ||
-                              ""}
+                            {testimonial.company || testimonial.clientRole || ''}
                           </p>
                         </div>
                       </div>

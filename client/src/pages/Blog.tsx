@@ -20,7 +20,7 @@ interface BlogPost {
 }
 
 export default function Blog() {
-  const { data: posts, isLoading } = trpc.blog.list.useQuery<BlogPost[]>();
+  const { data: posts, isLoading } = trpc.blog.all.useQuery();
 
   const [email, setEmail] = useState("");
 
@@ -37,7 +37,7 @@ export default function Blog() {
   const handleSubscribe = (e: FormEvent) => {
     e.preventDefault();
     if (email) {
-      subscribeNewsletter.mutate(email);
+      subscribeNewsletter.mutate({ email, type: 'newsletter' });
     }
   };
 
