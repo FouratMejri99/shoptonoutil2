@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { trpc } from "@/lib/trpc";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -11,7 +13,164 @@ import {
 } from "lucide-react";
 import { Link, useRoute } from "wouter";
 
-const serviceDetails: Record<string, any> = {
+// Static fallback data for services
+const staticServiceDetails: Record<string, any> = {
+  "elearning-engineering": {
+    title: "eLearning Engineering",
+    description: "Storyline development and deep technical localization for interactive training",
+    image: "/tQhhiaQyUpCd.jpg",
+    fullContent:
+      "Our eLearning Engineering service provides comprehensive solutions for developing and localizing interactive training content. From Storyline development to deep technical localization, we ensure your training materials engage learners across all languages and cultures. Our team of experts specializes in creating immersive learning experiences that work seamlessly in any language, maintaining all interactivity and pedagogical effectiveness.",
+    benefits: [
+      "Storyline Development - Custom eLearning course development using Articulate Storyline",
+      "Deep Technical Localization - Complex technical adaptations for multilingual deployments",
+      "Interactive Element Adaptation - Buttons, simulations, and interactive components localization",
+      "SCORM Compliance - Standards-compliant packages for any Learning Management System",
+      "LMS Integration - Seamless integration with major LMS platforms worldwide",
+      "Accessibility Compliance (WCAG) - Ensuring courses meet accessibility standards",
+      "Multi-language Asset Management - Efficient handling of multilingual media assets",
+      "Gamification Elements - Localization of leaderboards, badges, and reward systems",
+    ],
+    process: [
+      "Content analysis and technical requirements gathering",
+      "Storyboarding and localization strategy development",
+      "Interactive element development and adaptation",
+      "Multilingual content integration and testing",
+      "SCORM package validation and LMS testing",
+      "Quality assurance and learner experience verification",
+      "Deployment support and ongoing maintenance",
+    ],
+  },
+  "media-localization": {
+    title: "Media Localization",
+    description: "OST, subtitling, voiceover, and AI-assisted services for multimedia",
+    image: "/Solupedia-video-editing-localization.jpg",
+    fullContent:
+      "Our Media Localization service covers all aspects of multimedia content adaptation. From original sound track (OST) production to subtitling, voiceover, and AI-assisted services, we bring your video content to life in any language. Our state-of-the-art facilities and experienced team ensure broadcast-quality results that maintain the emotional impact of your original content.",
+    benefits: [
+      "Original Sound Track (OST) Production - Custom music composition for localized versions",
+      "Professional Subtitling - Accurate, well-timed subtitles in any language",
+      "Voice-over and Dubbing - Native speaker voice talent with studio-quality recording",
+      "AI-assisted Translation - Accelerated translation using advanced AI technology",
+      "Audio Synchronization - Perfect timing sync with visual content",
+      "Cultural Adaptation - Modifying visual elements for cultural relevance",
+      "Closed Captioning - Accessible captions for hearing-impaired viewers",
+      "Audio Description - Narration of visual elements for accessibility",
+    ],
+    process: [
+      "Script analysis and adaptation for target markets",
+      "Voice talent casting and recording sessions",
+      "Audio editing, mixing, and synchronization",
+      "Subtitle creation, timing, and formatting",
+      "Visual element adaptation and graphics localization",
+      "Quality assurance and client review",
+      "Final delivery in multiple formats",
+    ],
+  },
+  "accessibility": {
+    title: "Accessibility",
+    description: "EAA enforcement, remediation, and standards compliance for all content",
+    image: "/Solupedia-document-localization.jpg",
+    fullContent:
+      "Our Accessibility service ensures your content meets all major accessibility standards including EAA (European Accessibility Act), WCAG, and Section 508. We provide comprehensive remediation services to make your content accessible to everyone, regardless of ability. Our team of accessibility experts helps you navigate complex regulations while improving user experience for all audiences.",
+    benefits: [
+      "EAA Compliance - European Accessibility Act compliance for products and services",
+      "WCAG 2.1 Remediation - Full Web Content Accessibility Guidelines compliance",
+      "Section 508 Compliance - US federal accessibility requirements",
+      "PDF Accessibility - Creating accessible PDF documents with proper tags",
+      "Video Captioning - Accurate captions for all video content",
+      "Audio Description - Professional narration of visual content",
+      "Accessibility Testing - Comprehensive testing with assistive technologies",
+      "Accessibility Audits - Detailed analysis of current accessibility gaps",
+    ],
+    process: [
+      "Initial accessibility audit and gap analysis",
+      "Remediation strategy development",
+      "Content remediation and reconstruction",
+      "Alternative format creation (Braille, large print, audio)",
+      "Testing with assistive technologies",
+      "Compliance documentation and certification",
+      "Ongoing monitoring and updates",
+    ],
+  },
+  "document-dtp": {
+    title: "Document & DTP",
+    description: "RTL expertise, graphics localization, and template management",
+    image: "/0.jpg",
+    fullContent:
+      "Our Document & DTP service handles all aspects of document localization including RTL (right-to-left) language support, graphics localization, and professional template management. We ensure your documents look perfect in every language, maintaining the design integrity and professional appearance of your original content.",
+    benefits: [
+      "RTL Language Support - Full support for Arabic, Hebrew, Persian, and other RTL languages",
+      "Graphics Localization - Adapting images and graphics for different markets",
+      "Template Management - Creating and maintaining reusable templates",
+      "Desktop Publishing - Professional DTP in all major software",
+      "Multi-format Output - Delivery in PDF, Word, InDesign, and more",
+      "Format Preservation - Maintaining original layout and design fidelity",
+      "Font Management - Proper font handling for multilingual documents",
+      "Variable Data Publishing - Personalized document generation",
+    ],
+    process: [
+      "Source document analysis and style review",
+      "Template creation or adaptation",
+      "Translation integration and text flow testing",
+      "Graphics and image localization",
+      "RTL layout adjustments where needed",
+      "Proofreading and quality check",
+      "Final output generation and delivery",
+    ],
+  },
+  "content-creation": {
+    title: "Content Creation",
+    description: "Build once, localize efficiently - 40-60% cost savings with our methodology",
+    image: "/Solupedia-document-localization.jpg",
+    fullContent:
+      "Our Content Creation service is designed from the ground up for efficient localization. By following our proven methodology, you can achieve 40-60% cost savings while maintaining high quality across all languages. We help you create content that is inherently ready for localization, reducing revision cycles and maximizing efficiency.",
+    benefits: [
+      "Localization-friendly Authoring - Creating content optimized for translation",
+      "Internationalization Consulting - Technical guidance for global-ready content",
+      "Terminology Management - Building and maintaining multilingual glossaries",
+      "Style Guide Development - Consistent writing style across languages",
+      "Translation Memory Optimization - Maximizing reuse of translated content",
+      "Continuous Localization Workflow - Agile, ongoing translation processes",
+      "Content Audit - Analyzing existing content for localization readiness",
+      "Authoring Tool Selection - Recommending the best tools for your needs",
+    ],
+    process: [
+      "Content audit and localization readiness assessment",
+      "Localization strategy and roadmap development",
+      "Terminology and style guide creation",
+      "Content creation with internationalization best practices",
+      "Translation memory setup and optimization",
+      "Pilot project and process refinement",
+      "Full-scale production and continuous improvement",
+    ],
+  },
+  "ai-workflows": {
+    title: "AI Workflows",
+    description: "AI at every pipeline stage with intelligent tiering for maximum efficiency",
+    image: "/AIWorkflows.jpg",
+    fullContent:
+      "Our AI Workflows service integrates artificial intelligence at every stage of the localization pipeline. With intelligent tiering, we optimize the balance between AI efficiency and human quality for the best results. Our proprietary AI solutions accelerate delivery times while maintaining the quality standards your brand requires.",
+    benefits: [
+      "AI-powered Translation - Neural machine translation with custom training",
+      "Intelligent Content Tiering - Automatic routing based on content type and quality needs",
+      "Machine Translation Post-Editing (MTPE) - Human refinement of AI translations",
+      "AI-assisted Quality Assurance - Automated error detection and correction",
+      "Predictive Terminology - AI-powered terminology suggestions",
+      "Automated Workflow Orchestration - Seamless handoffs between AI and human stages",
+      "Custom AI Models - Tailored models for domain-specific content",
+      "Real-time Analytics - Performance monitoring and optimization insights",
+    ],
+    process: [
+      "Content analysis and tier classification",
+      "AI model selection and configuration",
+      "Automated translation and processing",
+      "Human review and post-editing",
+      "Quality assurance and validation",
+      "Performance analytics and optimization",
+      "Continuous learning and improvement",
+    ],
+  },
   "document-localization": {
     title: "Document Localization",
     description: "Professional translation and desktop publishing services",
@@ -120,7 +279,37 @@ const serviceDetails: Record<string, any> = {
 export default function ServiceDetail() {
   const [, params] = useRoute("/services/:slug");
   const slug = params?.slug || "";
-  const service = serviceDetails[slug];
+  const [refreshKey, setRefreshKey] = useState(0);
+  
+  // Fetch service from database - use object format with refresh key to force refetch
+  const queryParams = { slug, _t: refreshKey };
+  const queryResult = trpc.services.getBySlug.useQuery(queryParams as any) as any;
+  const dbService = queryResult?.data;
+  const refetch = queryResult?.refetch;
+  
+  // Get static fallback data
+  const staticService = staticServiceDetails[slug];
+  
+  // Merge database data with static data
+  const service = dbService ? {
+    title: dbService.name || staticService?.title || "",
+    description: dbService.shortDescription || dbService.shortdescription || staticService?.description || "",
+    image: dbService.image || staticService?.image || "",
+    fullContent: dbService.description || staticService?.fullContent || "",
+    benefits: staticService?.benefits || [],
+    process: staticService?.process || [],
+  } : staticService;
+
+  // Refresh data when page becomes visible (e.g., after admin update)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (!document.hidden) {
+        setRefreshKey(k => k + 1);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
 
   if (!service) {
     return (

@@ -65,6 +65,8 @@ function Router() {
           component={AdminChangePassword}
         />
         <Route path={"/admin/subscribers"} component={AdminSubscribers} />
+        <Route path={"/employee/login"} component={EmployeeLogin} />
+        <Route path={"/employee/dashboard"} component={EmployeeDashboard} />
         <Route path={"/404"} component={NotFound} />
         <Route component={NotFound} />
       </Switch>

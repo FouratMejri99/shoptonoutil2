@@ -1,13 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { leadsService } from "@/lib/supabase";
 import { motion } from "framer-motion";
 import { ArrowRight, BookOpen, CheckCircle, Download } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-
-// Formspree configuration - Create a free form at https://formspree.io/
-const FORMSPREE_FORM_ID = import.meta.env.VITE_FORMSPREE_LEAD_FORM_ID || "";
-const USE_FORMSPREE = !!FORMSPREE_FORM_ID;
 
 export default function LeadMagnet() {
   const [formData, setFormData] = useState({
@@ -28,53 +25,24 @@ export default function LeadMagnet() {
     setIsSending(true);
 
     try {
-      if (USE_FORMSPREE) {
-        // Send via Formspree
-        const response = await fetch(
-          `https://formspree.io/f/${FORMSPREE_FORM_ID}`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "application/json",
-            },
-            body: JSON.stringify({
-              name: formData.name,
-              email: formData.email,
-              company: formData.company,
-              source: "lead_magnet",
-            }),
-          }
-        );
-
-        if (response.ok) {
-          toast.success("Thank you! Check your email for the guide.");
-          setSubmitted(true);
-          setTimeout(() => {
-            setFormData({ name: "", email: "", company: "" });
-            setSubmitted(false);
-          }, 3000);
-        } else {
-          throw new Error("Formspree submission failed");
-        }
-      } else {
-        // Fallback: mailto link
-        const subject = encodeURIComponent(
-          `Free Guide Request - ${formData.name}`
-        );
-        const body = encodeURIComponent(`
-Name: ${formData.name}
-Email: ${formData.email}
-Company: ${formData.company || "Not provided"}
-
-Source: lead_magnet
-        `);
-        window.location.href = `mailto:info@solupedia.com?subject=${subject}&body=${body}`;
-        toast.success(
-          "Your email client should open now. Please send the email to download the guide."
-        );
+      // Submit to database - this will also send admin notifications and confirmation email
+      await leadsService.subscribeNewsletter(formData.email, "guide_request");
+      
+      // Also store lead info in leads table for additional details
+      await leadsService.submit({
+        name: formData.name,
+        email: formData.email,
+        company: formData.company,
+        type: "guide_request",
+        message: "Free guide request from landing page",
+      });
+      
+      toast.success("Thank you! Check your email for the guide.");
+      setSubmitted(true);
+      setTimeout(() => {
         setFormData({ name: "", email: "", company: "" });
-      }
+        setSubmitted(false);
+      }, 3000);
     } catch (error) {
       toast.error("Failed to submit. Please try again.");
       console.error(error);

@@ -18,8 +18,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, Edit2, Plus, Search, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ArrowLeft, Edit2, Plus, Search, Trash2, Upload, X } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import { Link, useLocation } from "wouter";
 
@@ -36,9 +36,14 @@ export default function AdminServices() {
     description: "",
     icon: "BookOpen",
     orderIndex: 0,
-    featured: false,
+    isPublished: true,
     image: "",
   });
+
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const utils = trpc.useUtils();
   const { data: services, isLoading } = trpc.services.list.useQuery();
@@ -46,6 +51,8 @@ export default function AdminServices() {
   const updateMutation = trpc.services.update.useMutation();
   const deleteMutation = trpc.services.delete.useMutation();
   const seedMutation = trpc.services.seed.useMutation();
+  const uploadImageMutation = trpc.services.uploadImage.useMutation();
+  const deleteImageMutation = trpc.services.deleteImage.useMutation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [isSeeding, setIsSeeding] = useState(false);
@@ -63,11 +70,66 @@ export default function AdminServices() {
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      let imageUrl = formData.image;
+
+      // Upload new image if selected
+      if (selectedImage) {
+        const slug = formData.slug || formData.name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+        setIsUploading(true);
+        try {
+          imageUrl = await uploadImageMutation.mutateAsync({
+            file: selectedImage,
+            serviceSlug: slug,
+          });
+          toast.success("Image uploaded successfully!");
+        } catch (uploadError: any) {
+          console.error("Upload error:", uploadError);
+          toast.error(uploadError?.message || "Failed to upload image");
+          setIsSubmitting(false);
+          setIsUploading(false);
+          return;
+        } finally {
+          setIsUploading(false);
+        }
+      }
+
+      const newOrder = formData.orderIndex || 0;
+
       if (editingService) {
         // Update existing service
+        const oldOrder = editingService.orderIndex || editingService.orderindex || 0;
+        
+        // If order changed, auto-adjust other services
+        if (oldOrder !== newOrder && services) {
+          for (const s of services as any[]) {
+            const sOrder = s.orderIndex || s.orderindex || 0;
+            if (s.id === editingService.id) continue;
+            
+            let newSOrder = sOrder;
+            if (newOrder > oldOrder) {
+              // Moving down: shift items between old and new position up
+              if (sOrder > oldOrder && sOrder <= newOrder) {
+                newSOrder = sOrder - 1;
+              }
+            } else {
+              // Moving up: shift items between new and old position down
+              if (sOrder >= newOrder && sOrder < oldOrder) {
+                newSOrder = sOrder + 1;
+              }
+            }
+            
+            if (newSOrder !== sOrder) {
+              await updateMutation.mutateAsync({
+                id: s.id,
+                updates: { orderIndex: newSOrder },
+              });
+            }
+          }
+        }
+        
         await updateMutation.mutateAsync({
           id: editingService.id,
-          updates: formData,
+          updates: { ...formData, image: imageUrl, orderIndex: newOrder },
         });
         toast.success("Service updated successfully!");
         setShowForm(false);
@@ -85,9 +147,23 @@ export default function AdminServices() {
           .replace(/\s+/g, "-")
           .replace(/[^a-z0-9-]/g, "");
 
+      // Adjust orders for new service
+      if (services && newOrder > 0) {
+        for (const s of services as any[]) {
+          const sOrder = s.orderIndex || s.orderindex || 0;
+          if (sOrder >= newOrder) {
+            await updateMutation.mutateAsync({
+              id: s.id,
+              updates: { orderIndex: sOrder + 1 },
+            });
+          }
+        }
+      }
+
       await createMutation.mutateAsync({
         ...formData,
         slug,
+        image: imageUrl,
       });
 
       toast.success("Service created successfully!");
@@ -124,24 +200,49 @@ export default function AdminServices() {
       description: "",
       icon: "BookOpen",
       orderIndex: 0,
-      featured: false,
+      isPublished: true,
       image: "",
     });
     setEditingService(null);
+    setSelectedImage(null);
+    setImagePreview("");
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setSelectedImage(null);
+    setImagePreview("");
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const openEditForm = (service: any) => {
     setEditingService(service);
+    const serviceImage = service.image || "";
     setFormData({
       name: service.name || "",
       slug: service.slug || "",
-      shortDescription: service.shortDescription || "",
+      shortDescription: service.shortDescription || service.shortdescription || "",
       description: service.description || "",
       icon: service.icon || "BookOpen",
-      orderIndex: service.orderIndex || 0,
-      featured: service.featured || false,
-      image: service.image || "",
+      orderIndex: service.orderIndex || service.orderindex || 0,
+      isPublished: (service.isPublished ?? service.ispublished) ?? true,
+      image: serviceImage,
     });
+    setImagePreview(serviceImage);
+    setSelectedImage(null);
     setShowForm(true);
   };
 
@@ -164,7 +265,7 @@ export default function AdminServices() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex items-center gap-4">
               <Link href="/admin/dashboard">
                 <Button variant="ghost" size="sm">
@@ -179,31 +280,32 @@ export default function AdminServices() {
                 <p className="text-gray-600">Add, edit, or remove services</p>
               </div>
             </div>
-            <Button
-              onClick={openNewForm}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Service
-            </Button>
-            <Button
-              onClick={async () => {
-                setIsSeeding(true);
-                try {
-                  await seedMutation.mutateAsync({});
-                  toast.success("Services seeded successfully!");
-                  utils.invalidate("services.list");
-                } catch (error: any) {
-                  toast.error(error?.message || "Failed to seed services");
-                }
-                setIsSeeding(false);
-              }}
-              disabled={isSeeding}
-              variant="outline"
-              className="ml-2"
-            >
-              {isSeeding ? "Seeding..." : "Seed Services"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={openNewForm}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Service
+              </Button>
+              <Button
+                onClick={async () => {
+                  setIsSeeding(true);
+                  try {
+                    await seedMutation.mutateAsync({});
+                    toast.success("Services seeded successfully!");
+                    utils.invalidate("services.list");
+                  } catch (error: any) {
+                    toast.error(error?.message || "Failed to seed services");
+                  }
+                  setIsSeeding(false);
+                }}
+                disabled={isSeeding}
+                variant="outline"
+              >
+                {isSeeding ? "Seeding..." : "Seed Services"}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -259,6 +361,15 @@ export default function AdminServices() {
                   transition={{ delay: idx * 0.05 }}
                 >
                   <Card className="h-full hover:shadow-md transition-shadow">
+                    {service.image && (
+                      <div className="h-32 overflow-hidden">
+                        <img
+                          src={service.image}
+                          alt={service.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -269,9 +380,13 @@ export default function AdminServices() {
                             {service.shortDescription}
                           </CardDescription>
                         </div>
-                        {service.featured && (
+                        {service.isPublished || service.ispublished ? (
                           <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
-                            Featured
+                            Published
+                          </span>
+                        ) : (
+                          <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">
+                            Draft
                           </span>
                         )}
                       </div>
@@ -281,9 +396,11 @@ export default function AdminServices() {
                         {service.description}
                       </p>
                       <div className="flex items-center justify-between">
-                        <span className="text-xs text-gray-500">
-                          Order: {service.orderIndex || 0}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                            Order: {service.orderindex ?? service.orderIndex ?? 0}
+                          </span>
+                        </div>
                         <div className="flex gap-2">
                           <Button
                             variant="outline"
@@ -408,29 +525,84 @@ export default function AdminServices() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="image">Image URL</Label>
-              <Input
-                id="image"
-                value={formData.image}
-                onChange={e =>
-                  setFormData({ ...formData, image: e.target.value })
-                }
-                placeholder="/image-path.jpg"
-              />
+              <Label htmlFor="image">Service Image</Label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
+                {(imagePreview || formData.image) && !selectedImage ? (
+                  <div className="relative">
+                    <img
+                      src={imagePreview || formData.image}
+                      alt="Service preview"
+                      className="w-full h-48 object-cover rounded-lg"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-2 right-2"
+                      onClick={() => {
+                        setFormData({ ...formData, image: "" });
+                        setImagePreview("");
+                      }}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : selectedImage ? (
+                  <div className="relative">
+                    <img
+                      src={imagePreview}
+                      alt="Selected preview"
+                      className="w-full h-48 object-cover rounded-lg"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-2 right-2"
+                      onClick={removeImage}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                    <div className="mt-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                        id="image-upload"
+                      />
+                      <Label
+                        htmlFor="image-upload"
+                        className="cursor-pointer text-blue-600 hover:text-blue-700"
+                      >
+                        Click to upload an image
+                      </Label>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      PNG, JPG, WEBP up to 5MB
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
               <input
                 type="checkbox"
-                id="featured"
-                checked={formData.featured}
+                id="isPublished"
+                checked={formData.isPublished}
                 onChange={e =>
-                  setFormData({ ...formData, featured: e.target.checked })
+                  setFormData({ ...formData, isPublished: e.target.checked })
                 }
                 className="w-4 h-4 rounded border-gray-300"
               />
-              <Label htmlFor="featured" className="cursor-pointer">
-                Mark as Featured
+              <Label htmlFor="isPublished" className="cursor-pointer">
+                Publish Service
               </Label>
             </div>
 
@@ -449,10 +621,12 @@ export default function AdminServices() {
               <Button
                 type="submit"
                 className="flex-1 bg-blue-600 hover:bg-blue-700"
-                disabled={isSubmitting}
+                disabled={isSubmitting || isUploading}
               >
-                {isSubmitting
-                  ? "Saving..."
+                {isSubmitting || isUploading
+                  ? isUploading
+                    ? "Uploading Image..."
+                    : "Saving..."
                   : editingService
                     ? "Update Service"
                     : "Create Service"}

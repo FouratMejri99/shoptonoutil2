@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   Award,
@@ -17,8 +18,13 @@ import {
 import { Link } from "wouter";
 
 export default function Home() {
-  const { data: services, isLoading: servicesLoading } =
-    trpc.services.list.useQuery();
+  const [refreshKey, setRefreshKey] = useState(0);
+  
+  // Fetch services from database with refresh key
+  const servicesQuery = trpc.services.list.useQuery({ _t: refreshKey } as any) as any;
+  const services = servicesQuery?.data;
+  const servicesLoading = servicesQuery?.isLoading;
+  
   const { data: testimonials, isLoading: testimonialsLoading } =
     trpc.testimonials.list.useQuery();
   const { data: caseStudies, isLoading: caseStudiesLoading } =
@@ -26,6 +32,17 @@ export default function Home() {
 
   const isLoading =
     servicesLoading || testimonialsLoading || caseStudiesLoading;
+
+  // Refresh data when page becomes visible (e.g., after admin update)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (!document.hidden) {
+        setRefreshKey(k => k + 1);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
 
   // Show skeleton while loading, but only for initial load
   if (isLoading) {
@@ -41,6 +58,7 @@ export default function Home() {
       shortDescription:
         "Storyline development and deep technical localization for interactive training.",
       icon: "BookOpen",
+      image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80",
     },
     {
       id: 2,
@@ -49,6 +67,7 @@ export default function Home() {
       shortDescription:
         "OST, subtitling, voiceover, and AI-assisted services for multimedia.",
       icon: "Video",
+      image: "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=800&q=80",
     },
     {
       id: 3,
@@ -57,6 +76,7 @@ export default function Home() {
       shortDescription:
         "EAA enforcement, remediation, and standards compliance for all content.",
       icon: "Zap",
+      image: "https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=800&q=80",
     },
     {
       id: 4,
@@ -65,6 +85,7 @@ export default function Home() {
       shortDescription:
         "RTL expertise, graphics localization, and template management.",
       icon: "Globe",
+      image: "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&q=80",
     },
     {
       id: 5,
@@ -73,6 +94,7 @@ export default function Home() {
       shortDescription:
         "Build once, localize efficiently - 40-60% cost savings with our methodology.",
       icon: "FileText",
+      image: "https://images.unsplash.com/photo-1455390582262-044cdead277a?w=800&q=80",
     },
     {
       id: 6,
@@ -81,6 +103,7 @@ export default function Home() {
       shortDescription:
         "AI at every pipeline stage with intelligent tiering for maximum efficiency.",
       icon: "Users",
+      image: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80",
     },
   ];
 
@@ -258,16 +281,9 @@ export default function Home() {
                     <p className="text-sm text-gray-500">Connecting cultures</p>
                   </div>
                 </div>
-                <div className="flex -space-x-2">
-                  {[1, 2, 3, 4].map(i => (
-                    <div
-                      key={i}
-                      className="w-8 h-8 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center text-[10px] font-bold text-gray-500"
-                    >
-                      {i === 4 ? "+" : ""}
-                    </div>
-                  ))}
-                  <span className="ml-4 text-sm text-gray-600 self-center">
+                <div className="flex items-center gap-2">
+                  <Award className="w-5 h-5 text-yellow-500" />
+                  <span className="text-sm text-gray-600 font-medium">
                     Trusted by leaders
                   </span>
                 </div>
@@ -276,6 +292,71 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* Services Section */}
+      {displayServices && displayServices.length > 0 && (
+        <section className="py-24 bg-white">
+          <div className="container mx-auto px-4">
+            <div className="text-center mb-16">
+              <span className="text-blue-600 font-semibold tracking-wider uppercase text-sm">
+                What We Offer
+              </span>
+              <h2 className="text-4xl font-bold mt-2 text-gray-900">
+                Our Services
+              </h2>
+              <p className="text-xl text-gray-600 mt-4 max-w-2xl mx-auto">
+                Comprehensive localization solutions tailored to your industry and content type.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {(displayServices as any[]).slice(0, 6).map((service: any, idx: number) => (
+                <Link key={service.id || idx} href={`/services/${service.slug}`}>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: idx * 0.1 }}
+                    whileHover={{ y: -5 }}
+                    className="group cursor-pointer"
+                  >
+                    <Card className="h-full overflow-hidden border-none shadow-lg hover:shadow-xl transition-all duration-300">
+                      {/* Service Image */}
+                      <div className="h-48 overflow-hidden relative">
+                        <img
+                          src={service.image || "/placeholder-service.jpg"}
+                          alt={service.name}
+                          className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                      </div>
+                      <CardContent className="p-6">
+                        <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+                          {service.name}
+                        </h3>
+                        <p className="text-gray-600 text-sm line-clamp-2">
+                          {service.shortDescription || service.shortdescription}
+                        </p>
+                        <div className="mt-4 flex items-center text-blue-600 font-medium text-sm">
+                          Learn More <ArrowRight className="ml-1 w-4 h-4" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                </Link>
+              ))}
+            </div>
+
+            <div className="text-center mt-12">
+              <Link href="/services">
+                <Button variant="outline" size="lg" className="rounded-full">
+                  View All Services
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Trusted By - New Design */}
       <section className="py-20 bg-gradient-to-b from-gray-50 to-white">
@@ -561,115 +642,6 @@ export default function Home() {
                 className="h-14 px-8 bg-blue-600 hover:bg-blue-700 text-white text-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
               >
                 Start Your Project <ArrowRight className="ml-2" size={20} />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Services Overview - Modern Grid */}
-      <section className="py-24 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16 max-w-3xl mx-auto">
-            <span className="text-blue-600 font-semibold tracking-wider uppercase text-sm">
-              What We Do
-            </span>
-            <h2 className="text-4xl md:text-5xl font-bold mt-2 mb-6 text-gray-900">
-              Comprehensive Localization Solutions
-            </h2>
-            <p className="text-xl text-gray-600">
-              Tailored strategies to help your business thrive in any market.
-            </p>
-          </div>
-
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
-          >
-            {[
-              {
-                icon: BookOpen,
-                title: "eLearning Engineering",
-                desc: "Storyline development and deep technical localization for interactive training.",
-                image: "/Solupedia-document-localization.jpg",
-              },
-              {
-                icon: Video,
-                title: "Media Localization",
-                desc: "OST, subtitling, voiceover, and AI-assisted services for multimedia.",
-                image: "/Solupedia-video-editing-localization.jpg",
-              },
-              {
-                icon: Zap,
-                title: "Accessibility",
-                desc: "EAA enforcement, remediation, and standards compliance for all content.",
-                image: "/tQhhiaQyUpCd.jpg",
-              },
-              {
-                icon: Globe,
-                title: "Document & DTP",
-                desc: "RTL expertise, graphics localization, and template management.",
-                image: "/Solupedia-creation-solutions.jpg",
-              },
-              {
-                icon: FileText,
-                title: "Content Creation",
-                desc: "Build once, localize efficiently - 40-60% cost savings with our methodology.",
-                image: "/Solupedia-document-localization.jpg",
-              },
-              {
-                icon: Users,
-                title: "AI Workflows",
-                desc: "AI at every pipeline stage with intelligent tiering for maximum efficiency.",
-                image: "/Solupedia-creation-solutions.jpg",
-              },
-            ].map((service, idx) => (
-              <motion.div variants={itemVariants} key={idx} className="group">
-                <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 h-full flex flex-col">
-                  <div className="h-48 overflow-hidden relative">
-                    <div className="absolute inset-0 bg-blue-900/20 group-hover:bg-transparent transition-colors z-10"></div>
-                    <img
-                      src={service.image}
-                      alt={service.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                  </div>
-                  <div className="p-8 flex-1 flex flex-col">
-                    <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-600 transition-colors duration-300">
-                      <service.icon className="w-7 h-7 text-blue-600 group-hover:text-white transition-colors duration-300" />
-                    </div>
-                    <h3 className="text-xl font-bold mb-3 text-gray-900">
-                      {service.title}
-                    </h3>
-                    <p className="text-gray-600 mb-6 flex-1 leading-relaxed">
-                      {service.desc}
-                    </p>
-                    <Link
-                      href={`/services/${service.title.toLowerCase().replace(/[\s/]+/g, "-")}`}
-                    >
-                      <Button
-                        variant="ghost"
-                        className="p-0 hover:bg-transparent text-blue-600 hover:text-blue-800 font-semibold group-hover:translate-x-2 transition-transform"
-                      >
-                        Learn More <ArrowRight size={18} className="ml-2" />
-                      </Button>
-                    </Link>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-
-          <div className="text-center mt-16">
-            <Link href="/services">
-              <Button
-                size="lg"
-                className="rounded-full px-8 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200"
-              >
-                View All Services
               </Button>
             </Link>
           </div>

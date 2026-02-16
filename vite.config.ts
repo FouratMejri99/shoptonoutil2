@@ -17,10 +17,14 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist"),
     emptyOutDir: true,
+    // Security: Disable console and debugger in production
+    minify: "esbuild",
   },
   server: {
     cors: true,
     strictPort: true,
     host: true,
+    // Security: Limit server exposure
+    allowedHosts: ["localhost", "127.0.0.1"],
   },
 });

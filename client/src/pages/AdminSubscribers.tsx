@@ -9,13 +9,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { motion } from "framer-motion";
-import { ArrowLeft, Download, Mail, Search, User, Users } from "lucide-react";
+import { ArrowLeft, Download, Mail, Search, Users, FileText, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
+
+type TabType = "leads" | "newsletter" | "guide_requests";
 
 export default function AdminSubscribers() {
   const [, setLocation] = useLocation();
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState<TabType>("leads");
 
   // Check if admin is logged in
   useEffect(() => {
@@ -25,42 +28,48 @@ export default function AdminSubscribers() {
     }
   }, [setLocation]);
 
-  // Fetch newsletter subscriptions directly from newsletter_subscriptions table
-  const {
-    data: subscriptionsData,
-    isLoading,
-    refetch,
-    error,
-  } = trpc.leads.getNewsletterSubscriptions.useQuery();
-
-  // Log the data for debugging
-  console.log("Subscriptions data:", subscriptionsData);
-  console.log("Error:", error);
+  // Fetch data based on active tab
+  const leadsQuery = trpc.leads.getLeads.useQuery() as any;
+  const quoteQuery = trpc.leads.getLeads.useQuery("quote_request") as any;
+  const newsletterQuery = trpc.leads.getSubscriptions.useQuery("newsletter") as any;
+  const guideQuery = trpc.leads.getSubscriptions.useQuery("guide_request") as any;
+  
+  const currentData = activeTab === "leads" ? leadsQuery?.data 
+    : activeTab === "newsletter" ? newsletterQuery?.data 
+    : guideQuery?.data;
+  const currentLoading = activeTab === "leads" ? leadsQuery?.isLoading 
+    : activeTab === "newsletter" ? newsletterQuery?.isLoading 
+    : guideQuery?.isLoading;
+  const currentRefetch = activeTab === "leads" ? leadsQuery?.refetch 
+    : activeTab === "newsletter" ? newsletterQuery?.refetch 
+    : guideQuery?.refetch;
 
   // Filter data
-  const allSubscribers = (subscriptionsData || []).filter((item: any) => {
+  const allSubscribers = (currentData || []).filter((item: any) => {
     // Filter by search
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
-      return (
-        (item.name && item.name.toLowerCase().includes(search)) ||
-        getEmail(item).toLowerCase().includes(search) ||
-        (item.company && item.company.toLowerCase().includes(search))
-      );
+      return getEmail(item).toLowerCase().includes(search);
     }
     return true;
   });
 
   // Stats
-  const totalCount = (subscriptionsData || []).length;
+  const leadsCount = (leadsQuery?.data || []).length;
+  const quoteCount = (quoteQuery?.data || []).length;
+  const newsletterCount = (newsletterQuery?.data || []).length;
+  const guideCount = (guideQuery?.data || []).length;
+  const totalCount = leadsCount + quoteCount + newsletterCount + guideCount;
+
+  // Debug: Show error if any
+  const currentError = activeTab === "leads" ? leadsQuery?.error
+    : activeTab === "newsletter" ? newsletterQuery?.error
+    : guideQuery?.error;
 
   const handleExportCSV = () => {
-    const headers = ["Name", "Email", "Company", "Phone", "Subscribed At"];
+    const headers = ["Email", "Subscribed At"];
     const rows = allSubscribers.map((sub: any) => [
-      sub.name || "-",
       getEmail(sub),
-      sub.company || "-",
-      sub.phone || "-",
       getSubscribedDate(sub)
         ? new Date(getSubscribedDate(sub)).toLocaleString()
         : "-",
@@ -131,17 +140,17 @@ export default function AdminSubscribers() {
               </motion.div>
               <div>
                 <h1 className="font-bold text-gray-900">
-                  Newsletter Subscriptions
+                  Subscribers & Leads
                 </h1>
                 <p className="text-xs text-gray-600">
-                  Manage newsletter subscribers from Supabase
+                  Manage leads, newsletter subscribers, and guide requests
                 </p>
               </div>
             </div>
             <div className="flex gap-3">
               <Button
                 variant="outline"
-                onClick={() => refetch()}
+                onClick={() => currentRefetch && currentRefetch()}
                 className="rounded-full"
               >
                 <Download size={18} className="mr-2" />
@@ -163,7 +172,7 @@ export default function AdminSubscribers() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 relative z-10">
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -173,9 +182,9 @@ export default function AdminSubscribers() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-500">Total Subscribers</p>
+                    <p className="text-sm text-gray-500">Total Leads</p>
                     <p className="text-3xl font-bold text-gray-900">
-                      {totalCount}
+                      {leadsCount + quoteCount}
                     </p>
                   </div>
                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
@@ -195,9 +204,9 @@ export default function AdminSubscribers() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-500">Active Subscribers</p>
+                    <p className="text-sm text-gray-500">Newsletter</p>
                     <p className="text-3xl font-bold text-gray-900">
-                      {totalCount}
+                      {newsletterCount}
                     </p>
                   </div>
                   <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
@@ -217,18 +226,68 @@ export default function AdminSubscribers() {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-500">Data Source</p>
-                    <p className="text-lg font-bold text-gray-900">
-                      newsletter_subscriptions
+                    <p className="text-sm text-gray-500">Guide Requests</p>
+                    <p className="text-3xl font-bold text-gray-900">
+                      {guideCount}
                     </p>
                   </div>
                   <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                    <Users className="w-6 h-6 text-purple-600" />
+                    <FileText className="w-6 h-6 text-purple-600" />
                   </div>
                 </div>
               </CardContent>
             </Card>
           </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <Card className="border-none shadow-lg">
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-500">Total</p>
+                    <p className="text-3xl font-bold text-gray-900">
+                      {totalCount}
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
+                    <Users className="w-6 h-6 text-orange-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6">
+          <Button
+            variant={activeTab === "leads" ? "default" : "outline"}
+            onClick={() => setActiveTab("leads")}
+            className={activeTab === "leads" ? "bg-blue-600" : ""}
+          >
+            <Users size={16} className="mr-2" />
+            Leads ({leadsCount + quoteCount})
+          </Button>
+          <Button
+            variant={activeTab === "newsletter" ? "default" : "outline"}
+            onClick={() => setActiveTab("newsletter")}
+            className={activeTab === "newsletter" ? "bg-blue-600" : ""}
+          >
+            <Mail size={16} className="mr-2" />
+            Newsletter ({newsletterCount})
+          </Button>
+          <Button
+            variant={activeTab === "guide_requests" ? "default" : "outline"}
+            onClick={() => setActiveTab("guide_requests")}
+            className={activeTab === "guide_requests" ? "bg-blue-600" : ""}
+          >
+            <FileText size={16} className="mr-2" />
+            Guide Requests ({guideCount})
+          </Button>
         </div>
 
         {/* Search */}
@@ -239,7 +298,7 @@ export default function AdminSubscribers() {
               size={20}
             />
             <Input
-              placeholder="Search by name, email, or company..."
+              placeholder="Search by email..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -250,26 +309,17 @@ export default function AdminSubscribers() {
         {/* Subscribers Table */}
         <Card className="border-none shadow-lg">
           <CardHeader>
-            <CardTitle>Newsletter Subscribers</CardTitle>
+            <CardTitle>
+              {activeTab === "leads" ? "Leads & Quote Requests" 
+                : activeTab === "newsletter" ? "Newsletter Subscribers" 
+                : "Guide Requests"}
+            </CardTitle>
             <CardDescription>
-              {allSubscribers.length} subscriber(s) found from
-              newsletter_subscriptions table
+              {allSubscribers.length} record(s) found
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {error && (
-              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
-                Error loading subscriptions: {error.message}
-                <Button
-                  variant="outline"
-                  onClick={() => refetch()}
-                  className="ml-4"
-                >
-                  Retry
-                </Button>
-              </div>
-            )}
-            {isLoading ? (
+            {currentLoading ? (
               <div className="text-center py-8 text-gray-500">Loading...</div>
             ) : allSubscribers.length === 0 ? (
               <div className="text-center py-8 text-gray-500">
@@ -281,16 +331,7 @@ export default function AdminSubscribers() {
                   <thead>
                     <tr className="border-b">
                       <th className="text-left py-3 px-4 font-semibold text-gray-600">
-                        Name
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-600">
                         Email
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-600">
-                        Company
-                      </th>
-                      <th className="text-left py-3 px-4 font-semibold text-gray-600">
-                        Phone
                       </th>
                       <th className="text-left py-3 px-4 font-semibold text-gray-600">
                         Subscribed At
@@ -307,16 +348,6 @@ export default function AdminSubscribers() {
                         className="border-b hover:bg-gray-50"
                       >
                         <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                              <User size={14} className="text-blue-600" />
-                            </div>
-                            <span className="font-medium">
-                              {subscriber.name || "-"}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
                           <a
                             href={`mailto:${getEmail(subscriber)}`}
                             className="text-blue-600 hover:underline"
@@ -324,10 +355,6 @@ export default function AdminSubscribers() {
                             {getEmail(subscriber)}
                           </a>
                         </td>
-                        <td className="py-3 px-4">
-                          {subscriber.company || "-"}
-                        </td>
-                        <td className="py-3 px-4">{subscriber.phone || "-"}</td>
                         <td className="py-3 px-4 text-sm text-gray-600">
                           {formatDate(getSubscribedDate(subscriber))}
                         </td>

@@ -18,22 +18,23 @@ import { Link } from "wouter";
 function Footer() {
   const [email, setEmail] = useState("");
 
-  const subscribeNewsletter = trpc.leads.subscribeNewsletter.useMutation({
-    onSuccess: () => {
-      toast.success(
-        "Thanks for subscribing! Check your email for confirmation."
-      );
-      setEmail("");
-    },
-    onError: error => {
-      toast.error(error.message || "Failed to subscribe. Please try again.");
-    },
-  });
+  const subscribeNewsletter = trpc.leads.subscribeNewsletter.useMutation as any;
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
     if (email) {
-      subscribeNewsletter.mutate({ email });
+      subscribeNewsletter.mutate(
+        { email, type: "newsletter" },
+        {
+          onSuccess: () => {
+            toast.success("Successfully subscribed to newsletter!");
+            setEmail("");
+          },
+          onError: (error: any) => {
+            toast.error(error?.message || "Failed to subscribe. Please try again.");
+          },
+        }
+      );
     }
   };
 
@@ -74,7 +75,7 @@ function Footer() {
                 <Button
                   type="submit"
                   size="icon"
-                  disabled={subscribeNewsletter.isPending}
+                  disabled={(subscribeNewsletter as any).isLoading}
                   className="rounded-full bg-blue-600 hover:bg-blue-700 shrink-0 h-8 w-8"
                 >
                   <ArrowRight size={18} />

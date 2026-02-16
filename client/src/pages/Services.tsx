@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { trpc } from "@/lib/trpc";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   BookOpen,
@@ -12,7 +14,8 @@ import {
 } from "lucide-react";
 import { Link } from "wouter";
 
-const servicesData = [
+// Static fallback data for services
+const staticServicesData = [
   {
     slug: "elearning-engineering",
     title: "eLearning Engineering",
@@ -71,7 +74,7 @@ const servicesData = [
     slug: "document-dtp",
     title: "Document & DTP",
     icon: Globe,
-    image: "/Solupedia-creation-solutions.jpg",
+    image: "/0.jpg",
     shortDesc: "RTL expertise, graphics localization, and template management",
     fullDesc:
       "Our Document & DTP service handles all aspects of document localization including RTL (right-to-left) language support, graphics localization, and professional template management. We ensure your documents look perfect in every language.",
@@ -106,7 +109,7 @@ const servicesData = [
     slug: "ai-workflows",
     title: "AI Workflows",
     icon: Users,
-    image: "/Solupedia-creation-solutions.jpg",
+    image: "/AIWorkflows.jpg",
     shortDesc:
       "AI at every pipeline stage with intelligent tiering for maximum efficiency",
     fullDesc:
@@ -143,7 +146,52 @@ const itemVariants = {
   },
 };
 
+// Merge database services with static data for additional fields
 export default function Services() {
+  const [refreshKey, setRefreshKey] = useState(0);
+  
+  // Fetch services from database with refresh key
+  const queryResult = trpc.services.list.useQuery({ _t: refreshKey } as any) as any;
+  const dbServices = queryResult?.data;
+  
+  // If there are database services, use them primarily
+  let servicesData: any[] = [];
+  
+  if (dbServices && dbServices.length > 0) {
+    // Use database services as the source of truth
+    servicesData = dbServices.map((dbService: any) => {
+      // Find matching static service for features and icon
+      const staticMatch = staticServicesData.find((s: any) => s.slug === dbService.slug);
+      return {
+        slug: dbService.slug,
+        title: dbService.name,
+        shortDesc: dbService.shortDescription || dbService.shortdescription,
+        fullDesc: dbService.description,
+        image: dbService.image || staticMatch?.image || "/placeholder-service.jpg",
+        icon: staticMatch?.icon || BookOpen,
+        features: staticMatch?.features || [],
+        orderIndex: dbService.orderindex || dbService.orderIndex || 0,
+      };
+    });
+    
+    // Sort by orderindex
+    servicesData.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+  } else {
+    // Fallback to static data
+    servicesData = staticServicesData;
+  }
+
+  // Refresh data when page becomes visible (e.g., after admin update)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (!document.hidden) {
+        setRefreshKey(k => k + 1);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
+
   return (
     <div className="w-full relative overflow-hidden bg-white">
       {/* Background Blobs */}
@@ -219,7 +267,7 @@ export default function Services() {
                           Key Features:
                         </h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {service.features.map((feature, i) => (
+                          {(service.features || []).map((feature: string, i: number) => (
                             <motion.div
                               key={i}
                               className="flex items-start gap-2"

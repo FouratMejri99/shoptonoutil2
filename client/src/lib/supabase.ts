@@ -11,6 +11,54 @@ export const supabase: SupabaseClient = createClient(
   supabaseAnonKey
 );
 
+// Storage service for service images
+export const storageService = {
+  async uploadServiceImage(file: File, serviceSlug: string): Promise<string> {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${serviceSlug}-${Date.now()}.${fileExt}`;
+    const filePath = `services/${fileName}`;
+
+    console.log("Uploading to bucket: public-assets, path:", filePath);
+
+    const { data, error } = await supabase.storage
+      .from("public-assets")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (error) {
+      console.error("Storage upload error:", error);
+      throw new Error(error.message || "Failed to upload image");
+    }
+
+    console.log("Upload successful:", data);
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from("public-assets")
+      .getPublicUrl(filePath);
+
+    console.log("Public URL:", urlData.publicUrl);
+    return urlData.publicUrl;
+  },
+
+  async deleteServiceImage(imageUrl: string): Promise<void> {
+    // Extract file path from URL
+    const urlParts = imageUrl.split("/storage/v1/object/public/");
+    if (urlParts.length < 2) return;
+
+    const filePath = urlParts[1];
+    const { error } = await supabase.storage
+      .from("public-assets")
+      .remove([filePath]);
+
+    if (error) {
+      console.error("Storage delete error:", error);
+    }
+  },
+};
+
 // Auth helpers
 export const authService = {
   async signUp(email: string, password: string) {
@@ -297,7 +345,7 @@ export const caseStudiesService = {
 export const servicesService = {
   async getAll() {
     return dbService.select("services", {
-      order: "orderIndex",
+      order: "orderindex",
       ascending: true,
     });
   },
@@ -310,11 +358,55 @@ export const servicesService = {
   },
 
   async create(data: any) {
-    return dbService.insert("services", data);
+    // Sanitize inputs to prevent XSS and injection attacks
+    const sanitize = (val: string | null | undefined) => {
+      if (!val || typeof val !== 'string') return '';
+      return val.trim().replace(/<script/gi, '').replace(/javascript:/gi, '').replace(/on\w+=/gi, '').substring(0, 1000);
+    };
+    
+    const sanitizeSlug = (val: string | null | undefined) => {
+      if (!val || typeof val !== 'string') return '';
+      return val.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').substring(0, 100);
+    };
+
+    // Map camelCase to snake_case for database
+    const dbData = {
+      name: sanitize(data.name),
+      slug: sanitizeSlug(data.slug),
+      shortdescription: sanitize(data.shortDescription || data.shortdescription),
+      description: sanitize(data.description),
+      icon: sanitize(data.icon),
+      orderindex: Math.max(0, Math.floor(Number(data.orderIndex || data.orderindex || 0))),
+      ispublished: (data.isPublished ?? data.ispublished) ?? true,
+      image: data.image || null,
+    };
+    return dbService.insert("services", dbData);
   },
 
   async update(id: number, data: any) {
-    return dbService.update("services", id, data);
+    // Sanitize inputs
+    const sanitize = (val: string | null | undefined) => {
+      if (!val || typeof val !== 'string') return undefined;
+      return val.trim().replace(/<script/gi, '').replace(/javascript:/gi, '').replace(/on\w+=/gi, '').substring(0, 1000);
+    };
+    
+    const sanitizeSlug = (val: string | null | undefined) => {
+      if (!val || typeof val !== 'string') return undefined;
+      return val.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').substring(0, 100);
+    };
+
+    // Map camelCase to snake_case for database
+    const dbData: any = {};
+    if (data.name !== undefined) dbData.name = sanitize(data.name);
+    if (data.slug !== undefined) dbData.slug = sanitizeSlug(data.slug);
+    if (data.shortDescription !== undefined) dbData.shortdescription = sanitize(data.shortDescription);
+    if (data.description !== undefined) dbData.description = sanitize(data.description);
+    if (data.icon !== undefined) dbData.icon = sanitize(data.icon);
+    if (data.orderIndex !== undefined) dbData.orderindex = Math.max(0, Math.floor(Number(data.orderIndex)));
+    if (data.isPublished !== undefined) dbData.ispublished = Boolean(data.isPublished);
+    if (data.image !== undefined) dbData.image = data.image;
+    dbData.updatedat = new Date().toISOString();
+    return dbService.update("services", id, dbData);
   },
 
   async delete(id: number) {
@@ -322,78 +414,84 @@ export const servicesService = {
   },
 
   async seedServices() {
+    // First, delete all existing services
+    const existing = await dbService.select<{id: number}>("services", {});
+    for (const service of existing) {
+      await dbService.delete("services", service.id);
+    }
+
     const services = [
       {
         name: "eLearning Engineering",
         slug: "elearning-engineering",
-        shortDescription:
+        shortdescription:
           "Storyline development and deep technical localization for interactive training.",
         description:
           "Our eLearning Engineering service provides comprehensive solutions for developing and localizing interactive training content. From Storyline development to deep technical localization, we ensure your training materials engage learners across all languages and cultures.",
         icon: "BookOpen",
-        orderIndex: 1,
-        featured: true,
-        image: "",
+        orderindex: 1,
+        ispublished: true,
+        image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80",
       },
       {
         name: "Media Localization",
         slug: "media-localization",
-        shortDescription:
+        shortdescription:
           "OST, subtitling, voiceover, and AI-assisted services for multimedia.",
         description:
           "Our Media Localization service covers all aspects of multimedia content adaptation. From original sound track (OST) production to subtitling, voiceover, and AI-assisted services, we bring your video content to life in any language.",
         icon: "Video",
-        orderIndex: 2,
-        featured: true,
-        image: "",
+        orderindex: 2,
+        ispublished: true,
+        image: "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=800&q=80",
       },
       {
         name: "Accessibility",
         slug: "accessibility",
-        shortDescription:
+        shortdescription:
           "EAA enforcement, remediation, and standards compliance for all content.",
         description:
           "Our Accessibility service ensures your content meets all major accessibility standards including EAA (European Accessibility Act), WCAG, and Section 508. We provide comprehensive remediation services to make your content accessible to everyone.",
         icon: "Zap",
-        orderIndex: 3,
-        featured: true,
-        image: "",
+        orderindex: 3,
+        ispublished: true,
+        image: "https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=800&q=80",
       },
       {
         name: "Document & DTP",
         slug: "document-dtp",
-        shortDescription:
+        shortdescription:
           "RTL expertise, graphics localization, and template management.",
         description:
           "Our Document & DTP service handles all aspects of document localization including RTL (right-to-left) language support, graphics localization, and professional template management. We ensure your documents look perfect in every language.",
         icon: "Globe",
-        orderIndex: 4,
-        featured: true,
-        image: "",
+        orderindex: 4,
+        ispublished: true,
+        image: "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&q=80",
       },
       {
         name: "Content Creation",
         slug: "content-creation",
-        shortDescription:
+        shortdescription:
           "Build once, localize efficiently - 40-60% cost savings with our methodology.",
         description:
           "Our Content Creation service is designed from the ground up for efficient localization. By following our proven methodology, you can achieve 40-60% cost savings while maintaining high quality across all languages.",
         icon: "FileText",
-        orderIndex: 5,
-        featured: true,
-        image: "",
+        orderindex: 5,
+        ispublished: true,
+        image: "https://images.unsplash.com/photo-1455390582262-044cdead277a?w=800&q=80",
       },
       {
         name: "AI Workflows",
         slug: "ai-workflows",
-        shortDescription:
+        shortdescription:
           "AI at every pipeline stage with intelligent tiering for maximum efficiency.",
         description:
           "Our AI Workflows service integrates artificial intelligence at every stage of the localization pipeline. With intelligent tiering, we optimize the balance between AI efficiency and human quality for the best results.",
         icon: "Users",
-        orderIndex: 6,
-        featured: true,
-        image: "",
+        orderindex: 6,
+        ispublished: true,
+        image: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80",
       },
     ];
 
@@ -462,7 +560,7 @@ export const testimonialsService = {
 };
 
 // Leads service
-type SubscriptionType = "lead" | "newsletter" | "quote_request";
+type SubscriptionType = "lead" | "newsletter" | "quote_request" | "guide_request";
 
 export const leadsService = {
   async submit(data: {
@@ -474,8 +572,14 @@ export const leadsService = {
     serviceInterest?: string;
     type?: SubscriptionType;
   }) {
+    // Map camelCase to snake_case for database
     const leadData = {
-      ...data,
+      name: data.name,
+      email: data.email,
+      company: data.company || undefined,
+      phone: data.phone || undefined,
+      message: data.message || undefined,
+      serviceinterest: data.serviceInterest || undefined,
       type: data.type || "lead",
       createdat: new Date().toISOString(),
     };
@@ -530,6 +634,7 @@ export const leadsService = {
       lead: "Contact Form Lead",
       newsletter: "Newsletter Subscription",
       quote_request: "Quote Request",
+      guide_request: "Guide Request",
     };
 
     console.log("Admin notification would be sent to:", adminEmails);
@@ -550,6 +655,8 @@ export const leadsService = {
       newsletter: "Thank you for subscribing to our newsletter!",
       quote_request:
         "Thank you for your quote request. We will get back to you within 24 hours.",
+      guide_request:
+        "Thank you for your guide request! Check your email for the download link.",
     };
 
     console.log("Message:", messages[type]);
@@ -559,7 +666,8 @@ export const leadsService = {
 
   async getAllLeads(type?: SubscriptionType) {
     const options: any = { order: "createdat", ascending: false };
-    if (type) {
+    // Only filter for quote_request and guide_request, show all for other cases
+    if (type === 'quote_request' || type === 'guide_request') {
       options.eq = { type };
     }
     return dbService.select("leads", options);
@@ -789,6 +897,20 @@ export const adminService = {
     throw new Error("Invalid admin credentials");
   },
 
+  async changePassword(email: string, newPassword: string) {
+    const { data, error } = await supabase
+      .from("admincredentials")
+      .update({ password: newPassword })
+      .eq("email", email)
+      .select();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    return { success: true };
+  },
+
   async getAllEmployees() {
     const rows = await dbService.select("employees", {
       // Use snake_case column name from Supabase
@@ -825,6 +947,12 @@ export const adminService = {
   },
 
   async deleteEmployeeRecords(employeeId: number) {
+    // Delete related records in proper order (child tables first)
+    await dbService.deleteByField(
+      "monthlyreports",
+      "employeeid",
+      employeeId
+    );
     await dbService.deleteByField(
       "timetrackingrecords",
       "employeeid",

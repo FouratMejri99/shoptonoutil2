@@ -93,7 +93,7 @@ function createParameterizedQueryHook<T, P>(
     throw new Error("Query function is required");
   }
 
-  const useQuery = (params: P, _options?: { retry?: boolean }) => {
+  const useQuery = (params?: P, _options?: { retry?: boolean }) => {
     const [data, setData] = useState<T | undefined>(undefined);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
@@ -102,7 +102,7 @@ function createParameterizedQueryHook<T, P>(
     const refetch = useCallback(async () => {
       setIsLoading(true);
       try {
-        const result = await actualQueryFn(params);
+        const result = await actualQueryFn(params as P);
         setData(result);
         setError(null);
         return result;
@@ -123,7 +123,7 @@ function createParameterizedQueryHook<T, P>(
     }, [queryKey, refetch, utils]);
 
     useEffect(() => {
-      actualQueryFn(params)
+      actualQueryFn(params as P)
         .then(result => {
           setData(result);
           setError(null);
@@ -275,6 +275,13 @@ export const trpc = {
         }
       ),
     },
+    changePassword: {
+      useMutation: createMutationHook(
+        async (data: { email: string; newPassword: string }) => {
+          return adminService.changePassword(data.email, data.newPassword);
+        }
+      ),
+    },
     getAllEmployees: {
       useQuery: createQueryHook(async () => {
         return adminService.getAllEmployees();
@@ -294,8 +301,10 @@ export const trpc = {
     },
     deleteEmployee: {
       useMutation: createMutationHook(async (id: number) => {
-        await adminService.deleteEmployee(id);
+        // First delete related records
         await adminService.deleteEmployeeRecords(id);
+        // Then delete the employee
+        await adminService.deleteEmployee(id);
       }),
     },
     getMonthlyReportSummary: {
@@ -442,6 +451,11 @@ export const trpc = {
         return servicesService.getAll();
       }),
     },
+    getBySlug: {
+      useQuery: createQueryHook("services.getBySlug", async (slug: string) => {
+        return servicesService.getBySlug(slug);
+      }),
+    },
     create: {
       useMutation: createMutationHook(async (data: any) => {
         return servicesService.create(data);
@@ -462,6 +476,20 @@ export const trpc = {
     seed: {
       useMutation: createMutationHook(async (_params?: {}) => {
         return servicesService.seedServices();
+      }),
+    },
+    uploadImage: {
+      useMutation: createMutationHook(
+        async (data: { file: File; serviceSlug: string }) => {
+          const { storageService } = await import("./supabase");
+          return storageService.uploadServiceImage(data.file, data.serviceSlug);
+        }
+      ),
+    },
+    deleteImage: {
+      useMutation: createMutationHook(async (imageUrl: string) => {
+        const { storageService } = await import("./supabase");
+        return storageService.deleteServiceImage(imageUrl);
       }),
     },
   },
@@ -487,7 +515,7 @@ export const trpc = {
       useMutation: createMutationHook(
         async (data: {
           email: string;
-          type?: "lead" | "newsletter" | "quote_request";
+          type?: "lead" | "newsletter" | "quote_request" | "guide_request";
         }) => {
           return leadsService.subscribeNewsletter(
             data.email,

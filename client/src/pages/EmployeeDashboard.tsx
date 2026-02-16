@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
@@ -26,6 +27,15 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 
+// List of common languages for selection
+const LANGUAGES = [
+  "English", "Spanish", "French", "German", "Italian", "Portuguese",
+  "Dutch", "Russian", "Chinese", "Japanese", "Korean", "Arabic",
+  "Hindi", "Turkish", "Polish", "Swedish", "Danish", "Norwegian",
+  "Finnish", "Czech", "Romanian", "Hungarian", "Greek", "Hebrew",
+  "Thai", "Vietnamese", "Indonesian", "Malay"
+];
+
 interface TimeRecord {
   id: number;
   workDate: string;
@@ -33,7 +43,7 @@ interface TimeRecord {
   projectName?: string;
   taskType: string;
   client?: string;
-  languages?: string;
+  languages: string[];
   startTime: string;
   endTime: string;
   duration: number;
@@ -57,7 +67,7 @@ export default function EmployeeDashboard() {
     projectName: "",
     taskType: "translation",
     client: "",
-    languages: "",
+    languages: [] as string[],
     startTime: "09:00",
     endTime: "17:00",
     notes: "",
@@ -73,6 +83,13 @@ export default function EmployeeDashboard() {
     trpc.employee.getRecords.useQuery(employeeId || 0, {
       enabled: !!employeeId,
     });
+
+  // Refetch data when employeeId changes (e.g., after login)
+  useEffect(() => {
+    if (employeeId) {
+      refetchRecords();
+    }
+  }, [employeeId, refetchRecords]);
 
   // Fetch records from database on mount
   useEffect(() => {
@@ -113,7 +130,7 @@ export default function EmployeeDashboard() {
         const projectName = record.projectname || "";
         const taskType = record.tasktype || "";
         const client = record.client || "";
-        const languages = record.languages || "";
+        const languages = (record.languages || []) as string[];
         const startTime = record.starttime || "";
         const endTime = record.endtime || "";
         const duration = parseFloat(record.duration) || 0;
@@ -294,7 +311,7 @@ export default function EmployeeDashboard() {
           projectName: formData.projectName,
           taskType: formData.taskType,
           client: formData.client,
-          languages: formData.languages,
+          languages: formData.languages.join(", "),
           startTime: startStr,
           endTime: endStr,
           duration,
@@ -386,7 +403,7 @@ export default function EmployeeDashboard() {
           projectName: formData.projectName,
           taskType: formData.taskType,
           client: formData.client,
-          languages: formData.languages,
+          languages: formData.languages.join(", "),
           startTime: formData.startTime,
           endTime: formData.endTime,
           duration,
@@ -411,7 +428,7 @@ export default function EmployeeDashboard() {
       projectName: "",
       taskType: "translation",
       client: "",
-      languages: "",
+      languages: [] as string[],
       startTime: "09:00",
       endTime: "17:00",
       notes: "",
@@ -703,27 +720,35 @@ export default function EmployeeDashboard() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="timerLanguages">Languages</Label>
-                  <select
-                    id="timerLanguages"
-                    value={formData.languages}
-                    onChange={e =>
-                      setFormData({ ...formData, languages: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/50 h-10"
-                  >
-                    <option value="">Select language</option>
-                    <option value="English">English</option>
-                    <option value="Arabic">Arabic</option>
-                    <option value="French">French</option>
-                    <option value="Spanish">Spanish</option>
-                    <option value="German">German</option>
-                    <option value="Chinese">Chinese</option>
-                    <option value="Japanese">Japanese</option>
-                    <option value="Portuguese">Portuguese</option>
-                    <option value="Italian">Italian</option>
-                    <option value="Other">Other</option>
-                  </select>
+                  <Label>Languages</Label>
+                  <div className="flex flex-wrap gap-1 p-2 bg-white/30 rounded-xl border border-gray-200/30 max-h-24 overflow-y-auto">
+                    {LANGUAGES.map(lang => (
+                      <label
+                        key={lang}
+                        className="flex items-center gap-1 text-xs cursor-pointer hover:bg-white/50 px-2 py-1 rounded border border-gray-200/50"
+                      >
+                        <Checkbox
+                          checked={formData.languages.includes(lang)}
+                          onCheckedChange={checked => {
+                            if (checked) {
+                              setFormData({
+                                ...formData,
+                                languages: [...formData.languages, lang],
+                              });
+                            } else {
+                              setFormData({
+                                ...formData,
+                                languages: formData.languages.filter(
+                                  (l: string) => l !== lang
+                                ),
+                              });
+                            }
+                          }}
+                        />
+                        <span className="text-xs">{lang}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -852,19 +877,35 @@ export default function EmployeeDashboard() {
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="languages">Languages</Label>
-                        <Input
-                          id="languages"
-                          placeholder="e.g., English, Spanish, French"
-                          value={formData.languages}
-                          onChange={e =>
-                            setFormData({
-                              ...formData,
-                              languages: e.target.value,
-                            })
-                          }
-                          className="rounded-xl bg-white/50"
-                        />
+                        <Label>Languages</Label>
+                        <div className="flex flex-wrap gap-1 p-2 bg-white/30 rounded-xl border border-gray-200/30 max-h-24 overflow-y-auto">
+                          {LANGUAGES.map(lang => (
+                            <label
+                              key={lang}
+                              className="flex items-center gap-1 text-xs cursor-pointer hover:bg-white/50 px-2 py-1 rounded border border-gray-200/50"
+                            >
+                              <Checkbox
+                                checked={formData.languages.includes(lang)}
+                                onCheckedChange={checked => {
+                                  if (checked) {
+                                    setFormData({
+                                      ...formData,
+                                      languages: [...formData.languages, lang],
+                                    });
+                                  } else {
+                                    setFormData({
+                                      ...formData,
+                                      languages: formData.languages.filter(
+                                        (l: string) => l !== lang
+                                      ),
+                                    });
+                                  }
+                                }}
+                              />
+                              <span className="text-xs">{lang}</span>
+                            </label>
+                          ))}
+                        </div>
                       </div>
 
                       <div className="space-y-2">

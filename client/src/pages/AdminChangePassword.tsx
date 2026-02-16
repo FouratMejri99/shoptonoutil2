@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { authService } from "@/lib/supabase";
+import { trpc } from "@/lib/trpc";
 import { motion } from "framer-motion";
 import { ArrowLeft, Eye, EyeOff, Lock, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -34,6 +34,9 @@ export default function AdminChangePassword() {
     }
   }, [setLocation]);
 
+  const loginMutation = trpc.admin.login.useMutation();
+  const changePasswordMutation = trpc.admin.changePassword.useMutation();
+
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -56,24 +59,30 @@ export default function AdminChangePassword() {
     setIsLoading(true);
 
     try {
-      // Get admin session
+      // Get admin session info
       const adminSession = JSON.parse(
         localStorage.getItem("adminSession") || "{}"
       );
 
-      // Verify current password by attempting to sign in
+      // First, verify the current password by logging in
       if (adminSession.email) {
         try {
-          await authService.signIn(adminSession.email, currentPassword);
-        } catch (verifyErr: any) {
+          await loginMutation.mutateAsync({
+            email: adminSession.email,
+            password: currentPassword,
+          });
+        } catch (loginErr: any) {
           setError("Current password is incorrect");
           setIsLoading(false);
           return;
         }
       }
 
-      // Update password in Supabase
-      await authService.updatePassword(newPassword);
+      // Now change the password in the database
+      await changePasswordMutation.mutateAsync({
+        email: adminSession.email,
+        newPassword: newPassword,
+      });
 
       toast.success("Password changed successfully!");
 
@@ -87,6 +96,7 @@ export default function AdminChangePassword() {
         setLocation("/admin/employees");
       }, 1500);
     } catch (err: any) {
+      console.error("Password change error:", err);
       setError(err.message || "Failed to change password");
     } finally {
       setIsLoading(false);
