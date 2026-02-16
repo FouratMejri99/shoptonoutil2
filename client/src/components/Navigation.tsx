@@ -7,7 +7,7 @@ import {
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
 import { AnimatePresence, motion } from "framer-motion";
-import { Menu, Shield, User, X } from "lucide-react";
+import { Menu, Shield, X } from "lucide-react";
 import { memo, useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 
@@ -77,8 +77,8 @@ function Navigation() {
                     Services
                   </NavigationMenuTrigger>
                   <NavigationMenuContent>
-                    <div className="w-[400px] p-4 gap-3 grid grid-cols-1">
-                      <div className="flex items-center justify-between px-2 pb-2 mb-2 border-b border-gray-100">
+                    <div className="w-[500px] p-4 gap-3 grid grid-cols-2">
+                      <div className="col-span-2 flex items-center justify-between px-2 pb-2 mb-2 border-b border-gray-100">
                         <span className="text-sm font-semibold text-gray-900">
                           Our Services
                         </span>
@@ -89,62 +89,92 @@ function Navigation() {
                           View All
                         </Link>
                       </div>
-                      <Link href="/services/document-localization">
+                      <Link href="/services/elearning-engineering">
                         <a className="flex items-start gap-3 p-3 rounded-lg hover:bg-blue-50 transition-colors group">
                           <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0 mt-0.5 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                            <span className="text-xs font-bold">DL</span>
+                            <span className="text-xs font-bold">EE</span>
                           </div>
                           <div>
                             <div className="text-sm font-medium text-gray-900 group-hover:text-blue-700">
-                              Document Localization
+                              eLearning Engineering
                             </div>
                             <p className="text-xs text-gray-500 line-clamp-1">
-                              Expert translation for all document types
+                              Storyline development
                             </p>
                           </div>
                         </a>
                       </Link>
-                      <Link href="/services/elearning-localization">
-                        <a className="flex items-start gap-3 p-3 rounded-lg hover:bg-blue-50 transition-colors group">
-                          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 shrink-0 mt-0.5 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-                            <span className="text-xs font-bold">EL</span>
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium text-gray-900 group-hover:text-purple-700">
-                              eLearning Localization
-                            </div>
-                            <p className="text-xs text-gray-500 line-clamp-1">
-                              Adapt training content for global teams
-                            </p>
-                          </div>
-                        </a>
-                      </Link>
-                      <Link href="/services/audio-video-localization">
+                      <Link href="/services/media-localization">
                         <a className="flex items-start gap-3 p-3 rounded-lg hover:bg-blue-50 transition-colors group">
                           <div className="w-8 h-8 rounded-full bg-pink-100 flex items-center justify-center text-pink-600 shrink-0 mt-0.5 group-hover:bg-pink-600 group-hover:text-white transition-colors">
-                            <span className="text-xs font-bold">AV</span>
+                            <span className="text-xs font-bold">ML</span>
                           </div>
                           <div>
                             <div className="text-sm font-medium text-gray-900 group-hover:text-pink-700">
-                              Audio/Video Localization
+                              Media Localization
                             </div>
                             <p className="text-xs text-gray-500 line-clamp-1">
-                              Dubbing, voiceover and subtitling
+                              OST, subtitling, voiceover
                             </p>
                           </div>
                         </a>
                       </Link>
-                      <Link href="/services/creation-solutions">
+                      <Link href="/services/accessibility">
                         <a className="flex items-start gap-3 p-3 rounded-lg hover:bg-blue-50 transition-colors group">
-                          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0 mt-0.5 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-                            <span className="text-xs font-bold">CS</span>
+                          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 shrink-0 mt-0.5 group-hover:bg-green-600 group-hover:text-white transition-colors">
+                            <span className="text-xs font-bold">A11</span>
                           </div>
                           <div>
-                            <div className="text-sm font-medium text-gray-900 group-hover:text-indigo-700">
-                              Creation Solutions
+                            <div className="text-sm font-medium text-gray-900 group-hover:text-green-700">
+                              Accessibility
                             </div>
                             <p className="text-xs text-gray-500 line-clamp-1">
-                              Content creation and design services
+                              EAA, WCAG, Section 508
+                            </p>
+                          </div>
+                        </a>
+                      </Link>
+                      <Link href="/services/document-dtp">
+                        <a className="flex items-start gap-3 p-3 rounded-lg hover:bg-blue-50 transition-colors group">
+                          <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 shrink-0 mt-0.5 group-hover:bg-orange-600 group-hover:text-white transition-colors">
+                            <span className="text-xs font-bold">DTP</span>
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-gray-900 group-hover:text-orange-700">
+                              Document & DTP
+                            </div>
+                            <p className="text-xs text-gray-500 line-clamp-1">
+                              RTL, graphics, templates
+                            </p>
+                          </div>
+                        </a>
+                      </Link>
+                      <Link href="/services/content-creation">
+                        <a className="flex items-start gap-3 p-3 rounded-lg hover:bg-blue-50 transition-colors group">
+                          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 shrink-0 mt-0.5 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                            <span className="text-xs font-bold">CC</span>
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-gray-900 group-hover:text-purple-700">
+                              Content Creation
+                            </div>
+                            <p className="text-xs text-gray-500 line-clamp-1">
+                              Build once, localize efficiently
+                            </p>
+                          </div>
+                        </a>
+                      </Link>
+                      <Link href="/services/ai-workflows">
+                        <a className="flex items-start gap-3 p-3 rounded-lg hover:bg-blue-50 transition-colors group">
+                          <div className="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center text-cyan-600 shrink-0 mt-0.5 group-hover:bg-cyan-600 group-hover:text-white transition-colors">
+                            <span className="text-xs font-bold">AI</span>
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-gray-900 group-hover:text-cyan-700">
+                              AI Workflows
+                            </div>
+                            <p className="text-xs text-gray-500 line-clamp-1">
+                              Intelligent tiering
                             </p>
                           </div>
                         </a>
@@ -180,52 +210,6 @@ function Navigation() {
 
           {/* CTA Button */}
           <div className="hidden md:flex gap-3 items-center">
-            {/* Login Dropdown */}
-            <NavigationMenu>
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger className="bg-transparent hover:bg-blue-50 border border-gray-200 hover:border-blue-200 rounded-full px-4 text-sm font-medium text-gray-700 hover:text-blue-600 transition-all">
-                    <User className="w-4 h-4 mr-2" />
-                    Login
-                  </NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <div className="w-[220px] p-3 gap-2">
-                      <Link href="/solupedia-admin">
-                        <a className="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-50 transition-colors group">
-                          <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-red-600 shrink-0">
-                            <Shield className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium text-gray-900 group-hover:text-blue-700">
-                              Admin Portal
-                            </div>
-                            <p className="text-xs text-gray-500">
-                              Manage your content
-                            </p>
-                          </div>
-                        </a>
-                      </Link>
-                      <Link href="/employee/login">
-                        <a className="flex items-center gap-3 p-3 rounded-lg hover:bg-blue-50 transition-colors group">
-                          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center text-green-600 shrink-0">
-                            <User className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <div className="text-sm font-medium text-gray-900 group-hover:text-blue-700">
-                              Employee Portal
-                            </div>
-                            <p className="text-xs text-gray-500">
-                              Access your workspace
-                            </p>
-                          </div>
-                        </a>
-                      </Link>
-                    </div>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-
             <Link href="/lead-magnet">
               <Button
                 variant="ghost"
@@ -344,19 +328,6 @@ function Navigation() {
                           </div>
                           <p className="text-xs text-gray-500">
                             Manage your content
-                          </p>
-                        </div>
-                      </a>
-                    </Link>
-                    <Link href="/employee/login">
-                      <a className="flex items-center gap-3 p-3 rounded-lg bg-green-50 hover:bg-green-100 transition-colors">
-                        <User className="w-5 h-5 text-green-600" />
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            Employee Portal
-                          </div>
-                          <p className="text-xs text-gray-500">
-                            Access your workspace
                           </p>
                         </div>
                       </a>

@@ -1,8 +1,14 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { trpc } from "@/lib/trpc";
+import { authService } from "@/lib/supabase";
 import { motion } from "framer-motion";
 import { ArrowLeft, Eye, EyeOff, Lock, ShieldCheck } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -51,17 +57,31 @@ export default function AdminChangePassword() {
 
     try {
       // Get admin session
-      const adminSession = JSON.parse(localStorage.getItem("adminSession") || "{}");
-      
-      // In a real app, this would call an API to change password
-      // For now, we'll simulate success
+      const adminSession = JSON.parse(
+        localStorage.getItem("adminSession") || "{}"
+      );
+
+      // Verify current password by attempting to sign in
+      if (adminSession.email) {
+        try {
+          await authService.signIn(adminSession.email, currentPassword);
+        } catch (verifyErr: any) {
+          setError("Current password is incorrect");
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Update password in Supabase
+      await authService.updatePassword(newPassword);
+
       toast.success("Password changed successfully!");
-      
+
       // Clear form
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      
+
       // Redirect to employees page after short delay
       setTimeout(() => {
         setLocation("/admin/employees");
@@ -92,7 +112,9 @@ export default function AdminChangePassword() {
             <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <ShieldCheck className="w-8 h-8 text-blue-600" />
             </div>
-            <CardTitle className="text-2xl font-bold">Change Password</CardTitle>
+            <CardTitle className="text-2xl font-bold">
+              Change Password
+            </CardTitle>
             <CardDescription>
               Update your admin account password
             </CardDescription>
@@ -113,7 +135,7 @@ export default function AdminChangePassword() {
                     type={showCurrentPassword ? "text" : "password"}
                     placeholder="Enter current password"
                     value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    onChange={e => setCurrentPassword(e.target.value)}
                     className="pr-10"
                   />
                   <button
@@ -121,7 +143,11 @@ export default function AdminChangePassword() {
                     onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
-                    {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    {showCurrentPassword ? (
+                      <EyeOff size={18} />
+                    ) : (
+                      <Eye size={18} />
+                    )}
                   </button>
                 </div>
               </div>
@@ -134,7 +160,7 @@ export default function AdminChangePassword() {
                     type={showNewPassword ? "text" : "password"}
                     placeholder="Enter new password"
                     value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
+                    onChange={e => setNewPassword(e.target.value)}
                     className="pr-10"
                   />
                   <button
@@ -155,7 +181,7 @@ export default function AdminChangePassword() {
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirm new password"
                     value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onChange={e => setConfirmPassword(e.target.value)}
                     className="pr-10"
                   />
                   <button
@@ -163,7 +189,11 @@ export default function AdminChangePassword() {
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
-                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    {showConfirmPassword ? (
+                      <EyeOff size={18} />
+                    ) : (
+                      <Eye size={18} />
+                    )}
                   </button>
                 </div>
               </div>
@@ -175,8 +205,8 @@ export default function AdminChangePassword() {
                     Cancel
                   </Button>
                 </Link>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   className="flex-1 bg-blue-600 hover:bg-blue-700"
                   disabled={isLoading}
                 >

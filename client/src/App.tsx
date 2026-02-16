@@ -31,6 +31,7 @@ const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AdminBlog = lazy(() => import("./pages/AdminBlog"));
 const AdminCaseStudies = lazy(() => import("./pages/AdminCaseStudies"));
 const AdminChangePassword = lazy(() => import("./pages/AdminChangePassword"));
+const AdminServices = lazy(() => import("./pages/AdminServices"));
 const AdminSubscribers = lazy(() => import("./pages/AdminSubscribers"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -58,8 +59,12 @@ function Router() {
         <Route path={"/admin/dashboard"} component={AdminDashboard} />
         <Route path={"/admin/blog"} component={AdminBlog} />
         <Route path={"/admin/case-studies"} component={AdminCaseStudies} />
-        <Route path="/admin/change-password" component={AdminChangePassword} />
-        <Route path="/admin/subscribers" component={AdminSubscribers} />
+        <Route path={"/admin/services"} component={AdminServices} />
+        <Route
+          path={"/admin/change-password"}
+          component={AdminChangePassword}
+        />
+        <Route path={"/admin/subscribers"} component={AdminSubscribers} />
         <Route path={"/404"} component={NotFound} />
         <Route component={NotFound} />
       </Switch>
@@ -68,12 +73,13 @@ function Router() {
 }
 
 function App() {
+  const [location] = useLocation();
+
   // Don't show navigation and footer for employee portal and admin pages
   const isPortalPage =
-    typeof window !== "undefined" &&
-    (window.location.pathname.startsWith("/employee") ||
-      window.location.pathname.startsWith("/admin") ||
-      window.location.pathname === "/solupedia-admin");
+    location.startsWith("/employee") ||
+    location.startsWith("/admin") ||
+    location === "/solupedia-admin";
 
   return (
     <ErrorBoundary>

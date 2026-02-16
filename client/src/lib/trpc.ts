@@ -15,16 +15,29 @@ import {
 } from "./supabase";
 
 // Helper to create a query hook with useQuery pattern
-function createQueryHook<T, P>(queryFn: (params: P) => Promise<T>) {
+function createQueryHook<T, P>(
+  queryKeyOrFn: string | ((params: P) => Promise<T>),
+  queryFn?: (params: P) => Promise<T>
+) {
+  // Handle both call patterns: createQueryHook('key', fn) or createQueryHook(fn)
+  const queryKey = typeof queryKeyOrFn === "string" ? queryKeyOrFn : "default";
+  const actualQueryFn =
+    typeof queryKeyOrFn === "function" ? queryKeyOrFn : queryFn;
+
+  if (!actualQueryFn) {
+    throw new Error("Query function is required");
+  }
+
   const useQuery = (_options?: { retry?: boolean }) => {
     const [data, setData] = useState<T | undefined>(undefined);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
+    const utils = trpc.useUtils();
 
     const refetch = useCallback(async () => {
       setIsLoading(true);
       try {
-        const result = await queryFn({} as P);
+        const result = await actualQueryFn({} as P);
         setData(result);
         setError(null);
         return result;
@@ -35,10 +48,17 @@ function createQueryHook<T, P>(queryFn: (params: P) => Promise<T>) {
       } finally {
         setIsLoading(false);
       }
-    }, []);
+    }, [actualQueryFn]);
+
+    // Register refetch callback for cache invalidation
+    useEffect(() => {
+      if (utils && (utils as any).registerRefetch) {
+        (utils as any).registerRefetch(queryKey, refetch);
+      }
+    }, [queryKey, refetch, utils]);
 
     useEffect(() => {
-      queryFn({} as P)
+      actualQueryFn({} as P)
         .then(result => {
           setData(result);
           setError(null);
@@ -50,7 +70,7 @@ function createQueryHook<T, P>(queryFn: (params: P) => Promise<T>) {
         .finally(() => {
           setIsLoading(false);
         });
-    }, []);
+    }, [actualQueryFn]);
 
     return { data, isLoading, error, refetch };
   };
@@ -60,17 +80,29 @@ function createQueryHook<T, P>(queryFn: (params: P) => Promise<T>) {
 
 // For queries with parameters
 function createParameterizedQueryHook<T, P>(
-  queryFn: (params: P) => Promise<T>
+  queryKeyOrFn: string | ((params: P) => Promise<T>),
+  queryFn?: (params: P) => Promise<T>
 ) {
+  // Handle both call patterns: createParameterizedQueryHook('key', fn) or createParameterizedQueryHook(fn)
+  const queryKey =
+    typeof queryKeyOrFn === "string" ? queryKeyOrFn : "param-default";
+  const actualQueryFn =
+    typeof queryKeyOrFn === "function" ? queryKeyOrFn : queryFn;
+
+  if (!actualQueryFn) {
+    throw new Error("Query function is required");
+  }
+
   const useQuery = (params: P, _options?: { retry?: boolean }) => {
     const [data, setData] = useState<T | undefined>(undefined);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
+    const utils = trpc.useUtils();
 
     const refetch = useCallback(async () => {
       setIsLoading(true);
       try {
-        const result = await queryFn(params);
+        const result = await actualQueryFn(params);
         setData(result);
         setError(null);
         return result;
@@ -81,10 +113,17 @@ function createParameterizedQueryHook<T, P>(
       } finally {
         setIsLoading(false);
       }
-    }, [params]);
+    }, [params, actualQueryFn]);
+
+    // Register refetch callback for cache invalidation
+    useEffect(() => {
+      if (utils && (utils as any).registerRefetch) {
+        (utils as any).registerRefetch(queryKey, refetch);
+      }
+    }, [queryKey, refetch, utils]);
 
     useEffect(() => {
-      queryFn(params)
+      actualQueryFn(params)
         .then(result => {
           setData(result);
           setError(null);
@@ -96,7 +135,7 @@ function createParameterizedQueryHook<T, P>(
         .finally(() => {
           setIsLoading(false);
         });
-    }, [JSON.stringify(params)]);
+    }, [JSON.stringify(params), actualQueryFn]);
 
     return { data, isLoading, error, refetch };
   };
@@ -166,10 +205,17 @@ function createMutationHook<T, U>(mutationFn: (data: T) => Promise<U>) {
 function createUtils() {
   const cache = new Map<string, { data: any }>();
   const listeners = new Set<(key: string) => void>();
+  const refetchCallbacks = new Map<string, () => void>();
 
   const invalidate = (key: string) => {
     cache.delete(key);
+    // Notify listeners and trigger refetch
     listeners.forEach(fn => fn(key));
+    // Call refetch callback if registered
+    const refetchFn = refetchCallbacks.get(key);
+    if (refetchFn) {
+      refetchFn();
+    }
   };
 
   const setData = (key: string, data: any) => {
@@ -180,10 +226,15 @@ function createUtils() {
     return cache.get(key)?.data;
   };
 
+  const registerRefetch = (key: string, refetchFn: () => void) => {
+    refetchCallbacks.set(key, refetchFn);
+  };
+
   return {
     invalidate,
     setData,
     getData,
+    registerRefetch,
     subscribe: (listener: (key: string) => void) => {
       listeners.add(listener);
       return () => listeners.delete(listener);
@@ -278,9 +329,11 @@ export const trpc = {
       ),
     },
     seedSampleReports: {
-      useMutation: createMutationHook(async () => {
-        return adminService.seedSampleReports();
-      }),
+      useMutation: createMutationHook(
+        async (params: { year: number; month: number }) => {
+          return adminService.seedSampleReports(params.year, params.month);
+        }
+      ),
     },
   },
   blog: {
@@ -385,8 +438,30 @@ export const trpc = {
   },
   services: {
     list: {
-      useQuery: createQueryHook(async () => {
+      useQuery: createQueryHook("services.list", async () => {
         return servicesService.getAll();
+      }),
+    },
+    create: {
+      useMutation: createMutationHook(async (data: any) => {
+        return servicesService.create(data);
+      }),
+    },
+    update: {
+      useMutation: createMutationHook(
+        async (data: { id: number; updates: any }) => {
+          return servicesService.update(data.id, data.updates);
+        }
+      ),
+    },
+    delete: {
+      useMutation: createMutationHook(async (id: number) => {
+        return servicesService.delete(id);
+      }),
+    },
+    seed: {
+      useMutation: createMutationHook(async (_params?: {}) => {
+        return servicesService.seedServices();
       }),
     },
   },
@@ -409,9 +484,17 @@ export const trpc = {
       }),
     },
     subscribeNewsletter: {
-      useMutation: createMutationHook(async (data: { email: string; type?: 'lead' | 'newsletter' | 'quote_request' }) => {
-        return leadsService.subscribeNewsletter(data.email, data.type || 'newsletter');
-      }),
+      useMutation: createMutationHook(
+        async (data: {
+          email: string;
+          type?: "lead" | "newsletter" | "quote_request";
+        }) => {
+          return leadsService.subscribeNewsletter(
+            data.email,
+            data.type || "newsletter"
+          );
+        }
+      ),
     },
     getAll: {
       useQuery: createQueryHook(async () => {
@@ -426,6 +509,11 @@ export const trpc = {
     getSubscriptions: {
       useQuery: createParameterizedQueryHook(async (type?: string) => {
         return leadsService.getAllSubscriptions(type as any);
+      }),
+    },
+    getNewsletterSubscriptions: {
+      useQuery: createQueryHook(async () => {
+        return leadsService.getNewsletterSubscriptions();
       }),
     },
   },

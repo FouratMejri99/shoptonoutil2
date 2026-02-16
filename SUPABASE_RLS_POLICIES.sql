@@ -117,6 +117,10 @@ FOR DELETE USING (true);
 CREATE POLICY "Anyone can insert newsletter subscriptions" ON newsletter_subscriptions
 FOR INSERT WITH CHECK (true);
 
+-- Allow public read access for newsletter subscriptions (needed for admin page)
+CREATE POLICY "Public can read newsletter subscriptions" ON newsletter_subscriptions
+FOR SELECT USING (true);
+
 -- Admin can read all subscriptions
 CREATE POLICY "Admin can read newsletter subscriptions" ON newsletter_subscriptions
 FOR SELECT USING (true);

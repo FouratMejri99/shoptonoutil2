@@ -18,9 +18,9 @@ import {
   Plus,
   Search,
   Trash2,
+  UserCheck,
   Users,
   UserX,
-  UserCheck,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -256,6 +256,14 @@ export default function AdminEmployees() {
                   className="rounded-full hover:bg-blue-50 text-blue-600 hover:text-blue-700"
                 >
                   Case Studies
+                </Button>
+              </Link>
+              <Link href="/admin/services">
+                <Button
+                  variant="ghost"
+                  className="rounded-full hover:bg-blue-50 text-blue-600 hover:text-blue-700"
+                >
+                  Services
                 </Button>
               </Link>
               <Button
@@ -669,7 +677,9 @@ export default function AdminEmployees() {
                                   }
                                   className={`h-8 w-8 p-0 rounded-full ${emp.isActive ? "hover:bg-orange-100 text-orange-600" : "hover:bg-green-100 text-green-600"}`}
                                   title={
-                                    emp.isActive ? "Deactivate User" : "Activate User"
+                                    emp.isActive
+                                      ? "Deactivate User"
+                                      : "Activate User"
                                   }
                                 >
                                   {emp.isActive ? (

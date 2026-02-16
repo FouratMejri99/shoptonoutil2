@@ -8,6 +8,7 @@ import {
   Award,
   BookOpen,
   CheckCircle,
+  FileText,
   Globe,
   Users,
   Video,
@@ -16,11 +17,15 @@ import {
 import { Link } from "wouter";
 
 export default function Home() {
-  const { data: services, isLoading: servicesLoading } = trpc.services.list.useQuery();
-  const { data: testimonials, isLoading: testimonialsLoading } = trpc.testimonials.list.useQuery();
-  const { data: caseStudies, isLoading: caseStudiesLoading } = trpc.caseStudies.list.useQuery();
+  const { data: services, isLoading: servicesLoading } =
+    trpc.services.list.useQuery();
+  const { data: testimonials, isLoading: testimonialsLoading } =
+    trpc.testimonials.list.useQuery();
+  const { data: caseStudies, isLoading: caseStudiesLoading } =
+    trpc.caseStudies.list.useQuery();
 
-  const isLoading = servicesLoading || testimonialsLoading || caseStudiesLoading;
+  const isLoading =
+    servicesLoading || testimonialsLoading || caseStudiesLoading;
 
   // Show skeleton while loading, but only for initial load
   if (isLoading) {
@@ -31,32 +36,51 @@ export default function Home() {
   const staticServices = [
     {
       id: 1,
-      name: "Document Localization",
-      slug: "document-localization",
+      name: "eLearning Engineering",
+      slug: "elearning-engineering",
       shortDescription:
-        "Professional translation and localization of business documents",
+        "Storyline development and deep technical localization for interactive training.",
       icon: "BookOpen",
     },
     {
       id: 2,
-      name: "eLearning Localization",
-      slug: "elearning-localization",
-      shortDescription: "Localize training content for global audiences",
-      icon: "BookOpen",
+      name: "Media Localization",
+      slug: "media-localization",
+      shortDescription:
+        "OST, subtitling, voiceover, and AI-assisted services for multimedia.",
+      icon: "Video",
     },
     {
       id: 3,
-      name: "Video Localization",
-      slug: "video-localization",
-      shortDescription: "Video translation and dubbing services",
-      icon: "Video",
+      name: "Accessibility",
+      slug: "accessibility",
+      shortDescription:
+        "EAA enforcement, remediation, and standards compliance for all content.",
+      icon: "Zap",
     },
     {
       id: 4,
-      name: "Audio Localization",
-      slug: "audio-localization",
-      shortDescription: "Professional audio production and voice-over",
-      icon: "Video",
+      name: "Document & DTP",
+      slug: "document-dtp",
+      shortDescription:
+        "RTL expertise, graphics localization, and template management.",
+      icon: "Globe",
+    },
+    {
+      id: 5,
+      name: "Content Creation",
+      slug: "content-creation",
+      shortDescription:
+        "Build once, localize efficiently - 40-60% cost savings with our methodology.",
+      icon: "FileText",
+    },
+    {
+      id: 6,
+      name: "AI Workflows",
+      slug: "ai-workflows",
+      shortDescription:
+        "AI at every pipeline stage with intelligent tiering for maximum efficiency.",
+      icon: "Users",
     },
   ];
 
@@ -106,10 +130,14 @@ export default function Home() {
   ];
 
   // Use static data if API data is empty or missing
-  const displayServices = services && services.length > 0 ? services : staticServices;
-  const displayTestimonials = testimonials && testimonials.length > 0 ? testimonials : staticTestimonials;
-  const displayCaseStudies = caseStudies && caseStudies.length > 0 ? caseStudies : staticCaseStudies;
-  const displaySuccessStories = caseStudies && caseStudies.length > 0 ? caseStudies : staticCaseStudies;
+  const displayServices =
+    services && services.length > 0 ? services : staticServices;
+  const displayTestimonials =
+    testimonials && testimonials.length > 0 ? testimonials : staticTestimonials;
+  const displayCaseStudies =
+    caseStudies && caseStudies.length > 0 ? caseStudies : staticCaseStudies;
+  const displaySuccessStories =
+    caseStudies && caseStudies.length > 0 ? caseStudies : staticCaseStudies;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -249,231 +277,294 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Trusted By - Sliding News Ticker */}
-      <section className="py-6 bg-gradient-to-r from-blue-900 via-blue-800 to-blue-900 overflow-hidden">
+      {/* Trusted By - New Design */}
+      <section className="py-20 bg-gradient-to-b from-gray-50 to-white">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-4">
-            <p className="text-blue-200 text-xs font-medium uppercase tracking-widest">
-              Trusted by industry leaders worldwide
+          {/* Header */}
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+              Trusted By Industry Leaders
+            </h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Solupedia partners with global organizations and adheres to the
+              highest industry standards
             </p>
           </div>
-          <div className="relative">
-            {/* Gradient overlays for smooth edges */}
-            <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-blue-900 to-transparent z-10"></div>
-            <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-blue-900 to-transparent z-10"></div>
-            
-            {/* Infinite scrolling container - CSS animation for seamless loop */}
-            <div className="overflow-hidden">
-              <div className="flex gap-16 whitespace-nowrap animate-infinite-scroll">
-                {/* First set of company logos */}
-                <div className="flex items-center gap-16 min-w-[180px]">
-                  <div className="flex items-center gap-2">
-                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="12" r="10" fill="#4285F4"/>
-                      <circle cx="12" cy="8" r="2" fill="white"/>
-                      <circle cx="8" cy="14" r="2" fill="white"/>
-                      <circle cx="16" cy="14" r="2" fill="white"/>
-                    </svg>
-                    <span className="text-xl font-bold text-white">Google</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2L2 7v10l10 5 10-5V7L12 2z" fill="#0668E1"/>
-                      <path d="M12 22l10-5" stroke="white" strokeWidth="2"/>
-                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">M</text>
-                    </svg>
-                    <span className="text-xl font-bold text-white">Meta</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="#FF9900"/>
-                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">a</text>
-                    </svg>
-                    <span className="text-xl font-bold text-white">Amazon</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
-                      <rect x="3" y="3" width="7" height="7" fill="#00A4EF"/>
-                      <rect x="14" y="3" width="7" height="7" fill="#7FBA00"/>
-                      <rect x="3" y="14" width="7" height="7" fill="#F25022"/>
-                      <rect x="14" y="14" width="7" height="7" fill="#FFB900"/>
-                    </svg>
-                    <span className="text-xl font-bold text-white">Microsoft</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2C9.79 2 8 3.79 8 6c0 1.1.45 2.1 1.17 2.83L12 6l2.83 2.83C15.55 8.1 16 7.1 16 6c0-2.21-1.79-4-4-4z" fill="#A2AAAD"/>
-                      <path d="M12 10l-4.17 4.17C6.14 15.86 5 18.31 5 21c0 2.76 2.24 5 5 5s5-2.24 5-5c0-2.69-1.14-5.14-2.83-6.83L12 10z" fill="#A2AAAD"/>
-                    </svg>
-                    <span className="text-xl font-bold text-white">Apple</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
-                      <rect x="2" y="2" width="20" height="20" rx="3" fill="#05296B"/>
-                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">IBM</text>
-                    </svg>
-                    <span className="text-xl font-bold text-white">IBM</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="12" r="10" fill="#00A1E0"/>
-                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">SF</text>
-                    </svg>
-                    <span className="text-xl font-bold text-white">Salesforce</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
-                      <rect x="3" y="3" width="18" height="18" rx="3" fill="#FF0000"/>
-                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">Ai</text>
-                    </svg>
-                    <span className="text-xl font-bold text-white">Adobe</span>
-                  </div>
+
+          {/* Featured Partnership */}
+          <div className="mb-16">
+            <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider mb-6 text-center">
+              Featured
+            </p>
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 max-w-4xl mx-auto">
+              <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-4">
+                FEATURED PARTNERSHIP
+              </p>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                The Ken Blanchard Companies
+              </h3>
+              <p className="text-gray-600">
+                Primary localization engineering partner from 2018–2025. Managed
+                trademark transition, eLearning re-engineering, media
+                localization, and accessibility compliance across 21 languages
+                and thousands of assets including SLII®, Self Leadership, and
+                more.
+              </p>
+            </div>
+          </div>
+
+          {/* Technology Partners */}
+          <div className="mb-16">
+            <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider mb-8 text-center">
+              Technology Partners
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-6">
+              {/* Microsoft */}
+              <div className="flex flex-col items-center p-4 rounded-xl bg-white shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center mb-3">
+                  <svg
+                    className="w-10 h-10 text-white"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path
+                      d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zM24 11.4H12.6V0H24v11.4z"
+                      fill="currentColor"
+                    />
+                  </svg>
                 </div>
-                {/* Duplicate set for seamless infinite loop */}
-                <div className="flex items-center gap-16 min-w-[180px]">
-                  <div className="flex items-center gap-2">
-                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="12" r="10" fill="#4285F4"/>
-                      <circle cx="12" cy="8" r="2" fill="white"/>
-                      <circle cx="8" cy="14" r="2" fill="white"/>
-                      <circle cx="16" cy="14" r="2" fill="white"/>
-                    </svg>
-                    <span className="text-xl font-bold text-white">Google</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2L2 7v10l10 5 10-5V7L12 2z" fill="#0668E1"/>
-                      <path d="M12 22l10-5" stroke="white" strokeWidth="2"/>
-                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">M</text>
-                    </svg>
-                    <span className="text-xl font-bold text-white">Meta</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="#FF9900"/>
-                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">a</text>
-                    </svg>
-                    <span className="text-xl font-bold text-white">Amazon</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
-                      <rect x="3" y="3" width="7" height="7" fill="#00A4EF"/>
-                      <rect x="14" y="3" width="7" height="7" fill="#7FBA00"/>
-                      <rect x="3" y="14" width="7" height="7" fill="#F25022"/>
-                      <rect x="14" y="14" width="7" height="7" fill="#FFB900"/>
-                    </svg>
-                    <span className="text-xl font-bold text-white">Microsoft</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2C9.79 2 8 3.79 8 6c0 1.1.45 2.1 1.17 2.83L12 6l2.83 2.83C15.55 8.1 16 7.1 16 6c0-2.21-1.79-4-4-4z" fill="#A2AAAD"/>
-                      <path d="M12 10l-4.17 4.17C6.14 15.86 5 18.31 5 21c0 2.76 2.24 5 5 5s5-2.24 5-5c0-2.69-1.14-5.14-2.83-6.83L12 10z" fill="#A2AAAD"/>
-                    </svg>
-                    <span className="text-xl font-bold text-white">Apple</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
-                      <rect x="2" y="2" width="20" height="20" rx="3" fill="#05296B"/>
-                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">IBM</text>
-                    </svg>
-                    <span className="text-xl font-bold text-white">IBM</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="12" r="10" fill="#00A1E0"/>
-                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">SF</text>
-                    </svg>
-                    <span className="text-xl font-bold text-white">Salesforce</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
-                      <rect x="3" y="3" width="18" height="18" rx="3" fill="#FF0000"/>
-                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">Ai</text>
-                    </svg>
-                    <span className="text-xl font-bold text-white">Adobe</span>
-                  </div>
+                <span className="text-sm font-semibold text-gray-900">
+                  Microsoft
+                </span>
+                <span className="text-xs text-gray-500 text-center mt-1">
+                  Storyline & Office Ecosystem
+                </span>
+              </div>
+
+              {/* Adobe */}
+              <div className="flex flex-col items-center p-4 rounded-xl bg-white shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-red-700 rounded-lg flex items-center justify-center mb-3">
+                  <svg
+                    className="w-10 h-10 text-white"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path
+                      d="M13.966 22.624l-1.69-4.281H8.122l3.892-9.144 5.662 13.425h-3.71zm-8.122 0H1v-19h4.844l-2.5 19zM16.136 3.5H22v19h-5.864l-2.223-19zM9.706 3.5L8.128 10.24l1.578 12.257h4.662l2.226-8.996-1.58-6.001H9.706z"
+                      fill="currentColor"
+                    />
+                  </svg>
                 </div>
-                {/* Third set for truly seamless infinite scroll */}
-                <div className="flex items-center gap-16 min-w-[180px]">
-                  <div className="flex items-center gap-2">
-                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="12" r="10" fill="#4285F4"/>
-                      <circle cx="12" cy="8" r="2" fill="white"/>
-                      <circle cx="8" cy="14" r="2" fill="white"/>
-                      <circle cx="16" cy="14" r="2" fill="white"/>
-                    </svg>
-                    <span className="text-xl font-bold text-white">Google</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2L2 7v10l10 5 10-5V7L12 2z" fill="#0668E1"/>
-                      <path d="M12 22l10-5" stroke="white" strokeWidth="2"/>
-                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">M</text>
-                    </svg>
-                    <span className="text-xl font-bold text-white">Meta</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" fill="#FF9900"/>
-                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="12" fontWeight="bold">a</text>
-                    </svg>
-                    <span className="text-xl font-bold text-white">Amazon</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
-                      <rect x="3" y="3" width="7" height="7" fill="#00A4EF"/>
-                      <rect x="14" y="3" width="7" height="7" fill="#7FBA00"/>
-                      <rect x="3" y="14" width="7" height="7" fill="#F25022"/>
-                      <rect x="14" y="14" width="7" height="7" fill="#FFB900"/>
-                    </svg>
-                    <span className="text-xl font-bold text-white">Microsoft</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
-                      <path d="M12 2C9.79 2 8 3.79 8 6c0 1.1.45 2.1 1.17 2.83L12 6l2.83 2.83C15.55 8.1 16 7.1 16 6c0-2.21-1.79-4-4-4z" fill="#A2AAAD"/>
-                      <path d="M12 10l-4.17 4.17C6.14 15.86 5 18.31 5 21c0 2.76 2.24 5 5 5s5-2.24 5-5c0-2.69-1.14-5.14-2.83-6.83L12 10z" fill="#A2AAAD"/>
-                    </svg>
-                    <span className="text-xl font-bold text-white">Apple</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
-                      <rect x="2" y="2" width="20" height="20" rx="3" fill="#05296B"/>
-                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">IBM</text>
-                    </svg>
-                    <span className="text-xl font-bold text-white">IBM</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="12" r="10" fill="#00A1E0"/>
-                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">SF</text>
-                    </svg>
-                    <span className="text-xl font-bold text-white">Salesforce</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="h-10 w-10" viewBox="0 0 24 24" fill="none">
-                      <rect x="3" y="3" width="18" height="18" rx="3" fill="#FF0000"/>
-                      <text x="12" y="16" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">Ai</text>
-                    </svg>
-                    <span className="text-xl font-bold text-white">Adobe</span>
-                  </div>
+                <span className="text-sm font-semibold text-gray-900">
+                  Adobe
+                </span>
+                <span className="text-xs text-gray-500 text-center mt-1">
+                  Creative Suite & Content Tools
+                </span>
+              </div>
+
+              {/* Google */}
+              <div className="flex flex-col items-center p-4 rounded-xl bg-white shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center mb-3">
+                  <svg
+                    className="w-10 h-10 text-white"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                      fill="#4285F4"
+                    />
+                    <path
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      fill="#34A853"
+                    />
+                    <path
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      fill="#FBBC05"
+                    />
+                    <path
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                      fill="#EA4335"
+                    />
+                  </svg>
                 </div>
+                <span className="text-sm font-semibold text-gray-900">
+                  Google
+                </span>
+                <span className="text-xs text-gray-500 text-center mt-1">
+                  Cloud Services & Accessibility
+                </span>
+              </div>
+
+              {/* MadCap Software */}
+              <div className="flex flex-col items-center p-4 rounded-xl bg-white shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center mb-3">
+                  <span className="text-white font-bold text-lg">MadCap</span>
+                </div>
+                <span className="text-sm font-semibold text-gray-900">
+                  MadCap Software
+                </span>
+                <span className="text-xs text-gray-500 text-center mt-1">
+                  Flare & Lingo Specialization
+                </span>
+              </div>
+
+              {/* Articulate */}
+              <div className="flex flex-col items-center p-4 rounded-xl bg-white shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-700 rounded-lg flex items-center justify-center mb-3">
+                  <svg
+                    className="w-10 h-10 text-white"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path
+                      d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      fill="none"
+                    />
+                  </svg>
+                </div>
+                <span className="text-sm font-semibold text-gray-900">
+                  Articulate
+                </span>
+                <span className="text-xs text-gray-500 text-center mt-1">
+                  Storyline & Rise
+                </span>
+              </div>
+
+              {/* DominKnow */}
+              <div className="flex flex-col items-center p-4 rounded-xl bg-white shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-700 rounded-lg flex items-center justify-center mb-3">
+                  <svg
+                    className="w-10 h-10 text-white"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    />
+                    <circle cx="12" cy="12" r="4" fill="currentColor" />
+                  </svg>
+                </div>
+                <span className="text-sm font-semibold text-gray-900">
+                  DominKnow
+                </span>
+                <span className="text-xs text-gray-500 text-center mt-1">
+                  eLearning Authoring
+                </span>
+              </div>
+
+              {/* Clip Studio Paint */}
+              <div className="flex flex-col items-center p-4 rounded-xl bg-white shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-pink-700 rounded-lg flex items-center justify-center mb-3">
+                  <span className="text-white font-bold text-xs">CSP</span>
+                </div>
+                <span className="text-sm font-semibold text-gray-900">
+                  Clip Studio Paint
+                </span>
+                <span className="text-xs text-gray-500 text-center mt-1">
+                  Digital Content Creation
+                </span>
               </div>
             </div>
           </div>
+
+          {/* Industry Standards & Certifications */}
+          <div className="mb-16">
+            <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider mb-8 text-center">
+              Industry Standards & Certifications
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+              {/* WCAG 2.1 */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center hover:shadow-md transition-shadow">
+                <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg
+                    className="w-8 h-8 text-blue-600"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 6v6l4 2" />
+                  </svg>
+                </div>
+                <h4 className="text-lg font-bold text-gray-900 mb-2">
+                  WCAG 2.1
+                </h4>
+                <p className="text-sm text-gray-600">
+                  Web Content Accessibility Guidelines
+                </p>
+              </div>
+
+              {/* EAA Compliance */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center hover:shadow-md transition-shadow">
+                <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg
+                    className="w-8 h-8 text-green-600"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                    <polyline points="22,4 12,14.01 9,11.01" />
+                  </svg>
+                </div>
+                <h4 className="text-lg font-bold text-gray-900 mb-2">
+                  EAA Compliance
+                </h4>
+                <p className="text-sm text-gray-600">
+                  European Accessibility Act
+                </p>
+              </div>
+
+              {/* Section 508 */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center hover:shadow-md transition-shadow">
+                <div className="w-14 h-14 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg
+                    className="w-8 h-8 text-purple-600"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  </svg>
+                </div>
+                <h4 className="text-lg font-bold text-gray-900 mb-2">
+                  Section 508
+                </h4>
+                <p className="text-sm text-gray-600">
+                  US Accessibility Standards
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA */}
+          <div className="text-center">
+            <p className="text-xl text-gray-700 mb-6">
+              Join leading organizations that trust Solupedia for their
+              technical localization needs
+            </p>
+            <Link href="/contact">
+              <Button
+                size="lg"
+                className="h-14 px-8 bg-blue-600 hover:bg-blue-700 text-white text-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
+              >
+                Start Your Project <ArrowRight className="ml-2" size={20} />
+              </Button>
+            </Link>
+          </div>
         </div>
-        <style>{`
-          @keyframes infinite-scroll {
-            0% {
-              transform: translateX(0);
-            }
-            100% {
-              transform: translateX(-33.33%);
-            }
-          }
-          .animate-infinite-scroll {
-            animation: infinite-scroll 30s linear infinite;
-          }
-        `}</style>
       </section>
 
       {/* Services Overview - Modern Grid */}
@@ -496,31 +587,43 @@ export default function Home() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8"
+            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
           >
             {[
               {
                 icon: BookOpen,
-                title: "Document Localization",
-                desc: "Technical manuals, legal docs, and marketing materials adapted with precision.",
+                title: "eLearning Engineering",
+                desc: "Storyline development and deep technical localization for interactive training.",
                 image: "/Solupedia-document-localization.jpg",
               },
               {
                 icon: Video,
-                title: "Audio/Video Localization",
-                desc: "Dubbing, subtitling, and voice-overs that capture the original emotion.",
+                title: "Media Localization",
+                desc: "OST, subtitling, voiceover, and AI-assisted services for multimedia.",
                 image: "/Solupedia-video-editing-localization.jpg",
               },
               {
                 icon: Zap,
-                title: "eLearning Localization",
-                desc: "Interactive training modules adapted for global workforce education.",
+                title: "Accessibility",
+                desc: "EAA enforcement, remediation, and standards compliance for all content.",
                 image: "/tQhhiaQyUpCd.jpg",
               },
               {
                 icon: Globe,
-                title: "Creation Solutions",
-                desc: "Content created from scratch with global scalability in mind.",
+                title: "Document & DTP",
+                desc: "RTL expertise, graphics localization, and template management.",
+                image: "/Solupedia-creation-solutions.jpg",
+              },
+              {
+                icon: FileText,
+                title: "Content Creation",
+                desc: "Build once, localize efficiently - 40-60% cost savings with our methodology.",
+                image: "/Solupedia-document-localization.jpg",
+              },
+              {
+                icon: Users,
+                title: "AI Workflows",
+                desc: "AI at every pipeline stage with intelligent tiering for maximum efficiency.",
                 image: "/Solupedia-creation-solutions.jpg",
               },
             ].map((service, idx) => (
@@ -687,43 +790,51 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {displayTestimonials.slice(0, 3).map((testimonial: any, idx: number) => (
-                <motion.div
-                  key={testimonial.id}
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: idx * 0.1 }}
-                >
-                  <Card className="h-full border-none shadow-lg hover:shadow-xl transition-shadow duration-300">
-                    <CardContent className="pt-8 px-8 pb-8 flex flex-col h-full">
-                      <div className="flex items-center gap-1 mb-6">
-                        {[...Array(5)].map((_, i) => (
-                          <span key={i} className="text-yellow-400">
-                            ★
-                          </span>
-                        ))}
-                      </div>
-                      <p className="text-gray-700 mb-8 italic text-lg leading-relaxed flex-1">
-                        "{testimonial.content || testimonial.clientCompany || 'Excellent service!'}"
-                      </p>
-                      <div className="flex items-center gap-4 pt-6 border-t border-gray-100">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold">
-                          {(testimonial.clientName || 'C').charAt(0)}
+              {displayTestimonials
+                .slice(0, 3)
+                .map((testimonial: any, idx: number) => (
+                  <motion.div
+                    key={testimonial.id}
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: idx * 0.1 }}
+                  >
+                    <Card className="h-full border-none shadow-lg hover:shadow-xl transition-shadow duration-300">
+                      <CardContent className="pt-8 px-8 pb-8 flex flex-col h-full">
+                        <div className="flex items-center gap-1 mb-6">
+                          {[...Array(5)].map((_, i) => (
+                            <span key={i} className="text-yellow-400">
+                              ★
+                            </span>
+                          ))}
                         </div>
-                        <div>
-                          <p className="font-bold text-gray-900">
-                            {testimonial.clientName || 'Client'}
-                          </p>
-                          <p className="text-sm text-blue-600 font-medium">
-                            {testimonial.company || testimonial.clientRole || ''}
-                          </p>
+                        <p className="text-gray-700 mb-8 italic text-lg leading-relaxed flex-1">
+                          "
+                          {testimonial.content ||
+                            testimonial.clientCompany ||
+                            "Excellent service!"}
+                          "
+                        </p>
+                        <div className="flex items-center gap-4 pt-6 border-t border-gray-100">
+                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold">
+                            {(testimonial.clientName || "C").charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-bold text-gray-900">
+                              {testimonial.clientName || "Client"}
+                            </p>
+                            <p className="text-sm text-blue-600 font-medium">
+                              {testimonial.company ||
+                                testimonial.clientRole ||
+                                ""}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
             </div>
           </div>
         </section>
@@ -748,53 +859,55 @@ export default function Home() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-8">
-              {displayCaseStudies.slice(0, 2).map((study, idx) => (
-                <Link key={study.id} href={`/case-studies/${study.slug}`}>
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    whileInView={{ opacity: 1, scale: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: idx * 0.2 }}
-                    className="group cursor-pointer"
-                  >
-                    <div className="bg-gray-50 rounded-3xl overflow-hidden border border-gray-100 hover:border-blue-200 transition-all duration-300 hover:shadow-2xl">
-                      <div className="p-8 md:p-10">
-                        <div className="flex justify-between items-start mb-6">
-                          <div className="px-4 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase tracking-wide">
-                            {study.industry}
+              {(displayCaseStudies as any[])
+                .slice(0, 2)
+                .map((study: any, idx: number) => (
+                  <Link key={study.id} href={`/case-studies/${study.slug}`}>
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      whileInView={{ opacity: 1, scale: 1 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: idx * 0.2 }}
+                      className="group cursor-pointer"
+                    >
+                      <div className="bg-gray-50 rounded-3xl overflow-hidden border border-gray-100 hover:border-blue-200 transition-all duration-300 hover:shadow-2xl">
+                        <div className="p-8 md:p-10">
+                          <div className="flex justify-between items-start mb-6">
+                            <div className="px-4 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase tracking-wide">
+                              {study.industry}
+                            </div>
+                            <ArrowRight className="text-gray-300 group-hover:text-blue-600 transition-colors transform group-hover:translate-x-1" />
                           </div>
-                          <ArrowRight className="text-gray-300 group-hover:text-blue-600 transition-colors transform group-hover:translate-x-1" />
-                        </div>
-                        <h3 className="text-2xl font-bold mb-4 group-hover:text-blue-700 transition-colors">
-                          {study.title}
-                        </h3>
-                        <p className="text-gray-600 mb-6 line-clamp-3">
-                          {study.solution}
-                        </p>
+                          <h3 className="text-2xl font-bold mb-4 group-hover:text-blue-700 transition-colors">
+                            {study.title}
+                          </h3>
+                          <p className="text-gray-600 mb-6 line-clamp-3">
+                            {study.solution}
+                          </p>
 
-                        <div className="grid grid-cols-2 gap-4 mt-8 pt-8 border-t border-gray-200">
-                          <div>
-                            <p className="text-xs text-gray-500 uppercase font-semibold mb-1">
-                              Challenge
-                            </p>
-                            <p className="text-sm font-medium text-gray-900 line-clamp-2">
-                              {study.challenge}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-gray-500 uppercase font-semibold mb-1">
-                              Result
-                            </p>
-                            <p className="text-sm font-bold text-blue-600 line-clamp-2">
-                              {study.results}
-                            </p>
+                          <div className="grid grid-cols-2 gap-4 mt-8 pt-8 border-t border-gray-200">
+                            <div>
+                              <p className="text-xs text-gray-500 uppercase font-semibold mb-1">
+                                Challenge
+                              </p>
+                              <p className="text-sm font-medium text-gray-900 line-clamp-2">
+                                {study.challenge}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 uppercase font-semibold mb-1">
+                                Result
+                              </p>
+                              <p className="text-sm font-bold text-blue-600 line-clamp-2">
+                                {study.results}
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </motion.div>
-                </Link>
-              ))}
+                    </motion.div>
+                  </Link>
+                ))}
             </div>
           </div>
         </section>

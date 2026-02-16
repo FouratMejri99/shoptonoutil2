@@ -48,6 +48,14 @@ export const authService = {
     return data.session;
   },
 
+  async updatePassword(newPassword: string) {
+    const { data, error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+    if (error) throw error;
+    return data;
+  },
+
   onAuthStateChange(callback: (event: string, session: any) => void) {
     return supabase.auth.onAuthStateChange(callback);
   },
@@ -300,6 +308,100 @@ export const servicesService = {
     });
     return data;
   },
+
+  async create(data: any) {
+    return dbService.insert("services", data);
+  },
+
+  async update(id: number, data: any) {
+    return dbService.update("services", id, data);
+  },
+
+  async delete(id: number) {
+    return dbService.delete("services", id);
+  },
+
+  async seedServices() {
+    const services = [
+      {
+        name: "eLearning Engineering",
+        slug: "elearning-engineering",
+        shortDescription:
+          "Storyline development and deep technical localization for interactive training.",
+        description:
+          "Our eLearning Engineering service provides comprehensive solutions for developing and localizing interactive training content. From Storyline development to deep technical localization, we ensure your training materials engage learners across all languages and cultures.",
+        icon: "BookOpen",
+        orderIndex: 1,
+        featured: true,
+        image: "",
+      },
+      {
+        name: "Media Localization",
+        slug: "media-localization",
+        shortDescription:
+          "OST, subtitling, voiceover, and AI-assisted services for multimedia.",
+        description:
+          "Our Media Localization service covers all aspects of multimedia content adaptation. From original sound track (OST) production to subtitling, voiceover, and AI-assisted services, we bring your video content to life in any language.",
+        icon: "Video",
+        orderIndex: 2,
+        featured: true,
+        image: "",
+      },
+      {
+        name: "Accessibility",
+        slug: "accessibility",
+        shortDescription:
+          "EAA enforcement, remediation, and standards compliance for all content.",
+        description:
+          "Our Accessibility service ensures your content meets all major accessibility standards including EAA (European Accessibility Act), WCAG, and Section 508. We provide comprehensive remediation services to make your content accessible to everyone.",
+        icon: "Zap",
+        orderIndex: 3,
+        featured: true,
+        image: "",
+      },
+      {
+        name: "Document & DTP",
+        slug: "document-dtp",
+        shortDescription:
+          "RTL expertise, graphics localization, and template management.",
+        description:
+          "Our Document & DTP service handles all aspects of document localization including RTL (right-to-left) language support, graphics localization, and professional template management. We ensure your documents look perfect in every language.",
+        icon: "Globe",
+        orderIndex: 4,
+        featured: true,
+        image: "",
+      },
+      {
+        name: "Content Creation",
+        slug: "content-creation",
+        shortDescription:
+          "Build once, localize efficiently - 40-60% cost savings with our methodology.",
+        description:
+          "Our Content Creation service is designed from the ground up for efficient localization. By following our proven methodology, you can achieve 40-60% cost savings while maintaining high quality across all languages.",
+        icon: "FileText",
+        orderIndex: 5,
+        featured: true,
+        image: "",
+      },
+      {
+        name: "AI Workflows",
+        slug: "ai-workflows",
+        shortDescription:
+          "AI at every pipeline stage with intelligent tiering for maximum efficiency.",
+        description:
+          "Our AI Workflows service integrates artificial intelligence at every stage of the localization pipeline. With intelligent tiering, we optimize the balance between AI efficiency and human quality for the best results.",
+        icon: "Users",
+        orderIndex: 6,
+        featured: true,
+        image: "",
+      },
+    ];
+
+    for (const service of services) {
+      await dbService.insert("services", service);
+    }
+    return { success: true, message: "Services seeded successfully" };
+  },
 };
 
 // Testimonials service
@@ -360,7 +462,7 @@ export const testimonialsService = {
 };
 
 // Leads service
-type SubscriptionType = 'lead' | 'newsletter' | 'quote_request';
+type SubscriptionType = "lead" | "newsletter" | "quote_request";
 
 export const leadsService = {
   async submit(data: {
@@ -374,35 +476,41 @@ export const leadsService = {
   }) {
     const leadData = {
       ...data,
-      type: data.type || 'lead',
+      type: data.type || "lead",
       createdat: new Date().toISOString(),
     };
     const result = await dbService.insert("leads", leadData);
-    
+
     // Send email notification to admins
     await leadsService.sendAdminNotification(leadData);
-    
+
     return result;
   },
 
-  async subscribeNewsletter(email: string, type: SubscriptionType = 'newsletter') {
+  async subscribeNewsletter(
+    email: string,
+    type: SubscriptionType = "newsletter"
+  ) {
     const subscriptionData = {
       email,
       type,
       subscribedat: new Date().toISOString(),
     };
-    const result = await dbService.insert("newsletter_subscriptions", subscriptionData);
-    
+    const result = await dbService.insert(
+      "newsletter_subscriptions",
+      subscriptionData
+    );
+
     // Send admin notification
     await leadsService.sendAdminNotification({
       email,
       type,
-      name: 'Newsletter Subscriber',
+      name: "Newsletter Subscriber",
     });
-    
+
     // Send confirmation email to subscriber
     await leadsService.sendConfirmationEmail(email, type);
-    
+
     return result;
   },
 
@@ -417,35 +525,36 @@ export const leadsService = {
   }) {
     // In production, this would send emails via a backend service
     // For now, we'll log and simulate the notification
-    const adminEmails = ['weseily@gmail.com', 'info@solupedia.com'];
+    const adminEmails = ["weseily@gmail.com", "info@solupedia.com"];
     const typeLabels: Record<SubscriptionType, string> = {
-      'lead': 'Contact Form Lead',
-      'newsletter': 'Newsletter Subscription',
-      'quote_request': 'Quote Request',
+      lead: "Contact Form Lead",
+      newsletter: "Newsletter Subscription",
+      quote_request: "Quote Request",
     };
-    
-    console.log('Admin notification would be sent to:', adminEmails);
-    console.log('Type:', typeLabels[data.type || 'lead']);
-    console.log('Data:', data);
-    
+
+    console.log("Admin notification would be sent to:", adminEmails);
+    console.log("Type:", typeLabels[data.type || "lead"]);
+    console.log("Data:", data);
+
     // Simulate sending (in production, integrate with email service like SendGrid, AWS SES, etc.)
-    return { success: true, message: 'Admin notification queued' };
+    return { success: true, message: "Admin notification queued" };
   },
 
   async sendConfirmationEmail(email: string, type: SubscriptionType) {
     // In production, this would send a confirmation email
-    console.log('Confirmation email would be sent to:', email);
-    console.log('Type:', type);
-    
+    console.log("Confirmation email would be sent to:", email);
+    console.log("Type:", type);
+
     const messages: Record<SubscriptionType, string> = {
-      'lead': 'Thank you for contacting us! We will be in touch shortly.',
-      'newsletter': 'Thank you for subscribing to our newsletter!',
-      'quote_request': 'Thank you for your quote request. We will get back to you within 24 hours.',
+      lead: "Thank you for contacting us! We will be in touch shortly.",
+      newsletter: "Thank you for subscribing to our newsletter!",
+      quote_request:
+        "Thank you for your quote request. We will get back to you within 24 hours.",
     };
-    
-    console.log('Message:', messages[type]);
-    
-    return { success: true, message: 'Confirmation email queued' };
+
+    console.log("Message:", messages[type]);
+
+    return { success: true, message: "Confirmation email queued" };
   },
 
   async getAllLeads(type?: SubscriptionType) {
@@ -457,11 +566,17 @@ export const leadsService = {
   },
 
   async getAllSubscriptions(type?: SubscriptionType) {
-    const options: any = { order: "subscribedat", ascending: false };
+    const options: any = {};
     if (type) {
       options.eq = { type };
     }
     return dbService.select("newsletter_subscriptions", options);
+  },
+
+  async getNewsletterSubscriptions() {
+    // Get all newsletter subscriptions directly from the table
+    // Don't specify order to avoid column name issues
+    return dbService.select("newsletter_subscriptions", {});
   },
 
   async getAll() {
@@ -471,17 +586,17 @@ export const leadsService = {
       ascending: false,
     });
     // Get all newsletter subscriptions
-    const subscriptions = await dbService.select("newsletter_subscriptions", {
-      order: "subscribedat",
-      ascending: false,
-    });
+    const subscriptions = await dbService.select(
+      "newsletter_subscriptions",
+      {}
+    );
     // Combine and return
     return {
       leads,
       subscriptions,
       all: [
-        ...leads.map((l: any) => ({ ...l, source: 'lead' })),
-        ...subscriptions.map((s: any) => ({ ...s, source: 'newsletter' })),
+        ...leads.map((l: any) => ({ ...l, source: "lead" })),
+        ...subscriptions.map((s: any) => ({ ...s, source: "newsletter" })),
       ],
     };
   },
