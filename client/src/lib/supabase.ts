@@ -107,6 +107,36 @@ export const authService = {
   onAuthStateChange(callback: (event: string, session: any) => void) {
     return supabase.auth.onAuthStateChange(callback);
   },
+
+  async listUsers() {
+    // Note: This requires admin privileges which aren't available in client-side code
+    // Using a workaround - get unique users from publish table
+    const { data, error } = await supabase
+      .from("publish")
+      .select("user_id, created_at");
+    
+    if (error) {
+      // If publish table doesn't exist or has no data, return empty array
+      console.warn("Could not fetch users from publish table:", error.message);
+      return [];
+    }
+    
+    // Get unique users
+    const uniqueUsers = new Map();
+    data?.forEach(item => {
+      if (item.user_id && !uniqueUsers.has(item.user_id)) {
+        uniqueUsers.set(item.user_id, {
+          id: item.user_id,
+          email: null, // Email not available without admin access
+          created_at: item.created_at,
+          last_sign_in_at: null,
+          email_confirmed_at: null,
+        });
+      }
+    });
+    
+    return Array.from(uniqueUsers.values());
+  },
 };
 
 // Generic table operations
@@ -173,6 +203,122 @@ export const dbService = {
   async deleteByField(table: string, field: string, value: any) {
     const { error } = await supabase.from(table).delete().eq(field, value);
     if (error) throw error;
+  },
+};
+
+// Publish service for tools/equipment listings
+export const publishService = {
+  async getAll() {
+    const { data, error } = await supabase
+      .from("publish")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+
+  async getByCategory(category: string) {
+    const { data, error } = await supabase
+      .from("publish")
+      .select("*")
+      .eq("category", category)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+
+  async getByUser(userId: string) {
+    const { data, error } = await supabase
+      .from("publish")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+
+  async getStats() {
+    const { data, error } = await supabase.from("publish").select("category");
+    if (error) throw error;
+    
+    // Count by category
+    const categoryCount: Record<string, number> = {};
+    data?.forEach(item => {
+      const cat = item.category || "Uncategorized";
+      categoryCount[cat] = (categoryCount[cat] || 0) + 1;
+    });
+    
+    // Count by city
+    const { data: cityData, error: cityError } = await supabase
+      .from("publish")
+      .select("city");
+    if (cityError) throw cityError;
+    
+    const cityCount: Record<string, number> = {};
+    cityData?.forEach(item => {
+      const city = item.city || "Unknown";
+      cityCount[city] = (cityCount[city] || 0) + 1;
+    });
+    
+    return {
+      total: data?.length || 0,
+      byCategory: categoryCount,
+      byCity: cityCount,
+    };
+  },
+};
+
+// Subscribers service
+export const subscribersService = {
+  async getAll() {
+    const { data, error } = await supabase
+      .from("subscribers")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+
+  async getByProfile(profile: string) {
+    const { data, error } = await supabase
+      .from("subscribers")
+      .select("*")
+      .eq("profile", profile)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+
+  async getVerified(verified: boolean) {
+    const { data, error } = await supabase
+      .from("subscribers")
+      .select("*")
+      .eq("verified", verified)
+      .order("created_at", { ascending: false });
+    if (error) throw error;
+    return data;
+  },
+
+  async getStats() {
+    const { data, error } = await supabase.from("subscribers").select("profile, verified");
+    if (error) throw error;
+    
+    const profileCount: Record<string, number> = { bricoleur: 0, loueur: 0 };
+    let verifiedCount = 0;
+    
+    data?.forEach(item => {
+      if (item.profile && profileCount.hasOwnProperty(item.profile)) {
+        profileCount[item.profile]++;
+      }
+      if (item.verified) verifiedCount++;
+    });
+    
+    return {
+      total: data?.length || 0,
+      byProfile: profileCount,
+      verified: verifiedCount,
+      unverified: (data?.length || 0) - verifiedCount,
+    };
   },
 };
 

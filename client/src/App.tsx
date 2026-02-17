@@ -12,6 +12,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 // Lazy load all pages for better performance and code splitting
 const Home = lazy(() => import("./pages/Home"));
 const Shop = lazy(() => import("./pages/Shop"));
+const ShopDetail = lazy(() => import("./pages/ShopDetail"));
 const PublierOutil = lazy(() => import("./pages/PublierOutil"));
 const About = lazy(() => import("./pages/About"));
 const Services = lazy(() => import("./pages/Services"));
@@ -49,6 +50,7 @@ function Router() {
       <Switch location={location}>
         <Route path={"/"} component={Home} />
         <Route path="/shop" component={Shop} />
+        <Route path="/shop/:id" component={ShopDetail} />
         <Route path="/publier-outil" component={PublierOutil} />
         <Route path="/profile" component={Profile} />
         <Route path="/map" component={Map} />

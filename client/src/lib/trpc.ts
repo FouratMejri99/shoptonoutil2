@@ -10,7 +10,9 @@ import {
   caseStudiesService,
   employeeService,
   leadsService,
+  publishService,
   servicesService,
+  subscribersService,
   testimonialsService,
 } from "./supabase";
 
@@ -256,6 +258,23 @@ export const trpc = {
         await authService.signOut();
       }),
     },
+    listUsers: {
+      useQuery: createQueryHook(async () => {
+        try {
+          const users = await authService.listUsers();
+          return users.map((user: any) => ({
+            id: user.id,
+            email: user.email || "Email not available",
+            createdAt: user.created_at,
+            lastSignIn: user.last_sign_in_at,
+            emailConfirmed: user.email_confirmed_at,
+          }));
+        } catch (error: any) {
+          console.warn("Failed to fetch users:", error.message);
+          return [];
+        }
+      }),
+    },
   },
   adminAuth: {
     login: {
@@ -388,6 +407,45 @@ export const trpc = {
           return blogService.uploadImage(data);
         }
       ),
+    },
+  },
+  publish: {
+    list: {
+      useQuery: createQueryHook(async () => {
+        return publishService.getAll();
+      }),
+    },
+    byCategory: {
+      useQuery: createParameterizedQueryHook(async (params: { category: string }) => {
+        return publishService.getByCategory(params.category);
+      }),
+    },
+    byUser: {
+      useQuery: createParameterizedQueryHook(async (params: { userId: string }) => {
+        return publishService.getByUser(params.userId);
+      }),
+    },
+    stats: {
+      useQuery: createQueryHook(async () => {
+        return publishService.getStats();
+      }),
+    },
+  },
+  subscribers: {
+    list: {
+      useQuery: createQueryHook(async () => {
+        return subscribersService.getAll();
+      }),
+    },
+    byProfile: {
+      useQuery: createParameterizedQueryHook(async (params: { profile: string }) => {
+        return subscribersService.getByProfile(params.profile);
+      }),
+    },
+    stats: {
+      useQuery: createQueryHook(async () => {
+        return subscribersService.getStats();
+      }),
     },
   },
   caseStudies: {

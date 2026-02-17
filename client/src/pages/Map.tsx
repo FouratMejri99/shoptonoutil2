@@ -240,9 +240,9 @@ export default function Map() {
                           <MapPin className="w-3 h-3 inline mr-1" />
                           {tool.city || "Reims"}
                         </p>
-                        <Link href={`/reservation?tool=${tool.id}`}>
+                        <Link href={`/shop/${tool.id}`}>
                           <Button size="sm" className="w-full mt-2 bg-blue-600">
-                            Réserver
+                            Voir l'annonce
                           </Button>
                         </Link>
                       </div>
@@ -309,9 +309,9 @@ export default function Map() {
                       <MapPin className="w-4 h-4" />
                       {tool.city || "Reims"}
                     </div>
-                    <Link href={`/reservation?tool=${tool.id}`}>
+                    <Link href={`/shop/${tool.id}`}>
                       <Button className="w-full mt-4 bg-blue-600 hover:bg-blue-700">
-                        Réserver
+                        Voir l'annonce
                       </Button>
                     </Link>
                   </div>

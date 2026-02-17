@@ -7,21 +7,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
 import { motion } from "framer-motion";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import { ArrowLeft, Download, Filter, RefreshCw } from "lucide-react";
-import { useEffect, useState } from "react";
 import {
   Bar,
   BarChart,
   CartesianGrid,
   Cell,
   Legend,
-  Line,
-  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -29,300 +22,113 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { toast } from "sonner";
+import { Download, Filter, MapPin, RefreshCw, Search, Tag, Users } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 
-interface EmployeeReport {
-  employeeId: number;
-  employeeName: string;
-  totalHours: number;
-  businessDayHours: number;
-  overtimeHours: number;
-  projectCount: number;
-  averageHoursPerDay: number;
-  color: string;
+interface PublishItem {
+  id: number;
+  created_at: string;
+  name: string;
+  price: number;
+  category: string;
+  image_url: string | null;
+  subcategory: string | null;
+  characteristics: string | null;
+  deposit: number | null;
+  description: string | null;
+  user_id: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  address: string | null;
+  city: string | null;
 }
 
-interface DailyReport {
-  date: string;
-  totalHours: number;
-  employeeCount: number;
-  overtimeHours: number;
-}
-
-interface TaskTypeData {
-  taskType: string;
-  totalHours: number;
-  color: string;
-}
-
-const TASK_COLORS: Record<string, string> = {
-  Translation: "#3b82f6",
-  Review: "#10b981",
-  QA: "#f59e0b",
-  "Desktop Publishing": "#8b5cf6",
-  Other: "#ef4444",
+const CATEGORY_COLORS: Record<string, string> = {
+  "Chantier & gros œuvre": "#3b82f6",
+  "Plomberie": "#10b981",
+  "Électricité": "#f59e0b",
+  "Menuiserie": "#8b5cf6",
+  "Peinture": "#ef4444",
+  "Jardinage": "#14b8a6",
+  "Autre": "#6b7280",
 };
 
-// Color palette for clients/employees
-const COLOR_PALETTE = [
-  "#3b82f6", // blue
-  "#10b981", // green
-  "#f59e0b", // amber
-  "#8b5cf6", // violet
-  "#ef4444", // red
-  "#ec4899", // pink
-  "#06b6d4", // cyan
-  "#84cc16", // lime
-  "#f97316", // orange
-  "#6366f1", // indigo
-  "#14b8a6", // teal
-  "#eab308", // yellow
-];
-
-// Function to generate consistent color for a client/employee
-const getClientColor = (clientName: string): string => {
-  let hash = 0;
-  for (let i = 0; i < clientName.length; i++) {
-    hash = clientName.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash) % COLOR_PALETTE.length;
-  return COLOR_PALETTE[index];
+const CITY_COLORS: Record<string, string> = {
+  Reims: "#3b82f6",
+  Paris: "#10b981",
+  Lyon: "#f59e0b",
+  Marseille: "#8b5cf6",
+  Toulouse: "#ef4444",
+  Nice: "#14b8a6",
+  "Default": "#6b7280",
 };
 
 export default function AdminReporting() {
-  const [selectedMonth, setSelectedMonth] = useState(
-    new Date().toISOString().split("T")[0].substring(0, 7)
-  );
-  const [selectedYear, setSelectedYear] = useState(
-    new Date().getFullYear().toString()
-  );
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  const year = parseInt(selectedYear);
-  const month = parseInt(selectedMonth.split("-")[1]);
-  const startDate = new Date(
-    parseInt(selectedMonth.split("-")[0]),
-    parseInt(selectedMonth.split("-")[1]) - 1,
-    1
-  );
-  const endDate = new Date(
-    parseInt(selectedMonth.split("-")[0]),
-    parseInt(selectedMonth.split("-")[1]),
-    0
-  );
+  // tRPC queries
+  const {
+    data: publishData,
+    refetch: refetchPublish,
+    isLoading: isLoadingPublish,
+  } = trpc.publish.list.useQuery();
 
-  // Seed sample data mutation
-  const seedMutation = trpc.admin.seedSampleReports.useMutation({
-    onSuccess: data => {
-      const created = data.filter((r: any) => r.status === "created").length;
-      toast.success(
-        `Successfully created ${created} sample reports for ${selectedYear}-${selectedMonth}`
-      );
-      // Refetch the data
-      window.location.reload();
-    },
-    onError: error => {
-      toast.error(error.message || "Failed to seed sample data");
-    },
+  const {
+    data: statsData,
+    refetch: refetchStats,
+    isLoading: isLoadingStats,
+  } = trpc.publish.stats.useQuery();
+
+  const [items, setItems] = useState<PublishItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (publishData) {
+      setItems(publishData || []);
+    }
+  }, [publishData]);
+
+  useEffect(() => {
+    setIsLoading(isLoadingPublish);
+  }, [isLoadingPublish]);
+
+  const filteredItems = items.filter(item => {
+    const matchesSearch = !searchTerm || 
+      item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.city?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesCategory = !selectedCategory || item.category === selectedCategory;
+    
+    return matchesSearch && matchesCategory;
   });
 
-  const handleSeedData = () => {
-    seedMutation.mutate({ year, month });
+  // Prepare chart data from stats
+  const categoryData = statsData?.byCategory ? 
+    Object.entries(statsData.byCategory).map(([name, value]) => ({
+      name,
+      value,
+      color: CATEGORY_COLORS[name] || CATEGORY_COLORS["Default"],
+    })) : [];
+
+  const cityData = statsData?.byCity ?
+    Object.entries(statsData.byCity).map(([name, value]) => ({
+      name,
+      value,
+      color: CITY_COLORS[name] || CITY_COLORS["Default"],
+    })) : [];
+
+  const totalValue = items.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
+  const averagePrice = items.length > 0 ? totalValue / items.length : 0;
+
+  const categories = Array.from(new Set(items.map(item => item.category).filter(Boolean)));
+
+  const handleLogout = () => {
+    localStorage.removeItem("adminSession");
+    window.location.href = "/";
   };
-
-  // Fetch monthly report summary
-  const { data: monthlySummary, isLoading: loadingSummary } =
-    trpc.admin.getMonthlyReportSummary.useQuery(
-      { year, month },
-      {
-        refetchOnWindowFocus: false,
-        refetchInterval: 30000, // Auto-refresh every 30 seconds
-      }
-    );
-
-  // Fetch daily report summary
-  const { data: dailyReports, isLoading: loadingDaily } =
-    trpc.admin.getDailyReportSummary.useQuery(
-      { startDate, endDate },
-      {
-        refetchOnWindowFocus: false,
-        refetchInterval: 30000, // Auto-refresh every 30 seconds
-      }
-    );
-
-  // Fetch task type distribution
-  const { data: taskDistribution, isLoading: loadingTask } =
-    trpc.admin.getTaskTypeDistribution.useQuery(
-      { startDate, endDate },
-      {
-        refetchOnWindowFocus: false,
-        refetchInterval: 30000, // Auto-refresh every 30 seconds
-      }
-    );
-
-  // Track last update time
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-
-  // Update last updated time when data changes
-  useEffect(() => {
-    if (monthlySummary || dailyReports || taskDistribution) {
-      setLastUpdated(new Date());
-    }
-  }, [monthlySummary, dailyReports, taskDistribution]);
-
-  // Manual refresh function
-  const handleRefresh = () => {
-    window.location.reload();
-  };
-
-  // Transform monthly summary data
-  const employeeReports: EmployeeReport[] =
-    monthlySummary?.map((emp: any) => ({
-      employeeId: emp.employeeId,
-      employeeName: `${emp.firstName} ${emp.lastName}`,
-      totalHours: parseFloat(emp.totalHours) || 0,
-      businessDayHours: parseFloat(emp.businessDayHours) || 0,
-      overtimeHours: parseFloat(emp.overtimeHours) || 0,
-      projectCount: emp.projectCount || 0,
-      averageHoursPerDay: emp.totalHours ? parseFloat(emp.totalHours) / 22 : 0,
-      color: getClientColor(`${emp.firstName} ${emp.lastName}`),
-    })) || [];
-
-  // Transform daily reports for chart
-  const dailyReportData: DailyReport[] =
-    dailyReports?.map((day: any) => ({
-      date: new Date(day.date).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      }),
-      totalHours: parseFloat(day.totalHours) || 0,
-      employeeCount: parseInt(day.employeeCount) || 0,
-      overtimeHours: parseFloat(day.overtimeHours) || 0,
-    })) || [];
-
-  // Transform task distribution for pie chart
-  const taskTypeDistribution: TaskTypeData[] =
-    taskDistribution?.map((task: any) => ({
-      taskType: task.taskType || "Other",
-      totalHours: parseFloat(task.totalHours) || 0,
-      color: TASK_COLORS[task.taskType] || TASK_COLORS["Other"],
-    })) || [];
-
-  // Calculate summary stats
-  const totalHours = employeeReports.reduce(
-    (sum, emp) => sum + emp.totalHours,
-    0
-  );
-  const totalOvertime = employeeReports.reduce(
-    (sum, emp) => sum + emp.overtimeHours,
-    0
-  );
-  const averageHours =
-    employeeReports.length > 0
-      ? Math.round((totalHours / employeeReports.length) * 100) / 100
-      : 0;
-
-  const handleExportReport = () => {
-    const doc = new jsPDF();
-    const period = `${selectedYear}-${selectedMonth}`;
-
-    // Title
-    doc.setFontSize(20);
-    doc.setTextColor(30, 64, 175);
-    doc.text("Solupedia - Monthly Time Tracking Report", 14, 22);
-
-    doc.setFontSize(12);
-    doc.setTextColor(100);
-    doc.text(`Report Period: ${period}`, 14, 32);
-    doc.text(`Generated: ${new Date().toLocaleDateString()}`, 14, 40);
-
-    // Summary section
-    doc.setFontSize(14);
-    doc.setTextColor(30, 64, 175);
-    doc.text("Summary", 14, 55);
-
-    doc.setFontSize(10);
-    doc.setTextColor(60);
-    doc.text(`Total Hours: ${totalHours.toFixed(2)}`, 14, 65);
-    doc.text(`Total Overtime: ${totalOvertime.toFixed(2)} hours`, 14, 72);
-    doc.text(`Active Employees: ${employeeReports.length}`, 14, 79);
-    doc.text(`Average Hours/Employee: ${averageHours.toFixed(2)}`, 14, 86);
-
-    // Employee table
-    if (employeeReports.length > 0) {
-      doc.setFontSize(14);
-      doc.setTextColor(30, 64, 175);
-      doc.text("Employee Hours", 14, 105);
-
-      autoTable(doc, {
-        startY: 110,
-        head: [
-          [
-            "Employee",
-            "Total Hours",
-            "Business Hours",
-            "Overtime",
-            "Projects",
-            "Avg/Day",
-          ],
-        ],
-        body: employeeReports.map(emp => [
-          emp.employeeName,
-          `${emp.totalHours.toFixed(2)}h`,
-          `${emp.businessDayHours.toFixed(2)}h`,
-          `${emp.overtimeHours.toFixed(2)}h`,
-          emp.projectCount.toString(),
-          `${emp.averageHoursPerDay.toFixed(1)}h`,
-        ]),
-        theme: "striped",
-        headStyles: { fillColor: [30, 64, 175] },
-        styles: { fontSize: 9 },
-      });
-    }
-
-    // Daily breakdown if available
-    if (dailyReportData.length > 0) {
-      const finalY = (doc as any).lastAutoTable?.finalY || 150;
-      doc.setFontSize(14);
-      doc.setTextColor(30, 64, 175);
-      doc.text("Daily Breakdown", 14, finalY + 15);
-
-      autoTable(doc, {
-        startY: finalY + 20,
-        head: [["Date", "Total Hours", "Employees", "Overtime"]],
-        body: dailyReportData.map(day => [
-          day.date,
-          `${day.totalHours.toFixed(2)}h`,
-          day.employeeCount.toString(),
-          `${day.overtimeHours.toFixed(2)}h`,
-        ]),
-        theme: "striped",
-        headStyles: { fillColor: [30, 64, 175] },
-        styles: { fontSize: 9 },
-      });
-    }
-
-    // Footer
-    const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(8);
-      doc.setTextColor(150);
-      doc.text(
-        `Solupedia Reporting - Page ${i} of ${pageCount}`,
-        doc.internal.pageSize.width / 2,
-        doc.internal.pageSize.height - 10,
-        { align: "center" }
-      );
-    }
-
-    // Save the PDF
-    doc.save(`solupedia-report-${period}.pdf`);
-    toast.success("Report exported successfully!");
-  };
-
-  // Show loading state
-  const isLoading = loadingSummary || loadingDaily || loadingTask;
 
   return (
     <div className="min-h-screen bg-gray-50 relative overflow-hidden">
@@ -337,34 +143,49 @@ export default function AdminReporting() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Link href="/admin/dashboard">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center shadow-lg"
+              >
+                <span className="text-white font-bold">S</span>
+              </motion.div>
+              <div>
+                <h1 className="font-bold text-gray-900">Publish Reports</h1>
+                <p className="text-xs text-gray-600">Tools & Equipment Listings</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <Link href="/admin/employees">
                 <Button
                   variant="ghost"
-                  size="icon"
-                  className="rounded-full hover:bg-blue-50 text-blue-600"
+                  className="rounded-full hover:bg-blue-50 text-blue-600 hover:text-blue-700"
                 >
-                  <ArrowLeft size={20} />
+                  Users
                 </Button>
               </Link>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Reporting Dashboard
-              </h1>
-            </div>
-            <div className="flex items-center gap-3">
+              <Link href="/admin/subscribers">
+                <Button
+                  variant="ghost"
+                  className="rounded-full hover:bg-blue-50 text-blue-600 hover:text-blue-700"
+                >
+                  Subscribers
+                </Button>
+              </Link>
+              <Link href="/admin/blog">
+                <Button
+                  variant="ghost"
+                  className="rounded-full hover:bg-blue-50 text-blue-600 hover:text-blue-700"
+                >
+                  Blog
+                </Button>
+              </Link>
               <Button
-                onClick={handleSeedData}
-                disabled={seedMutation.isPending}
                 variant="outline"
-                className="rounded-full border-gray-300 hover:bg-gray-50"
+                onClick={handleLogout}
+                className="rounded-full hover:bg-red-50 hover:text-red-600 border-gray-200"
               >
-                {seedMutation.isPending ? "Seeding..." : "Seed Sample Data"}
-              </Button>
-              <Button
-                onClick={handleExportReport}
-                className="bg-blue-600 hover:bg-blue-700 rounded-full shadow-lg shadow-blue-600/20"
-              >
-                <Download size={18} className="mr-2" />
-                Export Report
+                Logout
               </Button>
             </div>
           </div>
@@ -373,398 +194,297 @@ export default function AdminReporting() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 relative z-10">
-        {/* Filters */}
+        {/* Summary Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-lg hover:shadow-xl transition-shadow rounded-3xl">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-gray-600">
+                  Total Listings
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-blue-600">
+                  {statsData?.total || 0}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Published tools</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+          >
+            <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-lg hover:shadow-xl transition-shadow rounded-3xl">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-gray-600">
+                  Total Value
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-green-600">
+                  €{totalValue.toLocaleString()}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Combined price</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
+          >
+            <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-lg hover:shadow-xl transition-shadow rounded-3xl">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-gray-600">
+                  Average Price
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-purple-600">
+                  €{averagePrice.toFixed(2)}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Per item</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.3 }}
+          >
+            <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-lg hover:shadow-xl transition-shadow rounded-3xl">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium text-gray-600">
+                  Categories
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-orange-600">
+                  {categories.length}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Unique categories</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Charts Row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {/* Category Distribution */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.4 }}
+          >
+            <Card className="bg-white/90 backdrop-blur-md border-white/20 shadow-xl rounded-3xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Tag className="w-5 h-5" />
+                  By Category
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoadingStats ? (
+                  <div className="h-[300px] flex items-center justify-center">
+                    <div className="w-8 h-8 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin"></div>
+                  </div>
+                ) : categoryData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={categoryData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {categoryData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-gray-500">
+                    No data available
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* City Distribution */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.5 }}
+          >
+            <Card className="bg-white/90 backdrop-blur-md border-white/20 shadow-xl rounded-3xl">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MapPin className="w-5 h-5" />
+                  By City
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isLoadingStats ? (
+                  <div className="h-[300px] flex items-center justify-center">
+                    <div className="w-8 h-8 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin"></div>
+                  </div>
+                ) : cityData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={cityData.slice(0, 10)}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-gray-500">
+                    No city data available
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        </div>
+
+        {/* Search and Filter */}
+        <motion.div
+          className="flex flex-col md:flex-row gap-4 mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.6 }}
+        >
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <Input
+              placeholder="Search by name, category, or city..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="pl-10 rounded-full bg-white/80 backdrop-blur-sm border-gray-200"
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant={selectedCategory === null ? "default" : "outline"}
+              onClick={() => setSelectedCategory(null)}
+              className="rounded-full"
+            >
+              All
+            </Button>
+            {categories.slice(0, 4).map(cat => (
+              <Button
+                key={cat}
+                variant={selectedCategory === cat ? "default" : "outline"}
+                onClick={() => setSelectedCategory(cat)}
+                className="rounded-full"
+              >
+                {cat}
+              </Button>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Listings Table */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
+          transition={{ duration: 0.3, delay: 0.7 }}
         >
-          <Card className="mb-8 bg-white/80 backdrop-blur-md border-white/20 shadow-lg rounded-3xl">
+          <Card className="bg-white/90 backdrop-blur-md border-white/20 shadow-xl rounded-3xl">
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <Filter size={18} className="text-blue-600" />
-                  Report Filters
-                </span>
-                <div className="flex items-center gap-2 text-sm text-gray-500">
-                  {lastUpdated && (
-                    <span>
-                      Last updated: {lastUpdated.toLocaleTimeString()}
-                    </span>
-                  )}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleRefresh}
-                    className="h-8 w-8 p-0 rounded-full hover:bg-blue-100"
-                    title="Refresh data"
-                  >
-                    <RefreshCw size={16} className="text-blue-600" />
-                  </Button>
-                </div>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                All Listings ({filteredItems.length})
               </CardTitle>
+              <CardDescription>
+                Showing {filteredItems.length} of {items.length} listings
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="month">Month</Label>
-                  <Input
-                    id="month"
-                    type="month"
-                    value={selectedMonth}
-                    onChange={e => setSelectedMonth(e.target.value)}
-                    className="rounded-xl bg-white/50"
-                  />
+              {isLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="w-8 h-8 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin"></div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="year">Year</Label>
-                  <Input
-                    id="year"
-                    type="number"
-                    value={selectedYear}
-                    onChange={e => setSelectedYear(e.target.value)}
-                    min="2020"
-                    max="2099"
-                    className="rounded-xl bg-white/50"
-                  />
+              ) : filteredItems.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  No listings found
                 </div>
-              </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Name</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Category</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Price</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Deposit</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">City</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">Created</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredItems.slice(0, 20).map(item => (
+                        <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="py-3 px-4">
+                            <div className="font-medium text-gray-900">{item.name}</div>
+                            {item.subcategory && (
+                              <div className="text-xs text-gray-500">{item.subcategory}</div>
+                            )}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              {item.category}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 font-semibold text-green-600">
+                            €{Number(item.price).toFixed(2)}
+                          </td>
+                          <td className="py-3 px-4 text-gray-600">
+                            {item.deposit ? `€${item.deposit}` : "-"}
+                          </td>
+                          <td className="py-3 px-4">
+                            {item.city ? (
+                              <span className="flex items-center gap-1">
+                                <MapPin size={14} className="text-gray-400" />
+                                {item.city}
+                              </span>
+                            ) : "-"}
+                          </td>
+                          <td className="py-3 px-4 text-gray-500 text-sm">
+                            {item.created_at ? new Date(item.created_at).toLocaleDateString() : "-"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {filteredItems.length > 20 && (
+                    <div className="text-center py-4 text-gray-500">
+                      Showing 20 of {filteredItems.length} listings
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
-
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading report data...</p>
-            </div>
-          </div>
-        ) : (
-          <>
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              {[
-                {
-                  title: "Total Hours",
-                  value: totalHours,
-                  subtitle: "All employees",
-                  color: "text-blue-600",
-                },
-                {
-                  title: "Employees",
-                  value: employeeReports.length,
-                  subtitle: "Active employees",
-                  color: "text-green-600",
-                },
-                {
-                  title: "Overtime Hours",
-                  value: totalOvertime,
-                  subtitle: "Total overtime",
-                  color: "text-orange-600",
-                },
-                {
-                  title: "Avg Hours/Employee",
-                  value: averageHours,
-                  subtitle: "Monthly average",
-                  color: "text-purple-600",
-                },
-              ].map((item, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: idx * 0.1 }}
-                >
-                  <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-lg hover:shadow-xl transition-shadow rounded-3xl">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-sm font-medium text-gray-600">
-                        {item.title}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className={`text-3xl font-bold ${item.color}`}>
-                        {item.value}
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {item.subtitle}
-                      </p>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
-            </div>
-
-            {/* Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-              {/* Daily Hours Chart */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.4, delay: 0.2 }}
-              >
-                <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-lg rounded-3xl overflow-hidden h-full">
-                  <CardHeader>
-                    <CardTitle>Daily Hours Trend</CardTitle>
-                    <CardDescription>
-                      Total hours tracked per day
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {dailyReportData.length > 0 ? (
-                      <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={dailyReportData}>
-                          <CartesianGrid
-                            strokeDasharray="3 3"
-                            stroke="#e5e7eb"
-                          />
-                          <XAxis dataKey="date" stroke="#6b7280" />
-                          <YAxis stroke="#6b7280" />
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: "rgba(255, 255, 255, 0.9)",
-                              borderRadius: "12px",
-                              border: "none",
-                              boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                            }}
-                          />
-                          <Legend />
-                          <Line
-                            type="monotone"
-                            dataKey="totalHours"
-                            stroke="#3b82f6"
-                            strokeWidth={3}
-                            dot={{ r: 4 }}
-                            activeDot={{ r: 6 }}
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="overtimeHours"
-                            stroke="#f59e0b"
-                            strokeWidth={3}
-                            dot={{ r: 4 }}
-                            activeDot={{ r: 6 }}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="flex items-center justify-center h-[300px] text-gray-500">
-                        No daily data available for this period
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              {/* Task Type Distribution */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.4, delay: 0.3 }}
-              >
-                <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-lg rounded-3xl overflow-hidden h-full">
-                  <CardHeader>
-                    <CardTitle>Task Type Distribution</CardTitle>
-                    <CardDescription>
-                      Percentage of hours by task type
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {taskTypeDistribution.length > 0 ? (
-                      <ResponsiveContainer width="100%" height={300}>
-                        <PieChart>
-                          <Pie
-                            data={taskTypeDistribution}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={60}
-                            outerRadius={90}
-                            paddingAngle={5}
-                            dataKey="totalHours"
-                            nameKey="taskType"
-                          >
-                            {taskTypeDistribution.map((entry, index) => (
-                              <Cell
-                                key={`cell-${index}`}
-                                fill={entry.color}
-                                stroke="none"
-                              />
-                            ))}
-                          </Pie>
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: "rgba(255, 255, 255, 0.9)",
-                              borderRadius: "12px",
-                              border: "none",
-                              boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                            }}
-                          />
-                          <Legend verticalAlign="bottom" height={36} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="flex items-center justify-center h-[300px] text-gray-500">
-                        No task data available for this period
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </div>
-
-            {/* Employee Hours Comparison */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.4 }}
-            >
-              <Card className="mb-8 bg-white/80 backdrop-blur-md border-white/20 shadow-lg rounded-3xl overflow-hidden">
-                <CardHeader>
-                  <CardTitle>Employee Hours Comparison</CardTitle>
-                  <CardDescription>
-                    Business hours vs overtime by employee
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {employeeReports.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={300}>
-                      <BarChart data={employeeReports}>
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke="#e5e7eb"
-                          vertical={false}
-                        />
-                        <XAxis
-                          dataKey="employeeName"
-                          angle={0}
-                          textAnchor="middle"
-                          height={30}
-                          stroke="#6b7280"
-                        />
-                        <YAxis stroke="#6b7280" />
-                        <Tooltip
-                          cursor={{ fill: "rgba(59, 130, 246, 0.1)" }}
-                          contentStyle={{
-                            backgroundColor: "rgba(255, 255, 255, 0.9)",
-                            borderRadius: "12px",
-                            border: "none",
-                            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                          }}
-                        />
-                        <Legend />
-                        <Bar
-                          dataKey="totalHours"
-                          name="Total Hours"
-                          radius={[4, 4, 0, 0]}
-                        >
-                          {employeeReports.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="flex items-center justify-center h-[300px] text-gray-500">
-                      No employee data available for this period
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Employee Details Table */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.5 }}
-            >
-              <Card className="bg-white/80 backdrop-blur-md border-white/20 shadow-lg rounded-3xl overflow-hidden">
-                <CardHeader className="bg-blue-50/50 border-b border-blue-100/50">
-                  <CardTitle>Employee Details</CardTitle>
-                  <CardDescription>
-                    Detailed breakdown by employee
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-0">
-                  {employeeReports.length > 0 ? (
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b border-gray-200 bg-gray-50/50">
-                            <th className="text-left py-4 px-6 font-semibold text-gray-900 text-sm">
-                              Employee
-                            </th>
-                            <th className="text-right py-4 px-6 font-semibold text-gray-900 text-sm">
-                              Total Hours
-                            </th>
-                            <th className="text-right py-4 px-6 font-semibold text-gray-900 text-sm">
-                              Business Hours
-                            </th>
-                            <th className="text-right py-4 px-6 font-semibold text-gray-900 text-sm">
-                              Overtime
-                            </th>
-                            <th className="text-right py-4 px-6 font-semibold text-gray-900 text-sm">
-                              Projects
-                            </th>
-                            <th className="text-right py-4 px-6 font-semibold text-gray-900 text-sm">
-                              Avg/Day
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {employeeReports.map((emp, idx) => (
-                            <motion.tr
-                              key={emp.employeeId}
-                              className="border-b border-gray-100 hover:bg-blue-50/30 transition-colors"
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{
-                                duration: 0.2,
-                                delay: 0.5 + idx * 0.05,
-                              }}
-                            >
-                              <td className="py-4 px-6">
-                                <div className="flex items-center gap-3">
-                                  <div
-                                    className="w-3 h-3 rounded-full"
-                                    style={{ backgroundColor: emp.color }}
-                                  />
-                                  <span className="font-medium text-gray-900">
-                                    {emp.employeeName}
-                                  </span>
-                                </div>
-                              </td>
-                              <td className="text-right py-4 px-6 text-gray-700">
-                                {emp.totalHours}h
-                              </td>
-                              <td className="text-right py-4 px-6 text-green-600 font-medium">
-                                {emp.businessDayHours}h
-                              </td>
-                              <td className="text-right py-4 px-6 text-orange-600 font-medium">
-                                {emp.overtimeHours}h
-                              </td>
-                              <td className="text-right py-4 px-6 text-gray-700">
-                                {emp.projectCount}
-                              </td>
-                              <td className="text-right py-4 px-6 text-gray-700">
-                                {emp.averageHoursPerDay.toFixed(1)}h
-                              </td>
-                            </motion.tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center py-12 text-gray-500">
-                      No employee data available for this period
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
-          </>
-        )}
       </main>
     </div>
   );

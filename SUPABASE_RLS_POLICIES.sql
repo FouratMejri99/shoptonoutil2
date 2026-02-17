@@ -1,20 +1,86 @@
 -- =============================================================================
+-- Supabase Database Schema
+-- Create all required tables
+-- =============================================================================
+
+-- Drop existing table if it exists (to ensure clean state)
+DROP TABLE IF EXISTS admincredentials;
+
+-- ADMINCREDENTIALS TABLE - Required for admin login
+CREATE TABLE admincredentials (
+    id SERIAL PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role VARCHAR(50) DEFAULT 'admin',
+    createdat TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Insert default admin user (email: admin@shoptonoutil.com, password: admin123)
+-- Note: In production, passwords should be hashed!
+INSERT INTO admincredentials (email, password, role)
+VALUES ('admin@shoptonoutil.com', 'admin123', 'admin');
+
+-- Verify the data was inserted
+SELECT * FROM admincredentials;
+
+-- CONVERSATIONS TABLE - For messaging between users
+CREATE TABLE IF NOT EXISTS conversations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    participant1_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    participant2_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    tool_id BIGINT REFERENCES publish(id) ON DELETE SET NULL,
+    tool_name TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Enable RLS
+ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
+
+-- Allow users to see their own conversations
+CREATE POLICY "Users can view their conversations" ON conversations
+FOR SELECT USING (auth.uid() = participant1_id OR auth.uid() = participant2_id);
+
+-- Allow users to create conversations
+CREATE POLICY "Users can create conversations" ON conversations
+FOR INSERT WITH CHECK (auth.uid() = participant1_id OR auth.uid() = participant2_id);
+
+-- MESSAGES TABLE - For messages within conversations
+CREATE TABLE IF NOT EXISTS messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE,
+    sender_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    read_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Enable RLS on messages
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+
+-- Allow users to see messages in their conversations
+CREATE POLICY "Users can view messages" ON messages
+FOR SELECT USING (
+    EXISTS (
+        SELECT 1 FROM conversations 
+        WHERE id = messages.conversation_id 
+        AND (participant1_id = auth.uid() OR participant2_id = auth.uid())
+    )
+);
+
+-- Allow users to send messages
+CREATE POLICY "Users can send messages" ON messages
+FOR INSERT WITH CHECK (auth.uid() = sender_id);
+
+-- =============================================================================
 -- Supabase Row Level Security (RLS) Policies
 -- Run this script in your Supabase SQL Editor
 -- =============================================================================
 
 -- =============================================================================
--- ENABLE RLS ON ALL TABLES
+-- ENABLE RLS ON ADMIN TABLES
 -- =============================================================================
 
-ALTER TABLE blogposts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE casestudies ENABLE ROW LEVEL SECURITY;
-ALTER TABLE services ENABLE ROW LEVEL SECURITY;
-ALTER TABLE testimonials ENABLE ROW LEVEL SECURITY;
-ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
-ALTER TABLE newsletter_subscriptions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE employees ENABLE ROW LEVEL SECURITY;
-ALTER TABLE timetrackingrecords ENABLE ROW LEVEL SECURITY;
 ALTER TABLE admincredentials ENABLE ROW LEVEL SECURITY;
 
 -- =============================================================================

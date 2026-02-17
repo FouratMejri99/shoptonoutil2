@@ -261,12 +261,12 @@ export default function Shop() {
                               </span>
                               <span className="text-xs text-gray-500 ml-1">/jour</span>
                             </div>
-                            <Link href={`/reservation?tool=${product.id}`}>
+                            <Link href={`/shop/${product.id}`}>
                               <Button
                                 size="sm"
                                 className="bg-blue-600 hover:bg-blue-700 rounded-full"
                               >
-                                Réserver
+                                Voir l'annonce
                               </Button>
                             </Link>
                           </div>
