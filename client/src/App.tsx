@@ -11,6 +11,8 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 
 // Lazy load all pages for better performance and code splitting
 const Home = lazy(() => import("./pages/Home"));
+const Shop = lazy(() => import("./pages/Shop"));
+const PublierOutil = lazy(() => import("./pages/PublierOutil"));
 const About = lazy(() => import("./pages/About"));
 const Services = lazy(() => import("./pages/Services"));
 const ServiceDetail = lazy(() => import("./pages/ServiceDetail"));
@@ -25,6 +27,10 @@ const LeadMagnet = lazy(() => import("./pages/LeadMagnet"));
 const EmployeeLogin = lazy(() => import("./pages/EmployeeLogin"));
 const EmployeeDashboard = lazy(() => import("./pages/EmployeeDashboard"));
 const AdminReporting = lazy(() => import("./pages/AdminReporting"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Map = lazy(() => import("./pages/Map"));
+const Messages = lazy(() => import("./pages/Messages"));
+const Reservation = lazy(() => import("./pages/Reservation"));
 const AdminEmployees = lazy(() => import("./pages/AdminEmployees"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
@@ -42,20 +48,20 @@ function Router() {
     <Suspense fallback={<PageLoader fullScreen />}>
       <Switch location={location}>
         <Route path={"/"} component={Home} />
+        <Route path="/shop" component={Shop} />
+        <Route path="/publier-outil" component={PublierOutil} />
+        <Route path="/profile" component={Profile} />
+        <Route path="/map" component={Map} />
+        <Route path="/messages" component={Messages} />
+        <Route path="/reservation" component={Reservation} />
         <Route path={"/about"} component={About} />
-        <Route path={"/services"} component={Services} />
-        <Route path={"/services/:slug"} component={ServiceDetail} />
-        <Route path={"/case-studies"} component={CaseStudies} />
-        <Route path={"/case-studies/:slug"} component={CaseStudyDetail} />
-        <Route path={"/blog"} component={Blog} />
-        <Route path={"/blog/:slug"} component={BlogPostDetail} />
         <Route path={"/contact"} component={Contact} />
         <Route path={"/industries/:industry"} component={IndustryLanding} />
         <Route path={"/lead-magnet"} component={LeadMagnet} />
         {/* Admin routes - hidden from public navigation */}
         <Route path={"/admin/reporting"} component={AdminReporting} />
         <Route path={"/admin/employees"} component={AdminEmployees} />
-        <Route path={"/solupedia-admin"} component={AdminLogin} />
+        <Route path={"/shoptonoutil-admin"} component={AdminLogin} />
         <Route path={"/admin/dashboard"} component={AdminDashboard} />
         <Route path={"/admin/blog"} component={AdminBlog} />
         <Route path={"/admin/case-studies"} component={AdminCaseStudies} />
@@ -81,7 +87,7 @@ function App() {
   const isPortalPage =
     location.startsWith("/employee") ||
     location.startsWith("/admin") ||
-    location === "/solupedia-admin";
+    location === "/shoptonoutil-admin";
 
   return (
     <ErrorBoundary>

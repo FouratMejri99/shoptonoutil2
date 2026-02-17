@@ -49,109 +49,27 @@ function Footer() {
           {/* Company Info - spans 2 columns */}
           <div className="lg:col-span-2">
             <Link href="/">
-              <img
-                src="/logo-white-full.png"
-                alt="Solupedia"
-                className="h-8 mb-4 cursor-pointer"
-              />
+              <span className="text-2xl font-bold text-white cursor-pointer">
+                Shoptonoutil
+              </span>
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed mb-4 max-w-sm">
-              Professional localization solutions for global businesses.
-              Bridging language gaps since 2006 with expertise, technology, and
-              a human touch.
+              Votre shop de confiance pour tous vos outils Bricolor. 
+              Qualité professionnelle et livraison rapide.
             </p>
-
-            <div className="bg-gray-800/50 p-4 rounded-xl border border-gray-700/50">
-              <h4 className="font-semibold mb-2 text-sm">Subscribe</h4>
-              <form onSubmit={handleSubscribe} className="flex gap-2">
-                <Input
-                  type="email"
-                  placeholder="Email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  className="bg-gray-900 border-gray-700 text-white placeholder:text-gray-500 rounded-full h-8 text-sm"
-                  required
-                />
-                <Button
-                  type="submit"
-                  size="icon"
-                  disabled={(subscribeNewsletter as any).isLoading}
-                  className="rounded-full bg-blue-600 hover:bg-blue-700 shrink-0 h-8 w-8"
-                >
-                  <ArrowRight size={18} />
-                </Button>
-              </form>
-            </div>
           </div>
 
-          {/* Services */}
+          {/* Navigation */}
           <div>
             <h3 className="font-semibold mb-4 text-white text-base">
-              Services
+              Navigation
             </h3>
             <ul className="space-y-3 text-gray-400 text-sm">
               <li>
-                <Link href="/services/document-localization">
+                <Link href="/">
                   <a className="hover:text-blue-400 transition-colors flex items-center gap-2 group">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                    Document Localization
-                  </a>
-                </Link>
-              </li>
-              <li>
-                <Link href="/services/elearning-localization">
-                  <a className="hover:text-blue-400 transition-colors flex items-center gap-2 group">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                    eLearning Localization
-                  </a>
-                </Link>
-              </li>
-              <li>
-                <Link href="/services/audio-video-localization">
-                  <a className="hover:text-blue-400 transition-colors flex items-center gap-2 group">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                    Audio/Video Localization
-                  </a>
-                </Link>
-              </li>
-              <li>
-                <Link href="/services/creation-solutions">
-                  <a className="hover:text-blue-400 transition-colors flex items-center gap-2 group">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                    Creation Solutions
-                  </a>
-                </Link>
-              </li>
-            </ul>
-          </div>
-
-          {/* Resources */}
-          <div>
-            <h3 className="font-semibold mb-4 text-white text-base">
-              Resources
-            </h3>
-            <ul className="space-y-3 text-gray-400 text-sm">
-              <li>
-                <Link href="/case-studies">
-                  <a className="hover:text-blue-400 transition-colors flex items-center gap-2 group">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                    Case Studies
-                  </a>
-                </Link>
-              </li>
-              <li>
-                <Link href="/blog">
-                  <a className="hover:text-blue-400 transition-colors flex items-center gap-2 group">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                    Blog
-                  </a>
-                </Link>
-              </li>
-              <li>
-                <Link href="/lead-magnet">
-                  <a className="hover:text-blue-400 transition-colors flex items-center gap-2 group">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                    Free Guide
+                    Accueil
                   </a>
                 </Link>
               </li>
@@ -159,7 +77,23 @@ function Footer() {
                 <Link href="/about">
                   <a className="hover:text-blue-400 transition-colors flex items-center gap-2 group">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
-                    About Us
+                    À propos
+                  </a>
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact">
+                  <a className="hover:text-blue-400 transition-colors flex items-center gap-2 group">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                    Contact
+                  </a>
+                </Link>
+              </li>
+              <li>
+                <Link href="/lead-magnet">
+                  <a className="hover:text-blue-400 transition-colors flex items-center gap-2 group">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                    Guide Gratuit
                   </a>
                 </Link>
               </li>
@@ -175,10 +109,10 @@ function Footer() {
                   <Phone size={12} />
                 </div>
                 <a
-                  href="tel:+2001555335577"
+                  href="tel:+33123456789"
                   className="hover:text-white transition py-1"
                 >
-                  +20 01555335577
+                  +33 1 23 45 67 89
                 </a>
               </li>
               <li className="flex items-start gap-3 group">
@@ -186,10 +120,10 @@ function Footer() {
                   <Mail size={12} />
                 </div>
                 <a
-                  href="mailto:info@solupedia.com"
+                  href="mailto:contact@shoptonoutil2.com"
                   className="hover:text-white transition py-1"
                 >
-                  info@solupedia.com
+                  contact@shoptonoutil2.com
                 </a>
               </li>
               <li className="flex items-start gap-3 group">
@@ -197,11 +131,7 @@ function Footer() {
                   <MapPin size={12} />
                 </div>
                 <span className="py-1">
-                  71-75 Shelton Street
-                  <br />
-                  Covent Garden, London
-                  <br />
-                  WC2H 9JQ, UK
+                  Paris, France
                 </span>
               </li>
             </ul>
@@ -212,7 +142,7 @@ function Footer() {
         <div className="border-t border-gray-800 pt-4 mt-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-gray-500 text-xs">
-              © 2026 Solupedia LTD. All rights reserved.
+              © 2026 shoptonoutil2. Tous droits réservés.
             </p>
             <div className="flex gap-3">
               <a

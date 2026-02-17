@@ -33,6 +33,12 @@ export default function AdminLogin() {
 
   const loginMutation = trpc.adminAuth.login.useMutation();
 
+  // Demo credentials
+  const fillDemoCredentials = () => {
+    setEmail("admin@shoptonoutil.com");
+    setPassword("admin123");
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -107,9 +113,9 @@ export default function AdminLogin() {
             <ShieldCheck className="w-10 h-10 text-white" />
           </motion.div>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Solupedia Admin
+            shoptonoutil Admin
           </h1>
-          <p className="text-gray-600 text-lg">Employee Management Portal</p>
+          <p className="text-gray-600 text-lg">Portail de gestion</p>
         </div>
 
         {/* Login Card */}
@@ -143,7 +149,7 @@ export default function AdminLogin() {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="admin@solupedia.com"
+                    placeholder="admin@shoptonoutil.com"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
                     required
@@ -198,6 +204,20 @@ export default function AdminLogin() {
                   )}
                 </Button>
               </motion.div>
+
+              {/* Demo Login */}
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={fillDemoCredentials}
+                  className="text-sm text-blue-600 hover:text-blue-700 underline"
+                >
+                  Utiliser les identifiants de demo
+                </button>
+                <p className="text-xs text-gray-500 mt-1">
+                  Email: admin@shoptonoutil.com | Mot de passe: admin123
+                </p>
+              </div>
 
               <div className="text-center pt-2">
                 <p className="text-xs text-gray-500 bg-blue-50 inline-block px-3 py-1 rounded-full border border-blue-100">

@@ -7,31 +7,21 @@ import { useEffect, useState } from "react";
 import {
   ArrowRight,
   Award,
-  BookOpen,
   CheckCircle,
-  FileText,
-  Globe,
-  Users,
-  Video,
-  Zap,
+  Package,
+  ShoppingCart,
+  Star,
+  Truck,
 } from "lucide-react";
 import { Link } from "wouter";
 
 export default function Home() {
   const [refreshKey, setRefreshKey] = useState(0);
-  
-  // Fetch services from database with refresh key
-  const servicesQuery = trpc.services.list.useQuery({ _t: refreshKey } as any) as any;
-  const services = servicesQuery?.data;
-  const servicesLoading = servicesQuery?.isLoading;
-  
+
   const { data: testimonials, isLoading: testimonialsLoading } =
     trpc.testimonials.list.useQuery();
-  const { data: caseStudies, isLoading: caseStudiesLoading } =
-    trpc.caseStudies.list.useQuery();
 
-  const isLoading =
-    servicesLoading || testimonialsLoading || caseStudiesLoading;
+  const isLoading = testimonialsLoading;
 
   // Refresh data when page becomes visible (e.g., after admin update)
   useEffect(() => {
@@ -44,123 +34,128 @@ export default function Home() {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, []);
 
-  // Show skeleton while loading, but only for initial load
+  // Show skeleton while loading
   if (isLoading) {
     return <PageSkeleton />;
   }
 
-  // Static fallback data if database queries fail or return empty
-  const staticServices = [
+  // Static data for shoptonoutil2
+  const categories = [
     {
       id: 1,
-      name: "eLearning Engineering",
-      slug: "elearning-engineering",
-      shortDescription:
-        "Storyline development and deep technical localization for interactive training.",
-      icon: "BookOpen",
-      image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80",
+      name: "Outils à main",
+      slug: "outils-a-main",
+      description: "Marteaux, tournevis, clés...",
+      image: "https://images.unsplash.com/photo-1581244277943-fe4a9c777189?w=800&q=80",
+      icon: "Package",
     },
     {
       id: 2,
-      name: "Media Localization",
-      slug: "media-localization",
-      shortDescription:
-        "OST, subtitling, voiceover, and AI-assisted services for multimedia.",
-      icon: "Video",
-      image: "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=800&q=80",
+      name: "Outils électriques",
+      slug: "outils-electriques",
+      description: "Perceuses, scies, ponceuses...",
+      image: "https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&q=80",
+      icon: "CheckCircle",
     },
     {
       id: 3,
-      name: "Accessibility",
-      slug: "accessibility",
-      shortDescription:
-        "EAA enforcement, remediation, and standards compliance for all content.",
-      icon: "Zap",
-      image: "https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=800&q=80",
+      name: "Quincaillerie",
+      slug: "quincaillerie",
+      description: "Vis, écrous, boulons...",
+      image: "https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=800&q=80",
+      icon: "Package",
     },
     {
       id: 4,
-      name: "Document & DTP",
-      slug: "document-dtp",
-      shortDescription:
-        "RTL expertise, graphics localization, and template management.",
-      icon: "Globe",
-      image: "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&q=80",
+      name: "Peintures & revêtements",
+      slug: "peintures",
+      description: "Peintures, vernis, revêtements...",
+      image: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=800&q=80",
+      icon: "CheckCircle",
     },
     {
       id: 5,
-      name: "Content Creation",
-      slug: "content-creation",
-      shortDescription:
-        "Build once, localize efficiently - 40-60% cost savings with our methodology.",
-      icon: "FileText",
-      image: "https://images.unsplash.com/photo-1455390582262-044cdead277a?w=800&q=80",
+      name: "Électricité",
+      slug: "electricite",
+      description: "Câbles, prises, interrupteurs...",
+      image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80",
+      icon: "CheckCircle",
     },
     {
       id: 6,
-      name: "AI Workflows",
-      slug: "ai-workflows",
-      shortDescription:
-        "AI at every pipeline stage with intelligent tiering for maximum efficiency.",
-      icon: "Users",
-      image: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80",
+      name: "Plomberie",
+      slug: "plomberie",
+      description: "Tuyaux, robinets, raccords...",
+      image: "https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=800&q=80",
+      icon: "CheckCircle",
     },
   ];
 
-  const staticTestimonials = [
+  const featuredProducts = [
     {
       id: 1,
-      clientName: "John Smith",
-      clientRole: "CEO",
-      content:
-        "Solupedia transformed our global outreach with their exceptional localization services. The team was professional, responsive, and delivered beyond our expectations.",
-      company: "TechCorp",
-      avatar: "/avatar1.png",
+      name: "Perceuse-visseuse sans fil 18V",
+      description: "Performance professionnelle avec 2 batteries",
+      price: 149.99,
+      image: "https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&q=80",
+      rating: 4.8,
+      reviews: 245,
     },
     {
       id: 2,
-      clientName: "Maria Garcia",
-      clientRole: "Training Director",
-      content:
-        "Exceptional localization quality and turnaround time. Solupedia helped us reach learners across 20+ countries with perfectly adapted content.",
-      company: "EduLearn",
-      avatar: "/avatar2.png",
+      name: "Kit d'outils à main 100 pièces",
+      description: "Complet pour tous vos travaux",
+      price: 79.99,
+      image: "https://images.unsplash.com/photo-1581244277943-fe4a9c777189?w=800&q=80",
+      rating: 4.6,
+      reviews: 189,
     },
     {
       id: 3,
-      clientName: "Sarah Johnson",
-      clientRole: "Marketing Director",
-      content:
-        "The attention to detail and cultural adaptation was impressive. Our video content resonated perfectly with international audiences.",
-      company: "Global Media",
-      avatar: "/avatar3.jpg",
+      name: "Scie circulaire 1400W",
+      description: "Précision et puissance",
+      price: 119.99,
+      image: "https://images.unsplash.com/photo-1572981779307-38b8cabb2407?w=800&q=80",
+      rating: 4.7,
+      reviews: 156,
+    },
+    {
+      id: 4,
+      name: "Boîte à outils professionnelle",
+      description: "Rangement modulable",
+      price: 59.99,
+      image: "https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=800&q=80",
+      rating: 4.5,
+      reviews: 98,
     },
   ];
 
-  const staticCaseStudies = [
+  const advantages = [
     {
       id: 1,
-      title: "TechCorp Global Expansion",
-      clientName: "TechCorp",
-      serviceType: "Document Localization",
+      title: "Livraison rapide",
+      description: "Livraison gratuite dès 50€ d'achat",
+      icon: Truck,
     },
     {
       id: 2,
-      title: "EduLearn Platform",
-      clientName: "EduLearn",
-      serviceType: "eLearning Localization",
+      title: "Qualité professionnelle",
+      description: "Sélection des meilleures marques",
+      icon: Award,
+    },
+    {
+      id: 3,
+      title: "Prix avantageux",
+      description: "Les meilleurs prix du marché",
+      icon: CheckCircle,
+    },
+    {
+      id: 4,
+      title: "Service client",
+      description: "Conseils personnalisés",
+      icon: Package,
     },
   ];
-
-  // Use static data if API data is empty or missing
-  const displayServices =
-    services && services.length > 0 ? services : staticServices;
-  const displayTestimonials =
-    testimonials && testimonials.length > 0 ? testimonials : staticTestimonials;
-  const displayCaseStudies =
-    caseStudies && caseStudies.length > 0 ? caseStudies : staticCaseStudies;
-  const displaySuccessStories =
-    caseStudies && caseStudies.length > 0 ? caseStudies : staticCaseStudies;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -183,10 +178,10 @@ export default function Home() {
   return (
     <div className="w-full overflow-hidden">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-blue-900 via-blue-800 to-blue-600 text-white min-h-[90vh] flex items-center overflow-hidden">
-        {/* Abstract shapes/blobs for modern feel */}
+      <section className="relative bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 text-white min-h-[90vh] flex items-center overflow-hidden">
+        {/* Abstract shapes for modern feel */}
         <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-700/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-600/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3 pointer-events-none" />
 
         <div className="container mx-auto px-4 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -196,18 +191,18 @@ export default function Home() {
               transition={{ duration: 0.8 }}
             >
               <div className="inline-block px-4 py-1.5 rounded-full bg-blue-500/30 backdrop-blur-sm text-blue-100 text-sm font-medium mb-6 border border-blue-400/30">
-                🚀 Professional Localization Services
+                🛠️ Votre shop Bricolor
               </div>
+
               <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight tracking-tight">
-                Break Language Barriers, <br />
+                Tous vos outils en un seul endroit,{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-white">
-                  Expand Globally
+                  livrés chez vous
                 </span>
               </h1>
               <p className="text-xl text-blue-100 mb-8 max-w-lg leading-relaxed">
-                Connect with audiences worldwide through professional,
-                culturally-adapted localization solutions. From documents to
-                eLearning, we speak your language.
+                Qualité professionnelle pour tous vos projets de bricolage.
+                Livraison rapide et meilleurs prix garantis.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link href="/contact">
@@ -215,16 +210,16 @@ export default function Home() {
                     size="lg"
                     className="h-14 px-8 bg-white text-blue-600 hover:bg-blue-50 hover:scale-105 transition-all duration-300 text-lg shadow-lg shadow-blue-900/20 rounded-full"
                   >
-                    Get Started <ArrowRight className="ml-2" size={20} />
+                    Commander maintenant <ShoppingCart className="ml-2" size={20} />
                   </Button>
                 </Link>
-                <Link href="/lead-magnet">
+                <Link href="/about">
                   <Button
                     size="lg"
                     variant="outline"
                     className="h-14 px-8 border-white/50 text-white hover:bg-white/10 hover:border-white transition-all duration-300 text-lg rounded-full backdrop-blur-sm"
                   >
-                    Download Free Guide
+                    Découvrir nos produits
                   </Button>
                 </Link>
               </div>
@@ -232,13 +227,13 @@ export default function Home() {
               {/* Trust indicators in Hero */}
               <div className="mt-12 pt-8 border-t border-blue-400/30 flex items-center gap-8 text-blue-200">
                 <div>
-                  <p className="text-3xl font-bold text-white">7k+</p>
-                  <p className="text-sm">Projects</p>
+                  <p className="text-3xl font-bold text-white">5000+</p>
+                  <p className="text-sm">Produits</p>
                 </div>
                 <div className="w-px h-10 bg-blue-400/30"></div>
                 <div>
-                  <p className="text-3xl font-bold text-white">150+</p>
-                  <p className="text-sm">Languages</p>
+                  <p className="text-3xl font-bold text-white">50+</p>
+                  <p className="text-sm">Marques</p>
                 </div>
                 <div className="w-px h-10 bg-blue-400/30"></div>
                 <div>
@@ -256,8 +251,8 @@ export default function Home() {
             >
               <div className="relative z-10 rounded-2xl overflow-hidden shadow-2xl shadow-blue-900/50 border-4 border-white/10">
                 <img
-                  src="/QRRik675gBAy.webp"
-                  alt="Global Business Languages"
+                  src="/welcom.png"
+                  alt="Outils de bricolage"
                   className="w-full h-auto object-cover hover:scale-105 transition-transform duration-700"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-blue-900/60 to-transparent"></div>
@@ -274,17 +269,17 @@ export default function Home() {
               >
                 <div className="flex items-center gap-4 mb-3">
                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Globe className="text-blue-600" size={24} />
+                    <Package className="text-blue-600" size={24} />
                   </div>
                   <div>
-                    <p className="font-bold text-gray-900">Global Reach</p>
-                    <p className="text-sm text-gray-500">Connecting cultures</p>
+                    <p className="font-bold text-gray-900">Stock important</p>
+                    <p className="text-sm text-gray-500">Disponibilité immédiate</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Award className="w-5 h-5 text-yellow-500" />
                   <span className="text-sm text-gray-600 font-medium">
-                    Trusted by leaders
+                    Marque professionnelle
                   </span>
                 </div>
               </motion.div>
@@ -293,629 +288,216 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Services Section */}
-      {displayServices && displayServices.length > 0 && (
-        <section className="py-24 bg-white">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-16">
-              <span className="text-blue-600 font-semibold tracking-wider uppercase text-sm">
-                What We Offer
-              </span>
-              <h2 className="text-4xl font-bold mt-2 text-gray-900">
-                Our Services
-              </h2>
-              <p className="text-xl text-gray-600 mt-4 max-w-2xl mx-auto">
-                Comprehensive localization solutions tailored to your industry and content type.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {(displayServices as any[]).slice(0, 6).map((service: any, idx: number) => (
-                <Link key={service.id || idx} href={`/services/${service.slug}`}>
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: idx * 0.1 }}
-                    whileHover={{ y: -5 }}
-                    className="group cursor-pointer"
-                  >
-                    <Card className="h-full overflow-hidden border-none shadow-lg hover:shadow-xl transition-all duration-300">
-                      {/* Service Image */}
-                      <div className="h-48 overflow-hidden relative">
-                        <img
-                          src={service.image || "/placeholder-service.jpg"}
-                          alt={service.name}
-                          className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                      </div>
-                      <CardContent className="p-6">
-                        <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
-                          {service.name}
-                        </h3>
-                        <p className="text-gray-600 text-sm line-clamp-2">
-                          {service.shortDescription || service.shortdescription}
-                        </p>
-                        <div className="mt-4 flex items-center text-blue-600 font-medium text-sm">
-                          Learn More <ArrowRight className="ml-1 w-4 h-4" />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                </Link>
-              ))}
-            </div>
-
-            <div className="text-center mt-12">
-              <Link href="/services">
-                <Button variant="outline" size="lg" className="rounded-full">
-                  View All Services
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Trusted By - New Design */}
-      <section className="py-20 bg-gradient-to-b from-gray-50 to-white">
+      {/* Categories Section */}
+      <section className="py-24 bg-white">
         <div className="container mx-auto px-4">
-          {/* Header */}
           <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Trusted By Industry Leaders
+            <span className="text-blue-600 font-semibold tracking-wider uppercase text-sm">
+              Nos catégories
+            </span>
+            <h2 className="text-4xl font-bold mt-2 text-gray-900">
+              Tout pour le bricolage
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Solupedia partners with global organizations and adheres to the
-              highest industry standards
+            <p className="text-xl text-gray-600 mt-4 max-w-2xl mx-auto">
+              Découvrez notre large gamme de produits pour tous vos projets
             </p>
           </div>
 
-          {/* Featured Partnership */}
-          <div className="mb-16">
-            <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider mb-6 text-center">
-              Featured
-            </p>
-            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 max-w-4xl mx-auto">
-              <p className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-4">
-                FEATURED PARTNERSHIP
-              </p>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                The Ken Blanchard Companies
-              </h3>
-              <p className="text-gray-600">
-                Primary localization engineering partner from 2018–2025. Managed
-                trademark transition, eLearning re-engineering, media
-                localization, and accessibility compliance across 21 languages
-                and thousands of assets including SLII®, Self Leadership, and
-                more.
-              </p>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {categories.map((category, idx) => (
+              <Link key={category.id} href={`/contact`}>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.1 }}
+                  whileHover={{ y: -5 }}
+                  className="group cursor-pointer"
+                >
+                  <Card className="h-full overflow-hidden border-none shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div className="h-48 overflow-hidden relative">
+                      <img
+                        src={category.image}
+                        alt={category.name}
+                        className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                    </div>
+                    <CardContent className="p-6">
+                      <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+                        {category.name}
+                      </h3>
+                      <p className="text-gray-600 text-sm">
+                        {category.description}
+                      </p>
+                      <div className="mt-4 flex items-center text-blue-600 font-medium text-sm">
+                        Voir les produits <ArrowRight className="ml-1 w-4 h-4" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </Link>
+            ))}
           </div>
 
-          {/* Technology Partners */}
-          <div className="mb-16">
-            <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider mb-8 text-center">
-              Technology Partners
-            </p>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-6">
-              {/* Microsoft */}
-              <div className="flex flex-col items-center p-4 rounded-xl bg-white shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center mb-3">
-                  <svg
-                    className="w-10 h-10 text-white"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
-                    <path
-                      d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zM24 11.4H12.6V0H24v11.4z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                </div>
-                <span className="text-sm font-semibold text-gray-900">
-                  Microsoft
-                </span>
-                <span className="text-xs text-gray-500 text-center mt-1">
-                  Storyline & Office Ecosystem
-                </span>
-              </div>
-
-              {/* Adobe */}
-              <div className="flex flex-col items-center p-4 rounded-xl bg-white shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-red-700 rounded-lg flex items-center justify-center mb-3">
-                  <svg
-                    className="w-10 h-10 text-white"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
-                    <path
-                      d="M13.966 22.624l-1.69-4.281H8.122l3.892-9.144 5.662 13.425h-3.71zm-8.122 0H1v-19h4.844l-2.5 19zM16.136 3.5H22v19h-5.864l-2.223-19zM9.706 3.5L8.128 10.24l1.578 12.257h4.662l2.226-8.996-1.58-6.001H9.706z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                </div>
-                <span className="text-sm font-semibold text-gray-900">
-                  Adobe
-                </span>
-                <span className="text-xs text-gray-500 text-center mt-1">
-                  Creative Suite & Content Tools
-                </span>
-              </div>
-
-              {/* Google */}
-              <div className="flex flex-col items-center p-4 rounded-xl bg-white shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center mb-3">
-                  <svg
-                    className="w-10 h-10 text-white"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
-                    <path
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                      fill="#4285F4"
-                    />
-                    <path
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                      fill="#34A853"
-                    />
-                    <path
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                      fill="#FBBC05"
-                    />
-                    <path
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                      fill="#EA4335"
-                    />
-                  </svg>
-                </div>
-                <span className="text-sm font-semibold text-gray-900">
-                  Google
-                </span>
-                <span className="text-xs text-gray-500 text-center mt-1">
-                  Cloud Services & Accessibility
-                </span>
-              </div>
-
-              {/* MadCap Software */}
-              <div className="flex flex-col items-center p-4 rounded-xl bg-white shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center mb-3">
-                  <span className="text-white font-bold text-lg">MadCap</span>
-                </div>
-                <span className="text-sm font-semibold text-gray-900">
-                  MadCap Software
-                </span>
-                <span className="text-xs text-gray-500 text-center mt-1">
-                  Flare & Lingo Specialization
-                </span>
-              </div>
-
-              {/* Articulate */}
-              <div className="flex flex-col items-center p-4 rounded-xl bg-white shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-700 rounded-lg flex items-center justify-center mb-3">
-                  <svg
-                    className="w-10 h-10 text-white"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
-                    <path
-                      d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      fill="none"
-                    />
-                  </svg>
-                </div>
-                <span className="text-sm font-semibold text-gray-900">
-                  Articulate
-                </span>
-                <span className="text-xs text-gray-500 text-center mt-1">
-                  Storyline & Rise
-                </span>
-              </div>
-
-              {/* DominKnow */}
-              <div className="flex flex-col items-center p-4 rounded-xl bg-white shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-700 rounded-lg flex items-center justify-center mb-3">
-                  <svg
-                    className="w-10 h-10 text-white"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    />
-                    <circle cx="12" cy="12" r="4" fill="currentColor" />
-                  </svg>
-                </div>
-                <span className="text-sm font-semibold text-gray-900">
-                  DominKnow
-                </span>
-                <span className="text-xs text-gray-500 text-center mt-1">
-                  eLearning Authoring
-                </span>
-              </div>
-
-              {/* Clip Studio Paint */}
-              <div className="flex flex-col items-center p-4 rounded-xl bg-white shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-pink-700 rounded-lg flex items-center justify-center mb-3">
-                  <span className="text-white font-bold text-xs">CSP</span>
-                </div>
-                <span className="text-sm font-semibold text-gray-900">
-                  Clip Studio Paint
-                </span>
-                <span className="text-xs text-gray-500 text-center mt-1">
-                  Digital Content Creation
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Industry Standards & Certifications */}
-          <div className="mb-16">
-            <p className="text-sm font-semibold text-blue-600 uppercase tracking-wider mb-8 text-center">
-              Industry Standards & Certifications
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              {/* WCAG 2.1 */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center hover:shadow-md transition-shadow">
-                <div className="w-14 h-14 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg
-                    className="w-8 h-8 text-blue-600"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 6v6l4 2" />
-                  </svg>
-                </div>
-                <h4 className="text-lg font-bold text-gray-900 mb-2">
-                  WCAG 2.1
-                </h4>
-                <p className="text-sm text-gray-600">
-                  Web Content Accessibility Guidelines
-                </p>
-              </div>
-
-              {/* EAA Compliance */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center hover:shadow-md transition-shadow">
-                <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg
-                    className="w-8 h-8 text-green-600"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                    <polyline points="22,4 12,14.01 9,11.01" />
-                  </svg>
-                </div>
-                <h4 className="text-lg font-bold text-gray-900 mb-2">
-                  EAA Compliance
-                </h4>
-                <p className="text-sm text-gray-600">
-                  European Accessibility Act
-                </p>
-              </div>
-
-              {/* Section 508 */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center hover:shadow-md transition-shadow">
-                <div className="w-14 h-14 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg
-                    className="w-8 h-8 text-purple-600"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                  </svg>
-                </div>
-                <h4 className="text-lg font-bold text-gray-900 mb-2">
-                  Section 508
-                </h4>
-                <p className="text-sm text-gray-600">
-                  US Accessibility Standards
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* CTA */}
-          <div className="text-center">
-            <p className="text-xl text-gray-700 mb-6">
-              Join leading organizations that trust Solupedia for their
-              technical localization needs
-            </p>
+          <div className="text-center mt-12">
             <Link href="/contact">
-              <Button
-                size="lg"
-                className="h-14 px-8 bg-blue-600 hover:bg-blue-700 text-white text-lg rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
-              >
-                Start Your Project <ArrowRight className="ml-2" size={20} />
+              <Button variant="outline" size="lg" className="rounded-full">
+                Voir toutes les catégories
               </Button>
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Why Choose Us - Feature Section */}
-      <section className="py-24 bg-white relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)] opacity-30 pointer-events-none"></div>
-        <div className="container mx-auto px-4 relative">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-            >
-              <span className="text-blue-600 font-semibold tracking-wider uppercase text-sm">
-                Why Solupedia
-              </span>
-              <h2 className="text-4xl font-bold mt-2 mb-6">
-                Experience the Difference
-              </h2>
-              <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-                We combine human expertise with cutting-edge technology to
-                deliver translations that are not just accurate, but culturally
-                resonant.
-              </p>
+      {/* Featured Products */}
+      <section className="py-24 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <span className="text-blue-600 font-semibold tracking-wider uppercase text-sm">
+              Bestsellers
+            </span>
+            <h2 className="text-4xl font-bold mt-2 text-gray-900">
+              Nos produits vedettes
+            </h2>
+            <p className="text-xl text-gray-600 mt-4 max-w-2xl mx-auto">
+              Les outils les plus appréciés par nos clients
+            </p>
+          </div>
 
-              <div className="space-y-6">
-                {[
-                  {
-                    title: "Expert Linguists",
-                    desc: "Native speakers with deep industry knowledge.",
-                  },
-                  {
-                    title: "Rigorous QA",
-                    desc: "ISO-certified quality assurance processes.",
-                  },
-                  {
-                    title: "Scalable Solutions",
-                    desc: "Workflows that grow with your business needs.",
-                  },
-                ].map((item, idx) => (
-                  <div
-                    key={idx}
-                    className="flex items-start gap-4 p-4 rounded-xl hover:bg-blue-50 transition-colors"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 text-blue-600">
-                      <CheckCircle size={20} />
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-gray-900">{item.title}</h4>
-                      <p className="text-gray-600">{item.desc}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {featuredProducts.map((product, idx) => (
+              <motion.div
+                key={product.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.1 }}
+              >
+                <Card className="h-full overflow-hidden border-none shadow-lg hover:shadow-xl transition-all duration-300">
+                  <div className="h-48 overflow-hidden relative">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-500"
+                    />
+                    <div className="absolute top-2 right-2 bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-medium">
+                      -20%
                     </div>
                   </div>
-                ))}
-              </div>
-            </motion.div>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-1 mb-2">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          size={14}
+                          className={
+                            i < Math.floor(product.rating)
+                              ? "text-yellow-400 fill-yellow-400"
+                              : "text-gray-300"
+                          }
+                        />
+                      ))}
+                      <span className="text-xs text-gray-500 ml-1">
+                        ({product.reviews})
+                      </span>
+                    </div>
+                    <h3 className="text-sm font-bold text-gray-900 mb-1 line-clamp-2">
+                      {product.name}
+                    </h3>
+                    <p className="text-xs text-gray-600 mb-3">
+                      {product.description}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-lg font-bold text-blue-600">
+                          {product.price.toFixed(2)}€
+                        </span>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700 rounded-full"
+                      >
+                        <ShoppingCart size={14} className="mr-1" />
+                        Ajouter
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
 
-            <div className="grid grid-cols-2 gap-6">
-              <motion.div
-                className="space-y-6 mt-12"
-                initial={{ y: 50, opacity: 0 }}
-                whileInView={{ y: 0, opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8 }}
-              >
-                <div className="bg-blue-600 p-8 rounded-3xl text-white shadow-xl">
-                  <Users className="w-10 h-10 mb-4 opacity-80" />
-                  <h3 className="text-4xl font-bold mb-1">18+</h3>
-                  <p className="text-blue-100">Years Experience</p>
-                </div>
-                <div className="bg-gray-100 p-8 rounded-3xl shadow-lg">
-                  <Award className="w-10 h-10 mb-4 text-blue-600" />
-                  <h3 className="text-4xl font-bold mb-1 text-gray-900">
-                    200+
-                  </h3>
-                  <p className="text-gray-600">Happy Clients</p>
-                </div>
-              </motion.div>
-              <motion.div
-                className="space-y-6"
-                initial={{ y: 50, opacity: 0 }}
-                whileInView={{ y: 0, opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-              >
-                <div className="bg-gray-100 p-8 rounded-3xl shadow-lg">
-                  <Zap className="w-10 h-10 mb-4 text-blue-600" />
-                  <h3 className="text-4xl font-bold mb-1 text-gray-900">
-                    Fast
-                  </h3>
-                  <p className="text-gray-600">Turnaround</p>
-                </div>
-                <div className="bg-blue-800 p-8 rounded-3xl text-white shadow-xl">
-                  <Globe className="w-10 h-10 mb-4 opacity-80" />
-                  <h3 className="text-4xl font-bold mb-1">150+</h3>
-                  <p className="text-blue-100">Languages</p>
-                </div>
-              </motion.div>
-            </div>
+          <div className="text-center mt-12">
+            <Link href="/contact">
+              <Button size="lg" className="rounded-full bg-blue-600 hover:bg-blue-700">
+                Voir tous les produits
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* Client Success Stories - Using Testimonials */}
-      {displayTestimonials && displayTestimonials.length > 0 && (
-        <section className="py-24 bg-gray-50">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold mb-4">
-                Client Success Stories
-              </h2>
-              <p className="text-xl text-gray-600">
-                Real results from our valued clients.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {displayTestimonials
-                .slice(0, 3)
-                .map((testimonial: any, idx: number) => (
-                  <motion.div
-                    key={testimonial.id}
-                    initial={{ opacity: 0, y: 30 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: idx * 0.1 }}
-                  >
-                    <Card className="h-full border-none shadow-lg hover:shadow-xl transition-shadow duration-300">
-                      <CardContent className="pt-8 px-8 pb-8 flex flex-col h-full">
-                        <div className="flex items-center gap-1 mb-6">
-                          {[...Array(5)].map((_, i) => (
-                            <span key={i} className="text-yellow-400">
-                              ★
-                            </span>
-                          ))}
-                        </div>
-                        <p className="text-gray-700 mb-8 italic text-lg leading-relaxed flex-1">
-                          "
-                          {testimonial.content ||
-                            testimonial.clientCompany ||
-                            "Excellent service!"}
-                          "
-                        </p>
-                        <div className="flex items-center gap-4 pt-6 border-t border-gray-100">
-                          <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 font-bold">
-                            {(testimonial.clientName || "C").charAt(0)}
-                          </div>
-                          <div>
-                            <p className="font-bold text-gray-900">
-                              {testimonial.clientName || "Client"}
-                            </p>
-                            <p className="text-sm text-blue-600 font-medium">
-                              {testimonial.company ||
-                                testimonial.clientRole ||
-                                ""}
-                            </p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                ))}
-            </div>
+      {/* Advantages Section */}
+      <section className="py-24 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {advantages.map((advantage, idx) => (
+              <motion.div
+                key={advantage.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.1 }}
+                className="text-center"
+              >
+                <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <advantage.icon className="text-blue-600" size={32} />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  {advantage.title}
+                </h3>
+                <p className="text-gray-600">{advantage.description}</p>
+              </motion.div>
+            ))}
           </div>
-        </section>
-      )}
+        </div>
+      </section>
 
-      {/* Case Studies Preview */}
-      {displayCaseStudies && displayCaseStudies.length > 0 && (
-        <section className="py-24 bg-white">
-          <div className="container mx-auto px-4">
-            <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
-              <div>
-                <span className="text-blue-600 font-semibold tracking-wider uppercase text-sm">
-                  Portfolio
-                </span>
-                <h2 className="text-4xl font-bold mt-2">Featured Projects</h2>
-              </div>
-              <Link href="/case-studies">
-                <Button variant="outline" className="rounded-full">
-                  View All Projects
+      {/* CTA Section */}
+      <section className="py-24 bg-gradient-to-br from-blue-600 to-blue-800 text-white">
+        <div className="container mx-auto px-4 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+              Prêt à démarrer vos projets ?
+            </h2>
+            <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
+              Contactez-nous pour bénéficier de conseils personnalisés et d'un devis gratuit
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/contact">
+                <Button
+                  size="lg"
+                  className="h-14 px-8 bg-white text-blue-600 hover:bg-blue-50 transition-all duration-300 text-lg rounded-full"
+                >
+                  Demander un devis <ArrowRight className="ml-2" size={20} />
+                </Button>
+              </Link>
+              <Link href="/about">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="h-14 px-8 border-white/50 text-white hover:bg-white/10 transition-all duration-300 text-lg rounded-full"
+                >
+                  En savoir plus
                 </Button>
               </Link>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-8">
-              {(displayCaseStudies as any[])
-                .slice(0, 2)
-                .map((study: any, idx: number) => (
-                  <Link key={study.id} href={`/case-studies/${study.slug}`}>
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      whileInView={{ opacity: 1, scale: 1 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: idx * 0.2 }}
-                      className="group cursor-pointer"
-                    >
-                      <div className="bg-gray-50 rounded-3xl overflow-hidden border border-gray-100 hover:border-blue-200 transition-all duration-300 hover:shadow-2xl">
-                        <div className="p-8 md:p-10">
-                          <div className="flex justify-between items-start mb-6">
-                            <div className="px-4 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase tracking-wide">
-                              {study.industry}
-                            </div>
-                            <ArrowRight className="text-gray-300 group-hover:text-blue-600 transition-colors transform group-hover:translate-x-1" />
-                          </div>
-                          <h3 className="text-2xl font-bold mb-4 group-hover:text-blue-700 transition-colors">
-                            {study.title}
-                          </h3>
-                          <p className="text-gray-600 mb-6 line-clamp-3">
-                            {study.solution}
-                          </p>
-
-                          <div className="grid grid-cols-2 gap-4 mt-8 pt-8 border-t border-gray-200">
-                            <div>
-                              <p className="text-xs text-gray-500 uppercase font-semibold mb-1">
-                                Challenge
-                              </p>
-                              <p className="text-sm font-medium text-gray-900 line-clamp-2">
-                                {study.challenge}
-                              </p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500 uppercase font-semibold mb-1">
-                                Result
-                              </p>
-                              <p className="text-sm font-bold text-blue-600 line-clamp-2">
-                                {study.results}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  </Link>
-                ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* CTA Section - Modernized */}
-      <section className="py-24 bg-gray-900 text-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-blue-600/10"></div>
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/20 rounded-full blur-[100px] pointer-events-none"></div>
-        <div className="container mx-auto px-4 text-center relative z-10">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">
-            Ready to Go Global?
-          </h2>
-          <p className="text-xl text-gray-300 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Let us help you reach new markets with professional localization
-            solutions tailored to your business needs.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-            <Link href="/contact">
-              <Button
-                size="lg"
-                className="h-16 px-10 text-lg bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg shadow-blue-900/50 hover:scale-105 transition-transform"
-              >
-                Get a Free Quote
-              </Button>
-            </Link>
-            <Link href="/lead-magnet">
-              <Button
-                size="lg"
-                variant="outline"
-                className="h-16 px-10 text-lg border-gray-600 text-gray-300 hover:bg-white/10 hover:text-white hover:border-white rounded-full transition-all"
-              >
-                Download Our Guide
-              </Button>
-            </Link>
-          </div>
+          </motion.div>
         </div>
       </section>
     </div>

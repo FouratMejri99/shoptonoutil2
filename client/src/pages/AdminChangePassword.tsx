@@ -30,7 +30,7 @@ export default function AdminChangePassword() {
   useEffect(() => {
     const adminSession = localStorage.getItem("adminSession");
     if (!adminSession) {
-      setLocation("/solupedia-admin");
+      setLocation("/shoptonoutil-admin");
     }
   }, [setLocation]);
 

@@ -61,7 +61,7 @@ export default function AdminServices() {
   useEffect(() => {
     const adminSession = localStorage.getItem("adminSession");
     if (!adminSession) {
-      setLocation("/solupedia-admin");
+      setLocation("/shoptonoutil-admin");
       return;
     }
   }, [setLocation]);
