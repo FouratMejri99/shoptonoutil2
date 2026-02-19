@@ -1,13 +1,28 @@
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AnimatePresence, motion } from "framer-motion";
-import { Lock, Menu, Shield, X, MessageSquare, MapPin, Plus, LogOut, User } from "lucide-react";
-import { memo, useEffect, useState } from "react";
-import { Link, useLocation } from "wouter";
 import { supabase } from "@/lib/supabase";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  LogOut,
+  MapPin,
+  Menu,
+  MessageSquare,
+  Plus,
+  Shield,
+  User,
+  X,
+} from "lucide-react";
+import { memo, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Link, useLocation } from "wouter";
 
 function Navigation() {
   const [isOpen, setIsOpen] = useState(false);
@@ -32,12 +47,16 @@ function Navigation() {
   // Check auth state on mount
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       setUser(user);
     };
     checkUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
     });
 
@@ -78,7 +97,9 @@ function Navigation() {
             href="/"
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
-            <span className="text-2xl font-bold text-blue-600">Shoptonoutil</span>
+            <span className="text-2xl font-bold text-blue-600">
+              Shoptonoutil
+            </span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -94,7 +115,7 @@ function Navigation() {
               <a
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${location === "/shop" ? "text-blue-600 bg-blue-50" : "text-gray-600 hover:text-blue-600 hover:bg-gray-50"}`}
               >
-                Shop
+                Boutique
               </a>
             </Link>
 
@@ -126,22 +147,31 @@ function Navigation() {
                   </Button>
                 </Link>
                 <Link href="/messages">
-                  <Button variant="ghost" className="rounded-full hover:bg-blue-50 hover:text-blue-600">
+                  <Button
+                    variant="ghost"
+                    className="rounded-full hover:bg-blue-50 hover:text-blue-600"
+                  >
                     <MessageSquare className="w-5 h-5" />
                   </Button>
                 </Link>
                 <Link href="/map">
-                  <Button variant="ghost" className="rounded-full hover:bg-blue-50 hover:text-blue-600">
+                  <Button
+                    variant="ghost"
+                    className="rounded-full hover:bg-blue-50 hover:text-blue-600"
+                  >
                     <MapPin className="w-5 h-5" />
                   </Button>
                 </Link>
                 <Link href="/profile">
-                  <Button variant="ghost" className="rounded-full hover:bg-blue-50 hover:text-blue-600">
+                  <Button
+                    variant="ghost"
+                    className="rounded-full hover:bg-blue-50 hover:text-blue-600"
+                  >
                     <User className="w-5 h-5" />
                   </Button>
                 </Link>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   className="rounded-full hover:bg-red-50 hover:text-red-600"
                   onClick={handleLogout}
                 >
@@ -158,81 +188,89 @@ function Navigation() {
                     Connexion
                   </Button>
                 </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle className="text-center text-xl font-bold">
-                    Connexion à votre compte
-                  </DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input 
-                      id="email" 
-                      type="email" 
-                      placeholder="votre@email.com" 
-                      value={loginData.email}
-                      onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Mot de passe</Label>
-                    <Input 
-                      id="password" 
-                      type="password" 
-                      placeholder="••••••••" 
-                      value={loginData.password}
-                      onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
-                    />
-                  </div>
-                  <Button 
-                    className="w-full bg-blue-600 hover:bg-blue-700"
-                    disabled={loginLoading}
-                    onClick={async () => {
-                      if (!loginData.email || !loginData.password) {
-                        toast.error("Veuillez remplir tous les champs");
-                        return;
-                      }
-                      setLoginLoading(true);
-                      try {
-                        const { data, error } = await supabase.auth.signInWithPassword({
-                          email: loginData.email,
-                          password: loginData.password,
-                        });
-                        if (error) {
-                          toast.error(error.message);
-                        } else {
-                          toast.success("Connexion réussie!");
-                          setLoginOpen(false);
-                          setLoginData({ email: "", password: "" });
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="text-center text-xl font-bold">
+                      Connexion à votre compte
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="votre@email.com"
+                        value={loginData.email}
+                        onChange={e =>
+                          setLoginData({ ...loginData, email: e.target.value })
                         }
-                      } catch (err) {
-                        toast.error("Erreur de connexion");
-                      } finally {
-                        setLoginLoading(false);
-                      }
-                    }}
-                  >
-                    {loginLoading ? "Connexion..." : "Se connecter"}
-                  </Button>
-                  <div className="text-center text-sm text-gray-500 space-y-2">
-                    <div>
-                      <span 
-                        className="text-blue-600 hover:underline cursor-pointer"
-                        onClick={() => setRegisterOpen(true)}
-                      >
-                        Créer un compte
-                      </span>
+                      />
                     </div>
-                    <div>
-                      <span className="text-blue-600 hover:underline cursor-pointer">
-                        Mot de passe oublié ?
-                      </span>
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Mot de passe</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        placeholder="••••••••"
+                        value={loginData.password}
+                        onChange={e =>
+                          setLoginData({
+                            ...loginData,
+                            password: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <Button
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                      disabled={loginLoading}
+                      onClick={async () => {
+                        if (!loginData.email || !loginData.password) {
+                          toast.error("Veuillez remplir tous les champs");
+                          return;
+                        }
+                        setLoginLoading(true);
+                        try {
+                          const { data, error } =
+                            await supabase.auth.signInWithPassword({
+                              email: loginData.email,
+                              password: loginData.password,
+                            });
+                          if (error) {
+                            toast.error(error.message);
+                          } else {
+                            toast.success("Connexion réussie!");
+                            setLoginOpen(false);
+                            setLoginData({ email: "", password: "" });
+                          }
+                        } catch (err) {
+                          toast.error("Erreur de connexion");
+                        } finally {
+                          setLoginLoading(false);
+                        }
+                      }}
+                    >
+                      {loginLoading ? "Connexion..." : "Se connecter"}
+                    </Button>
+                    <div className="text-center text-sm text-gray-500 space-y-2">
+                      <div>
+                        <span
+                          className="text-blue-600 hover:underline cursor-pointer"
+                          onClick={() => setRegisterOpen(true)}
+                        >
+                          Créer un compte
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-blue-600 hover:underline cursor-pointer">
+                          Mot de passe oublié ?
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </DialogContent>
-            </Dialog>
+                </DialogContent>
+              </Dialog>
             )}
 
             {/* Registration Dialog */}
@@ -246,19 +284,37 @@ function Navigation() {
                     Louez ou proposez vos outils facilement
                   </p>
                 </DialogHeader>
-                
+
                 {/* Step Indicator */}
                 <div className="flex justify-center gap-4 mb-4">
-                  <div className={`flex items-center gap-2 ${registerStep >= 1 ? 'text-blue-600' : 'text-gray-400'}`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${registerStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>1</div>
+                  <div
+                    className={`flex items-center gap-2 ${registerStep >= 1 ? "text-blue-600" : "text-gray-400"}`}
+                  >
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${registerStep >= 1 ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+                    >
+                      1
+                    </div>
                     <span className="text-sm">Informations</span>
                   </div>
-                  <div className={`flex items-center gap-2 ${registerStep >= 2 ? 'text-blue-600' : 'text-gray-400'}`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${registerStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>2</div>
+                  <div
+                    className={`flex items-center gap-2 ${registerStep >= 2 ? "text-blue-600" : "text-gray-400"}`}
+                  >
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${registerStep >= 2 ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+                    >
+                      2
+                    </div>
                     <span className="text-sm">Vérification</span>
                   </div>
-                  <div className={`flex items-center gap-2 ${registerStep >= 3 ? 'text-blue-600' : 'text-gray-400'}`}>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${registerStep >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>3</div>
+                  <div
+                    className={`flex items-center gap-2 ${registerStep >= 3 ? "text-blue-600" : "text-gray-400"}`}
+                  >
+                    <div
+                      className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${registerStep >= 3 ? "bg-blue-600 text-white" : "bg-gray-200"}`}
+                    >
+                      3
+                    </div>
                     <span className="text-sm">Identité</span>
                   </div>
                 </div>
@@ -268,37 +324,58 @@ function Navigation() {
                     <>
                       <div className="space-y-2">
                         <Label htmlFor="reg-name">Nom complet</Label>
-                        <Input 
-                          id="reg-name" 
-                          placeholder="Votre nom" 
+                        <Input
+                          id="reg-name"
+                          placeholder="Votre nom"
                           value={registerData.name}
-                          onChange={(e) => setRegisterData({...registerData, name: e.target.value})}
+                          onChange={e =>
+                            setRegisterData({
+                              ...registerData,
+                              name: e.target.value,
+                            })
+                          }
                         />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="reg-email">Email</Label>
-                        <Input 
-                          id="reg-email" 
-                          type="email" 
+                        <Input
+                          id="reg-email"
+                          type="email"
                           placeholder="votre@email.com"
                           value={registerData.email}
-                          onChange={(e) => setRegisterData({...registerData, email: e.target.value})} 
+                          onChange={e =>
+                            setRegisterData({
+                              ...registerData,
+                              email: e.target.value,
+                            })
+                          }
                         />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="reg-password">Mot de passe</Label>
-                        <Input 
-                          id="reg-password" 
-                          type="password" 
+                        <Input
+                          id="reg-password"
+                          type="password"
                           placeholder="Minimum 6 caractères"
                           value={registerData.password}
-                          onChange={(e) => setRegisterData({...registerData, password: e.target.value})}
+                          onChange={e =>
+                            setRegisterData({
+                              ...registerData,
+                              password: e.target.value,
+                            })
+                          }
                         />
-                        <p className="text-xs text-gray-500">Le mot de passe doit contenir au moins 6 caractères</p>
+                        <p className="text-xs text-gray-500">
+                          Le mot de passe doit contenir au moins 6 caractères
+                        </p>
                       </div>
-                      <Button 
+                      <Button
                         className="w-full bg-blue-600 hover:bg-blue-700"
-                        disabled={!registerData.name || !registerData.email || registerData.password.length < 6}
+                        disabled={
+                          !registerData.name ||
+                          !registerData.email ||
+                          registerData.password.length < 6
+                        }
                         onClick={() => setRegisterStep(2)}
                       >
                         Continuer
@@ -310,11 +387,16 @@ function Navigation() {
                     <>
                       <div className="space-y-2">
                         <Label htmlFor="reg-city">Ville</Label>
-                        <Input 
-                          id="reg-city" 
+                        <Input
+                          id="reg-city"
                           placeholder="Reims"
                           value={registerData.city}
-                          onChange={(e) => setRegisterData({...registerData, city: e.target.value})} 
+                          onChange={e =>
+                            setRegisterData({
+                              ...registerData,
+                              city: e.target.value,
+                            })
+                          }
                         />
                       </div>
                       <div className="space-y-2">
@@ -325,31 +407,41 @@ function Navigation() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="reg-address">Rue</Label>
-                        <Input 
-                          id="reg-address" 
+                        <Input
+                          id="reg-address"
                           placeholder="Tapez le nom de votre rue..."
                           value={registerData.address}
-                          onChange={(e) => setRegisterData({...registerData, address: e.target.value})} 
+                          onChange={e =>
+                            setRegisterData({
+                              ...registerData,
+                              address: e.target.value,
+                            })
+                          }
                         />
                       </div>
                       <div className="space-y-2">
                         <Label>Type de profil</Label>
-                        <div 
-                          className={`p-3 rounded-lg border-2 cursor-pointer ${registerData.profileType === 'bricoleur' ? 'border-blue-600 bg-blue-50' : 'border-gray-200'}`}
-                          onClick={() => setRegisterData({...registerData, profileType: 'bricoleur'})}
+                        <div
+                          className={`p-3 rounded-lg border-2 cursor-pointer ${registerData.profileType === "bricoleur" ? "border-blue-600 bg-blue-50" : "border-gray-200"}`}
+                          onClick={() =>
+                            setRegisterData({
+                              ...registerData,
+                              profileType: "bricoleur",
+                            })
+                          }
                         >
                           🔧 Bricoleur (je cherche des outils)
                         </div>
                       </div>
                       <div className="flex gap-3">
-                        <Button 
-                          variant="outline" 
+                        <Button
+                          variant="outline"
                           className="flex-1"
                           onClick={() => setRegisterStep(1)}
                         >
                           Retour
                         </Button>
-                        <Button 
+                        <Button
                           className="flex-1 bg-blue-600 hover:bg-blue-700"
                           onClick={() => setRegisterStep(3)}
                         >
@@ -365,83 +457,126 @@ function Navigation() {
                   {registerStep === 3 && (
                     <>
                       <div className="text-center mb-4">
-                        <h3 className="font-bold text-lg">Vérification d'identité</h3>
+                        <h3 className="font-bold text-lg">
+                          Vérification d'identité
+                        </h3>
                         <p className="text-sm text-gray-500">
-                          Pour sécuriser les transactions, nous devons vérifier votre identité
+                          Pour sécuriser les transactions, nous devons vérifier
+                          votre identité
                         </p>
                       </div>
-                      
+
                       <div className="space-y-4">
                         <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-700">
-                          📧 Vérification par email : Nous vous enverrons un email pour vérifier votre carte d'identité après votre inscription.
+                          📧 Vérification par email : Nous vous enverrons un
+                          email pour vérifier votre carte d'identité après votre
+                          inscription.
                         </div>
-                        
+
                         <div className="space-y-2">
                           <Label>Carte d'identité - Recto (face avant) *</Label>
                           <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-500 transition-colors cursor-pointer">
-                            <Input type="file" accept="image/*" className="hidden" id="id-front" />
-                            <label htmlFor="id-front" className="cursor-pointer">
-                              <p className="text-gray-600">Choisir un fichier</p>
-                              <p className="text-xs text-gray-400 mt-1">Prendre une photo</p>
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              id="id-front"
+                            />
+                            <label
+                              htmlFor="id-front"
+                              className="cursor-pointer"
+                            >
+                              <p className="text-gray-600">
+                                Choisir un fichier
+                              </p>
+                              <p className="text-xs text-gray-400 mt-1">
+                                Prendre une photo
+                              </p>
                             </label>
                           </div>
                         </div>
-                        
+
                         <div className="space-y-2">
-                          <Label>Carte d'identité - Verso (face arrière) *</Label>
+                          <Label>
+                            Carte d'identité - Verso (face arrière) *
+                          </Label>
                           <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-500 transition-colors cursor-pointer">
-                            <Input type="file" accept="image/*" className="hidden" id="id-back" />
+                            <Input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              id="id-back"
+                            />
                             <label htmlFor="id-back" className="cursor-pointer">
-                              <p className="text-gray-600">Choisir un fichier</p>
-                              <p className="text-xs text-gray-400 mt-1">Prendre une photo</p>
+                              <p className="text-gray-600">
+                                Choisir un fichier
+                              </p>
+                              <p className="text-xs text-gray-400 mt-1">
+                                Prendre une photo
+                              </p>
                             </label>
                           </div>
-                          <p className="text-xs text-gray-500">Format accepté : JPG, PNG (max 10MB). Les deux faces sont obligatoires.</p>
+                          <p className="text-xs text-gray-500">
+                            Format accepté : JPG, PNG (max 10MB). Les deux faces
+                            sont obligatoires.
+                          </p>
                         </div>
-                        
+
                         <div className="space-y-2">
                           <Label htmlFor="reg-iban">IBAN (optionnel)</Label>
-                          <Input 
-                            id="reg-iban" 
+                          <Input
+                            id="reg-iban"
                             placeholder="FR76 1234 5678 9012 3456 7890 123"
                           />
-                          <p className="text-xs text-gray-500">Format : FR suivi de 23 chiffres. Espaces automatiques tous les 4 caractères.</p>
+                          <p className="text-xs text-gray-500">
+                            Format : FR suivi de 23 chiffres. Espaces
+                            automatiques tous les 4 caractères.
+                          </p>
                         </div>
-                        
+
                         <div className="flex gap-3 pt-2">
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             className="flex-1"
                             onClick={() => setRegisterStep(2)}
                           >
                             Retour
                           </Button>
-                          <Button 
+                          <Button
                             className="flex-1 bg-blue-600 hover:bg-blue-700"
                             disabled={registerLoading}
                             onClick={async () => {
-                              if (!registerData.email || !registerData.password || !registerData.name) {
-                                toast.error("Veuillez remplir tous les champs obligatoires");
+                              if (
+                                !registerData.email ||
+                                !registerData.password ||
+                                !registerData.name
+                              ) {
+                                toast.error(
+                                  "Veuillez remplir tous les champs obligatoires"
+                                );
                                 return;
                               }
                               setRegisterLoading(true);
                               try {
-                                const { data, error } = await supabase.auth.signUp({
-                                  email: registerData.email,
-                                  password: registerData.password,
-                                  options: {
-                                    data: {
-                                      name: registerData.name,
-                                      city: registerData.city,
-                                      address: registerData.address,
-                                      profile_type: registerData.profileType,
-                                    }
-                                  }
-                                });
+                                const { data, error } =
+                                  await supabase.auth.signUp({
+                                    email: registerData.email,
+                                    password: registerData.password,
+                                    options: {
+                                      data: {
+                                        name: registerData.name,
+                                        city: registerData.city,
+                                        address: registerData.address,
+                                        profile_type: registerData.profileType,
+                                      },
+                                    },
+                                  });
                                 if (error) {
                                   toast.error(error.message);
                                 } else {
-                                  toast.success("Compte créé avec succès! Veuillez vérifier votre email.");
+                                  toast.success(
+                                    "Compte créé avec succès! Veuillez vérifier votre email."
+                                  );
                                   setRegisterOpen(false);
                                   setRegisterStep(1);
                                   setRegisterData({
@@ -461,7 +596,9 @@ function Navigation() {
                               }
                             }}
                           >
-                            {registerLoading ? "Inscription..." : "S'inscrire gratuitement"}
+                            {registerLoading
+                              ? "Inscription..."
+                              : "S'inscrire gratuitement"}
                           </Button>
                         </div>
                       </div>

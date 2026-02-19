@@ -1,8 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/lib/supabase";
+import { productsService, supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
-import { Package, Upload, DollarSign, Globe, ArrowLeft, Lock } from "lucide-react";
+import {
+  ArrowLeft,
+  DollarSign,
+  Globe,
+  Lock,
+  Package,
+  Upload,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Link } from "wouter";
@@ -40,7 +47,7 @@ const toolCategories = [
       "Découpeur thermique",
       "Décapeur thermique",
       "Fer à souder",
-    ]
+    ],
   },
   {
     category: "Chantier & gros œuvre",
@@ -59,7 +66,7 @@ const toolCategories = [
       "Groupes électrogènes",
       "Compresseur d'air",
       "Cintreuse à béton",
-    ]
+    ],
   },
   {
     category: "Plomberie",
@@ -74,7 +81,7 @@ const toolCategories = [
       "Kit de recherche de fuite",
       "Gel de congélation de tuyaux",
       "Nettoyeur haute pression pour canalisations",
-    ]
+    ],
   },
   {
     category: "Menuiserie & travail du bois",
@@ -88,7 +95,7 @@ const toolCategories = [
       "Affûteuse",
       "Aspiration pour copeaux",
       "Gabarits de perçage",
-    ]
+    ],
   },
   {
     category: "Peinture & rénovation",
@@ -101,7 +108,7 @@ const toolCategories = [
       "Mélangeur de peinture",
       "Shampouineuse moquette",
       "Décolleuse de papier peint",
-    ]
+    ],
   },
   {
     category: "Jardinage & extérieur",
@@ -118,7 +125,7 @@ const toolCategories = [
       "Aspirateur/souffleur de feuilles",
       "Coupe-bordure",
       "Tarière thermique",
-    ]
+    ],
   },
   {
     category: "Transport, manutention & levage",
@@ -132,7 +139,7 @@ const toolCategories = [
       "Cric hydraulique",
       "Mini-dumper",
       "Camion type utilitaire",
-    ]
+    ],
   },
   {
     category: "Sécurité et équipement",
@@ -143,7 +150,7 @@ const toolCategories = [
       "Générateur de lumière / projecteurs LED",
       "Barrières de sécurité chantier",
       "Coffres sécurisés pour matériels",
-    ]
+    ],
   },
 ];
 
@@ -153,18 +160,22 @@ export default function PublierOutil() {
   const [loginOpen, setLoginOpen] = useState(false);
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [loginLoading, setLoginLoading] = useState(false);
-  
+
   useEffect(() => {
     // Check current user
     const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       setUser(user);
       setLoading(false);
     };
     checkUser();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
     });
 
@@ -237,14 +248,16 @@ export default function PublierOutil() {
             <p className="text-gray-600 mb-6">
               Vous devez être connecté pour publier un outil sur ShopTonOutil.
             </p>
-            
+
             <div className="space-y-4">
               <div>
                 <input
                   type="email"
                   placeholder="Votre email"
                   value={loginData.email}
-                  onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
+                  onChange={e =>
+                    setLoginData({ ...loginData, email: e.target.value })
+                  }
                   className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -253,7 +266,9 @@ export default function PublierOutil() {
                   type="password"
                   placeholder="Votre mot de passe"
                   value={loginData.password}
-                  onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
+                  onChange={e =>
+                    setLoginData({ ...loginData, password: e.target.value })
+                  }
                   className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -265,10 +280,14 @@ export default function PublierOutil() {
                 {loginLoading ? "Connexion..." : "Se connecter"}
               </button>
               <div className="text-sm text-gray-500">
-                Pas encore de compte? <span className="text-blue-600 font-medium">Contactez-nous</span> pour créer un compte
+                Pas encore de compte?{" "}
+                <span className="text-blue-600 font-medium">
+                  Contactez-nous
+                </span>{" "}
+                pour créer un compte
               </div>
             </div>
-            
+
             <Link href="/">
               <button className="mt-6 text-gray-500 hover:text-gray-700">
                 ← Retour à l'accueil
@@ -281,7 +300,9 @@ export default function PublierOutil() {
   }
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -295,33 +316,52 @@ export default function PublierOutil() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate required fields
+    if (!formData.name) {
+      toast.error("Veuillez entrer un nom pour l'outil");
+      return;
+    }
+    if (!formData.category) {
+      toast.error("Veuillez sélectionner une catégorie");
+      return;
+    }
+    if (!formData.description) {
+      toast.error("Veuillez entrer une description");
+      return;
+    }
+    if (!formData.price) {
+      toast.error("Veuillez entrer un prix");
+      return;
+    }
+    if (!formData.city) {
+      toast.error("Veuillez entrer une ville");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
+      console.log("Form data:", formData);
+      console.log("Image file:", imageFile);
+
       let imageUrl = null;
 
       // Upload image if selected
       if (imageFile) {
         try {
-          const fileName = `${Date.now()}-${imageFile.name}`;
-          const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('products')
-            .upload(fileName, imageFile);
-
-          if (!uploadError && uploadData) {
-            const { data: { publicUrl } } = supabase.storage
-              .from('products')
-              .getPublicUrl(fileName);
-            imageUrl = publicUrl;
-          } else {
-            console.log("Image upload skipped, continuing without image");
-          }
+          console.log("Uploading image file:", imageFile.name);
+          imageUrl = await productsService.uploadProductImage(imageFile);
+          console.log("Image uploaded successfully:", imageUrl);
         } catch (storageError) {
-          console.log("Storage error (bucket may not exist), continuing without image:", storageError);
+          console.error("Storage error (bucket may not exist):", storageError);
+          toast.error(
+            "Erreur lors de l'upload de l'image. L'outil sera publié sans image."
+          );
         }
       }
 
-      // Insert into publish table - only use columns that exist
+      // Insert into publish table
       const { data, error } = await supabase
         .from("publish")
         .insert([
@@ -331,7 +371,11 @@ export default function PublierOutil() {
             description: formData.description,
             price: parseFloat(formData.price),
             category: formData.category,
+            subcategory: formData.subcategory,
+            characteristics: formData.characteristics,
+            deposit: formData.condition || "Bon état",
             city: formData.city,
+            address: formData.address,
             image_url: imageUrl,
           },
         ])
@@ -365,6 +409,32 @@ export default function PublierOutil() {
   };
 
   const nextStep = () => {
+    // Validate step 1 before proceeding
+    if (currentStep === 1) {
+      if (!formData.name) {
+        toast.error("Veuillez entrer un nom pour l'outil");
+        return;
+      }
+      if (!formData.category) {
+        toast.error("Veuillez sélectionner une catégorie");
+        return;
+      }
+      if (!formData.description) {
+        toast.error("Veuillez entrer une description");
+        return;
+      }
+    }
+    // Validate step 3 before proceeding
+    if (currentStep === 3) {
+      if (!formData.price) {
+        toast.error("Veuillez entrer un prix");
+        return;
+      }
+      if (!formData.city) {
+        toast.error("Veuillez entrer une ville");
+        return;
+      }
+    }
     if (currentStep < 4) {
       setCurrentStep(currentStep + 1);
     }
@@ -377,7 +447,11 @@ export default function PublierOutil() {
   };
 
   const steps = [
-    { icon: Package, title: "Catégorie", description: "Sélectionnez votre outil" },
+    {
+      icon: Package,
+      title: "Catégorie",
+      description: "Sélectionnez votre outil",
+    },
     { icon: Upload, title: "Photos", description: "Ajoutez des images" },
     { icon: DollarSign, title: "Prix", description: "Fixez votre tarif" },
     { icon: Globe, title: "Publication", description: "Finalisez" },
@@ -400,8 +474,8 @@ export default function PublierOutil() {
               Publier un outil
             </h1>
             <p className="text-xl text-blue-100 max-w-2xl mx-auto">
-              Louez vos outils de bricolage à des milliers de clients potentiels.
-              Simple, rapide et efficace.
+              Louez vos outils de bricolage à des milliers de clients
+              potentiels. Simple, rapide et efficace.
             </p>
           </motion.div>
         </div>
@@ -414,10 +488,15 @@ export default function PublierOutil() {
             {steps.map((step, idx) => (
               <div key={idx} className="flex items-center">
                 <div className="flex items-center">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                    currentStep > idx + 1 ? "bg-green-500" : 
-                    currentStep === idx + 1 ? "bg-blue-600" : "bg-gray-300"
-                  }`}>
+                  <div
+                    className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                      currentStep > idx + 1
+                        ? "bg-green-500"
+                        : currentStep === idx + 1
+                          ? "bg-blue-600"
+                          : "bg-gray-300"
+                    }`}
+                  >
                     {currentStep > idx + 1 ? (
                       <span className="text-white">✓</span>
                     ) : (
@@ -425,17 +504,23 @@ export default function PublierOutil() {
                     )}
                   </div>
                   <div className="ml-3 hidden md:block">
-                    <p className={`text-sm font-medium ${
-                      currentStep >= idx + 1 ? "text-gray-900" : "text-gray-400"
-                    }`}>
+                    <p
+                      className={`text-sm font-medium ${
+                        currentStep >= idx + 1
+                          ? "text-gray-900"
+                          : "text-gray-400"
+                      }`}
+                    >
                       {step.title}
                     </p>
                   </div>
                 </div>
                 {idx < steps.length - 1 && (
-                  <div className={`w-8 md:w-16 h-0.5 mx-2 ${
-                    currentStep > idx + 1 ? "bg-green-500" : "bg-gray-300"
-                  }`} />
+                  <div
+                    className={`w-8 md:w-16 h-0.5 mx-2 ${
+                      currentStep > idx + 1 ? "bg-green-500" : "bg-gray-300"
+                    }`}
+                  />
                 )}
               </div>
             ))}
@@ -450,7 +535,8 @@ export default function PublierOutil() {
             <Card className="border-none shadow-lg">
               <CardHeader>
                 <CardTitle className="text-2xl text-center">
-                  {currentStep === 1 && "Sélectionnez la catégorie de votre outil"}
+                  {currentStep === 1 &&
+                    "Sélectionnez la catégorie de votre outil"}
                   {currentStep === 2 && "Photos de l'outil"}
                   {currentStep === 3 && "Prix et localisation"}
                   {currentStep === 4 && "Confirmation"}
@@ -463,6 +549,21 @@ export default function PublierOutil() {
                     <div className="space-y-6">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Nom pour l'outil *
+                        </label>
+                        <input
+                          type="text"
+                          name="name"
+                          value={formData.name}
+                          onChange={handleChange}
+                          required
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Ex: Perceuse Makita 18V"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
                           Catégorie principale *
                         </label>
                         <select
@@ -473,7 +574,7 @@ export default function PublierOutil() {
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
                           <option value="">Sélectionner une catégorie</option>
-                          {toolCategories.map((cat) => (
+                          {toolCategories.map(cat => (
                             <option key={cat.category} value={cat.category}>
                               {cat.category}
                             </option>
@@ -495,8 +596,8 @@ export default function PublierOutil() {
                           >
                             <option value="">Sélectionner un outil</option>
                             {toolCategories
-                              .find((c) => c.category === formData.category)
-                              ?.tools.map((tool) => (
+                              .find(c => c.category === formData.category)
+                              ?.tools.map(tool => (
                                 <option key={tool} value={tool}>
                                   {tool}
                                 </option>
@@ -542,7 +643,12 @@ export default function PublierOutil() {
                       <Button
                         type="button"
                         onClick={nextStep}
-                        disabled={!formData.category || !formData.subcategory || !formData.description || !formData.condition}
+                        disabled={
+                          !formData.category ||
+                          !formData.subcategory ||
+                          !formData.description ||
+                          !formData.condition
+                        }
                         className="w-full bg-blue-600 hover:bg-blue-700 h-12 text-lg rounded-lg"
                       >
                         Suivant
@@ -565,10 +671,15 @@ export default function PublierOutil() {
                             className="hidden"
                             id="image-upload"
                           />
-                          <label htmlFor="image-upload" className="cursor-pointer">
+                          <label
+                            htmlFor="image-upload"
+                            className="cursor-pointer"
+                          >
                             <Upload className="mx-auto h-12 w-12 text-gray-400 mb-2" />
                             <p className="text-gray-600">
-                              {imageFile ? imageFile.name : "Cliquez pour télécharger une photo"}
+                              {imageFile
+                                ? imageFile.name
+                                : "Cliquez pour télécharger une photo"}
                             </p>
                             <p className="text-sm text-gray-400 mt-1">
                               PNG, JPG jusqu'à 5MB
@@ -672,12 +783,28 @@ export default function PublierOutil() {
                   {currentStep === 4 && (
                     <div className="space-y-6">
                       <div className="bg-blue-50 rounded-lg p-4 space-y-2">
-                        <p><strong>Catégorie:</strong> {formData.category}</p>
-                        <p><strong>Outil:</strong> {formData.subcategory}</p>
-                        <p><strong>État:</strong> {formData.condition}</p>
-                        <p><strong>Prix:</strong> {formData.price}€ / jour</p>
-                        {formData.city && <p><strong>Ville:</strong> {formData.city}</p>}
-                        {imageFile && <p><strong>Image:</strong> {imageFile.name}</p>}
+                        <p>
+                          <strong>Catégorie:</strong> {formData.category}
+                        </p>
+                        <p>
+                          <strong>Outil:</strong> {formData.subcategory}
+                        </p>
+                        <p>
+                          <strong>État:</strong> {formData.condition}
+                        </p>
+                        <p>
+                          <strong>Prix:</strong> {formData.price}€ / jour
+                        </p>
+                        {formData.city && (
+                          <p>
+                            <strong>Ville:</strong> {formData.city}
+                          </p>
+                        )}
+                        {imageFile && (
+                          <p>
+                            <strong>Image:</strong> {imageFile.name}
+                          </p>
+                        )}
                       </div>
 
                       <div className="flex gap-4">

@@ -1,9 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { supabase } from "@/lib/supabase";
+import { productsService, supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
+import { ShoppingCart } from "lucide-react";
 import { useEffect, useState } from "react";
-import { ShoppingCart, Star } from "lucide-react";
 import { Link } from "wouter";
 
 interface PublishItem {
@@ -45,15 +45,14 @@ export default function Shop() {
           console.error("Error fetching products:", error);
         } else {
           setProducts(data || []);
-          
+
           // Fetch image URLs for each product
           const urls: Record<number, string> = {};
           for (const product of data || []) {
             if (product.image_url) {
-              const { data: { publicUrl } } = supabase.storage
-                .from('products')
-                .getPublicUrl(product.image_url);
-              urls[product.id] = publicUrl;
+              urls[product.id] = productsService.getProductImageUrl(
+                product.image_url
+              );
             }
           }
           setImageUrls(urls);
@@ -70,17 +69,50 @@ export default function Shop() {
 
   const categories = [
     { id: "all", name: "Tous les produits", count: products.length },
-    { id: "Outils électroportatifs", name: "Outils électroportatifs", count: products.filter(p => p.category === "Outils électroportatifs").length },
-    { id: "Chantier & gros œuvre", name: "Chantier & gros œuvre", count: products.filter(p => p.category === "Chantier & gros œuvre").length },
-    { id: "Plomberie", name: "Plomberie", count: products.filter(p => p.category === "Plomberie").length },
-    { id: "Menuiserie & travail du bois", name: "Menuiserie & travail du bois", count: products.filter(p => p.category === "Menuiserie & travail du bois").length },
-    { id: "Peinture & revêtements", name: "Peinture & revêtements", count: products.filter(p => p.category === "Peinture & revêtements").length },
-    { id: "Jardinage", name: "Jardinage", count: products.filter(p => p.category === "Jardinage").length },
-    { id: "Sécurité & EPI", name: "Sécurité & EPI", count: products.filter(p => p.category === "Sécurité & EPI").length },
+    {
+      id: "Outils électroportatifs",
+      name: "Outils électroportatifs",
+      count: products.filter(p => p.category === "Outils électroportatifs")
+        .length,
+    },
+    {
+      id: "Chantier & gros œuvre",
+      name: "Chantier & gros œuvre",
+      count: products.filter(p => p.category === "Chantier & gros œuvre")
+        .length,
+    },
+    {
+      id: "Plomberie",
+      name: "Plomberie",
+      count: products.filter(p => p.category === "Plomberie").length,
+    },
+    {
+      id: "Menuiserie & travail du bois",
+      name: "Menuiserie & travail du bois",
+      count: products.filter(p => p.category === "Menuiserie & travail du bois")
+        .length,
+    },
+    {
+      id: "Peinture & revêtements",
+      name: "Peinture & revêtements",
+      count: products.filter(p => p.category === "Peinture & revêtements")
+        .length,
+    },
+    {
+      id: "Jardinage",
+      name: "Jardinage",
+      count: products.filter(p => p.category === "Jardinage").length,
+    },
+    {
+      id: "Sécurité & EPI",
+      name: "Sécurité & EPI",
+      count: products.filter(p => p.category === "Sécurité & EPI").length,
+    },
   ];
 
   const filteredProducts = products.filter(p => {
-    const matchesCategory = selectedCategory === "all" || p.category === selectedCategory;
+    const matchesCategory =
+      selectedCategory === "all" || p.category === selectedCategory;
     const minP = minPrice ? parseFloat(minPrice) : 0;
     const maxP = maxPrice ? parseFloat(maxPrice) : 1000;
     const matchesPrice = (p.price || 0) >= minP && (p.price || 0) <= maxP;
@@ -92,7 +124,9 @@ export default function Shop() {
       <div className="w-full overflow-hidden">
         <section className="relative bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 text-white py-20 overflow-hidden">
           <div className="container mx-auto px-4 text-center">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6">Notre Boutique</h1>
+            <h1 className="text-5xl md:text-6xl font-bold mb-6">
+              Notre Boutique
+            </h1>
             <p className="text-xl text-blue-100">Chargement des produits...</p>
           </div>
         </section>
@@ -117,8 +151,10 @@ export default function Shop() {
               Notre Boutique
             </h1>
             <p className="text-xl text-blue-100 max-w-2xl mx-auto">
-              Découvrez tous nos outils et accessories pour le bricolage.
-              {products.length > 0 ? ` ${products.length} produits disponibles.` : ' Qualité professionnelle aux meilleurs prix.'}
+              Découvrez tous les outils et accessories pour le bricolage.
+              {products.length > 0
+                ? ` ${products.length} produits disponibles.`
+                : " Qualité professionnelle aux meilleurs prix."}
             </p>
           </motion.div>
         </div>
@@ -135,7 +171,7 @@ export default function Shop() {
                   Catégories
                 </h3>
                 <div className="space-y-2">
-                  {categories.map((category) => (
+                  {categories.map(category => (
                     <button
                       key={category.id}
                       onClick={() => setSelectedCategory(category.id)}
@@ -161,7 +197,7 @@ export default function Shop() {
                     <input
                       type="number"
                       value={minPrice}
-                      onChange={(e) => setMinPrice(e.target.value)}
+                      onChange={e => setMinPrice(e.target.value)}
                       placeholder="Min"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                     />
@@ -169,7 +205,7 @@ export default function Shop() {
                     <input
                       type="number"
                       value={maxPrice}
-                      onChange={(e) => setMaxPrice(e.target.value)}
+                      onChange={e => setMaxPrice(e.target.value)}
                       placeholder="Max"
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                     />
@@ -193,9 +229,24 @@ export default function Shop() {
               {/* Results Count */}
               <div className="mb-4 flex items-center justify-between">
                 <p className="text-gray-600">
-                  <span className="font-semibold text-gray-900">{filteredProducts.length}</span> outil{filteredProducts.length !== 1 ? 's' : ''} trouvé{filteredProducts.length !== 1 ? 's' : ''}
-                  {selectedCategory !== 'all' && <span className="text-blue-600"> dans {categories.find(c => c.id === selectedCategory)?.name}</span>}
-                  {(minPrice || maxPrice) && <span className="text-blue-600"> ({minPrice || '0'}€ - {maxPrice || '500'}€)</span>}
+                  <span className="font-semibold text-gray-900">
+                    {filteredProducts.length}
+                  </span>{" "}
+                  outil{filteredProducts.length !== 1 ? "s" : ""} trouvé
+                  {filteredProducts.length !== 1 ? "s" : ""}
+                  {selectedCategory !== "all" && (
+                    <span className="text-blue-600">
+                      {" "}
+                      dans{" "}
+                      {categories.find(c => c.id === selectedCategory)?.name}
+                    </span>
+                  )}
+                  {(minPrice || maxPrice) && (
+                    <span className="text-blue-600">
+                      {" "}
+                      ({minPrice || "0"}€ - {maxPrice || "500"}€)
+                    </span>
+                  )}
                 </p>
               </div>
               {filteredProducts.length === 0 ? (
@@ -203,7 +254,7 @@ export default function Shop() {
                   <p className="text-gray-500 text-lg">
                     Aucun outil ne correspond à vos critères.
                   </p>
-                  <Button 
+                  <Button
                     onClick={() => {
                       setSelectedCategory("all");
                       setMinPrice("");
@@ -244,7 +295,7 @@ export default function Shop() {
                             </div>
                           )}
                         </div>
-                        <CardContent className="p-4 flex flex-col flex-grow">
+                        <CardContent className="p-4 flex flex-col flex-grow min-h-[140px]">
                           <p className="text-xs text-blue-600 font-medium mb-1">
                             {product.category}
                           </p>
@@ -252,14 +303,20 @@ export default function Shop() {
                             {product.name}
                           </h3>
                           <p className="text-xs text-gray-600 mb-3 line-clamp-2">
-                            {product.description || product.characteristics || "Aucune description"}
+                            {product.description ||
+                              product.characteristics ||
+                              "Aucune description"}
                           </p>
-                          <div className="flex items-center justify-between mt-auto">
+                          <div className="flex items-center justify-between mt-auto mb-2">
                             <div>
                               <span className="text-lg font-bold text-blue-600">
-                                {product.price ? `${Number(product.price).toFixed(2)}€` : "Prix sur demande"}
+                                {product.price
+                                  ? `${Number(product.price).toFixed(2)}€`
+                                  : "Prix sur demande"}
                               </span>
-                              <span className="text-xs text-gray-500 ml-1">/jour</span>
+                              <span className="text-xs text-gray-500 ml-1">
+                                /jour
+                              </span>
                             </div>
                             <Link href={`/shop/${product.id}`}>
                               <Button
@@ -271,7 +328,7 @@ export default function Shop() {
                             </Link>
                           </div>
                           {product.city && (
-                            <p className="text-xs text-gray-400 mt-2">
+                            <p className="text-xs text-gray-400">
                               📍 {product.city}
                             </p>
                           )}
@@ -297,7 +354,10 @@ export default function Shop() {
             potentiels pour vos produits de bricolage.
           </p>
           <Link href="/publier-outil">
-            <Button size="lg" className="rounded-full bg-blue-600 hover:bg-blue-700">
+            <Button
+              size="lg"
+              className="rounded-full bg-blue-600 hover:bg-blue-700"
+            >
               Publier un outil
             </Button>
           </Link>

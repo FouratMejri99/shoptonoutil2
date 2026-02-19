@@ -1,7 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { supabase } from "@/lib/supabase";
-import { User, Mail, MapPin, Phone, Edit, LogOut, Plus, Trash2, Pencil } from "lucide-react";
+import { productsService, supabase } from "@/lib/supabase";
+import {
+  Edit,
+  LogOut,
+  Mail,
+  MapPin,
+  Pencil,
+  Phone,
+  Plus,
+  Trash2,
+  Upload,
+  User,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Link } from "wouter";
@@ -35,8 +46,10 @@ export default function Profile() {
     subcategory: "",
     characteristics: "",
     city: "",
+    image_url: "",
   });
   const [savingTool, setSavingTool] = useState(false);
+  const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [profileData, setProfileData] = useState({
     name: "",
     city: "",
@@ -45,7 +58,9 @@ export default function Profile() {
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       setUser(user);
       if (user) {
         setProfileData({
@@ -59,7 +74,9 @@ export default function Profile() {
     };
     checkUser();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user || null);
     });
 
@@ -100,7 +117,10 @@ export default function Profile() {
       } else {
         toast.success("Profil mis à jour avec succès");
         setEditingProfile(false);
-        setUser({ ...user, user_metadata: { ...user.user_metadata, ...profileData } });
+        setUser({
+          ...user,
+          user_metadata: { ...user.user_metadata, ...profileData },
+        });
       }
     } catch (err) {
       toast.error("Erreur lors de la mise à jour du profil");
@@ -110,16 +130,13 @@ export default function Profile() {
   const handleDeleteTool = async (toolId: number) => {
     if (!confirm("Êtes-vous sûr de vouloir supprimer cet outil ?")) return;
 
-    const { error } = await supabase
-      .from("publish")
-      .delete()
-      .eq("id", toolId);
+    const { error } = await supabase.from("publish").delete().eq("id", toolId);
 
     if (error) {
       toast.error("Erreur lors de la suppression");
     } else {
       toast.success("Outil supprimé");
-      setTools(tools.filter((t) => t.id !== toolId));
+      setTools(tools.filter(t => t.id !== toolId));
     }
   };
 
@@ -133,12 +150,34 @@ export default function Profile() {
       subcategory: tool.subcategory || "",
       characteristics: tool.characteristics || "",
       city: tool.city || "",
+      image_url: tool.image_url || "",
     });
+    setEditImageFile(null);
   };
 
   const handleSaveEdit = async () => {
     if (!editingTool) return;
     setSavingTool(true);
+
+    let imageUrl = editFormData.image_url;
+
+    // Upload new image if selected
+    if (editImageFile) {
+      try {
+        // Delete old image if exists
+        if (editFormData.image_url) {
+          try {
+            await productsService.deleteProductImage(editFormData.image_url);
+          } catch (e) {
+            console.log("Could not delete old image:", e);
+          }
+        }
+        imageUrl = await productsService.uploadProductImage(editImageFile);
+      } catch (uploadError) {
+        console.error("Image upload error:", uploadError);
+        toast.error("Erreur lors de l'upload de l'image");
+      }
+    }
 
     const { error } = await supabase
       .from("publish")
@@ -150,6 +189,7 @@ export default function Profile() {
         subcategory: editFormData.subcategory,
         characteristics: editFormData.characteristics,
         city: editFormData.city,
+        image_url: imageUrl,
       })
       .eq("id", editingTool.id);
 
@@ -157,9 +197,18 @@ export default function Profile() {
       toast.error("Erreur lors de la mise à jour");
     } else {
       toast.success("Outil mis à jour avec succès");
-      setTools(tools.map((t) => 
-        t.id === editingTool.id ? { ...t, ...editFormData, price: parseFloat(editFormData.price) || 0 } : t
-      ));
+      setTools(
+        tools.map(t =>
+          t.id === editingTool.id
+            ? {
+                ...t,
+                ...editFormData,
+                price: parseFloat(editFormData.price) || 0,
+                image_url: imageUrl,
+              }
+            : t
+        )
+      );
       setEditingTool(null);
     }
     setSavingTool(false);
@@ -213,29 +262,44 @@ export default function Profile() {
                   <input
                     type="text"
                     value={profileData.name}
-                    onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
+                    onChange={e =>
+                      setProfileData({ ...profileData, name: e.target.value })
+                    }
                     placeholder="Votre nom"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                   />
                   <input
                     type="text"
                     value={profileData.city}
-                    onChange={(e) => setProfileData({ ...profileData, city: e.target.value })}
+                    onChange={e =>
+                      setProfileData({ ...profileData, city: e.target.value })
+                    }
                     placeholder="Votre ville"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                   />
                   <input
                     type="text"
                     value={profileData.address}
-                    onChange={(e) => setProfileData({ ...profileData, address: e.target.value })}
+                    onChange={e =>
+                      setProfileData({
+                        ...profileData,
+                        address: e.target.value,
+                      })
+                    }
                     placeholder="Votre adresse"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                   />
                   <div className="flex gap-2">
-                    <Button onClick={handleSaveProfile} className="bg-green-600 hover:bg-green-700">
+                    <Button
+                      onClick={handleSaveProfile}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
                       Enregistrer
                     </Button>
-                    <Button variant="outline" onClick={() => setEditingProfile(false)}>
+                    <Button
+                      variant="outline"
+                      onClick={() => setEditingProfile(false)}
+                    >
                       Annuler
                     </Button>
                   </div>
@@ -247,13 +311,17 @@ export default function Profile() {
                   </h1>
                   <p className="text-gray-500">{user.email}</p>
                   <div className="flex gap-2 mt-3">
-                    <Button variant="outline" size="sm" onClick={() => setEditingProfile(true)}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setEditingProfile(true)}
+                    >
                       <Edit className="w-4 h-4 mr-2" />
                       Modifier le profil
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={handleLogout}
                       className="text-red-600 hover:text-red-700 hover:bg-red-50"
                     >
@@ -270,7 +338,9 @@ export default function Profile() {
         {/* Profile Details */}
         {!editingProfile && (
           <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Informations du profil</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">
+              Informations du profil
+            </h2>
             <div className="space-y-4">
               <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
                 <Mail className="w-5 h-5 text-gray-400" />
@@ -283,14 +353,18 @@ export default function Profile() {
                 <User className="w-5 h-5 text-gray-400" />
                 <div>
                   <p className="text-sm text-gray-500">Nom</p>
-                  <p className="font-medium text-gray-900">{user.user_metadata?.name || "Non défini"}</p>
+                  <p className="font-medium text-gray-900">
+                    {user.user_metadata?.name || "Non défini"}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
                 <MapPin className="w-5 h-5 text-gray-400" />
                 <div>
                   <p className="text-sm text-gray-500">Ville</p>
-                  <p className="font-medium text-gray-900">{user.user_metadata?.city || "Non défini"}</p>
+                  <p className="font-medium text-gray-900">
+                    {user.user_metadata?.city || "Non défini"}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
@@ -298,7 +372,9 @@ export default function Profile() {
                 <div>
                   <p className="text-sm text-gray-500">Type de profil</p>
                   <p className="font-medium text-gray-900">
-                    {user.user_metadata?.profile_type === "bricoleur" ? "Bricoleur" : "Loueur professionnel"}
+                    {user.user_metadata?.profile_type === "bricoleur"
+                      ? "Bricoleur"
+                      : "Loueur professionnel"}
                   </p>
                 </div>
               </div>
@@ -309,7 +385,9 @@ export default function Profile() {
         {/* My Published Tools */}
         <div className="bg-white rounded-2xl shadow-xl p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-gray-900">Mes outils publiés</h2>
+            <h2 className="text-xl font-bold text-gray-900">
+              Mes outils publiés
+            </h2>
             <Link href="/publier-outil">
               <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
                 <Plus className="w-4 h-4 mr-2" />
@@ -317,10 +395,12 @@ export default function Profile() {
               </Button>
             </Link>
           </div>
-          
+
           {tools.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-500 mb-4">Vous n'avez pas encore publié d'outils.</p>
+              <p className="text-gray-500 mb-4">
+                Vous n'avez pas encore publié d'outils.
+              </p>
               <Link href="/publier-outil">
                 <Button className="bg-blue-600 hover:bg-blue-700">
                   Publier mon premier outil
@@ -329,14 +409,14 @@ export default function Profile() {
             </div>
           ) : (
             <div className="space-y-4">
-              {tools.map((tool) => (
+              {tools.map(tool => (
                 <Card key={tool.id} className="overflow-hidden">
                   <CardContent className="p-4">
                     <div className="flex gap-4">
                       <div className="w-24 h-24 bg-gray-200 rounded-lg flex-shrink-0 overflow-hidden">
                         {tool.image_url ? (
-                          <img 
-                            src={tool.image_url} 
+                          <img
+                            src={tool.image_url}
                             alt={tool.name}
                             className="w-full h-full object-cover"
                           />
@@ -349,16 +429,26 @@ export default function Profile() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between">
                           <div>
-                            <h3 className="font-semibold text-gray-900">{tool.name}</h3>
-                            <p className="text-sm text-gray-500">{tool.category}</p>
+                            <h3 className="font-semibold text-gray-900">
+                              {tool.name}
+                            </h3>
+                            <p className="text-sm text-gray-500">
+                              {tool.category}
+                            </p>
                             {tool.subcategory && (
-                              <p className="text-xs text-gray-400">{tool.subcategory}</p>
+                              <p className="text-xs text-gray-400">
+                                {tool.subcategory}
+                              </p>
                             )}
                           </div>
                           <div className="text-right">
-                            <p className="font-bold text-blue-600">{tool.price}€/jour</p>
+                            <p className="font-bold text-blue-600">
+                              {tool.price}€/jour
+                            </p>
                             {tool.deposit > 0 && (
-                              <p className="text-xs text-gray-500">Caution: {tool.deposit}€</p>
+                              <p className="text-xs text-gray-500">
+                                Caution: {tool.deposit}€
+                              </p>
                             )}
                           </div>
                         </div>
@@ -369,13 +459,17 @@ export default function Profile() {
                           </p>
                         )}
                         <div className="flex gap-2 mt-3">
-                          <Button variant="outline" size="sm" onClick={() => handleEditClick(tool)}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditClick(tool)}
+                          >
                             <Pencil className="w-3 h-3 mr-1" />
                             Modifier
                           </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
+                          <Button
+                            variant="outline"
+                            size="sm"
                             className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             onClick={() => handleDeleteTool(tool.id)}
                           >
@@ -401,8 +495,65 @@ export default function Profile() {
               <h2 className="text-xl font-bold text-gray-900 mb-4">
                 Modifier l'outil
               </h2>
-              
+
               <div className="space-y-4">
+                {/* Image upload */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Photo de l'outil
+                  </label>
+                  <div className="flex items-center gap-4">
+                    <div className="w-20 h-20 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                      {editImageFile ? (
+                        <img
+                          src={URL.createObjectURL(editImageFile)}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : editFormData.image_url ? (
+                        <img
+                          src={editFormData.image_url}
+                          alt={editFormData.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400">
+                          <Upload size={24} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={e => {
+                          if (e.target.files && e.target.files[0]) {
+                            setEditImageFile(e.target.files[0]);
+                          }
+                        }}
+                        className="hidden"
+                        id="edit-image-upload"
+                      />
+                      <label
+                        htmlFor="edit-image-upload"
+                        className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Changer la photo
+                      </label>
+                      {editImageFile && (
+                        <button
+                          type="button"
+                          onClick={() => setEditImageFile(null)}
+                          className="ml-2 text-sm text-red-600 hover:text-red-800"
+                        >
+                          Annuler
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Nom de l'outil
@@ -410,7 +561,9 @@ export default function Profile() {
                   <input
                     type="text"
                     value={editFormData.name}
-                    onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                    onChange={e =>
+                      setEditFormData({ ...editFormData, name: e.target.value })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
@@ -421,7 +574,12 @@ export default function Profile() {
                   </label>
                   <textarea
                     value={editFormData.description}
-                    onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                    onChange={e =>
+                      setEditFormData({
+                        ...editFormData,
+                        description: e.target.value,
+                      })
+                    }
                     rows={3}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                   />
@@ -435,7 +593,12 @@ export default function Profile() {
                     <input
                       type="number"
                       value={editFormData.price}
-                      onChange={(e) => setEditFormData({ ...editFormData, price: e.target.value })}
+                      onChange={e =>
+                        setEditFormData({
+                          ...editFormData,
+                          price: e.target.value,
+                        })
+                      }
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
@@ -446,7 +609,12 @@ export default function Profile() {
                     <input
                       type="text"
                       value={editFormData.city}
-                      onChange={(e) => setEditFormData({ ...editFormData, city: e.target.value })}
+                      onChange={e =>
+                        setEditFormData({
+                          ...editFormData,
+                          city: e.target.value,
+                        })
+                      }
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                     />
                   </div>
@@ -458,15 +626,28 @@ export default function Profile() {
                   </label>
                   <select
                     value={editFormData.category}
-                    onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
+                    onChange={e =>
+                      setEditFormData({
+                        ...editFormData,
+                        category: e.target.value,
+                      })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                   >
                     <option value="">Sélectionner une catégorie</option>
-                    <option value="Outils électroportatifs">Outils électroportatifs</option>
-                    <option value="Chantier & gros œuvre">Chantier &amp; gros œuvre</option>
+                    <option value="Outils électroportatifs">
+                      Outils électroportatifs
+                    </option>
+                    <option value="Chantier & gros œuvre">
+                      Chantier &amp; gros œuvre
+                    </option>
                     <option value="Plomberie">Plomberie</option>
-                    <option value="Menuiserie & travail du bois">Menuiserie &amp; travail du bois</option>
-                    <option value="Peinture & revêtements">Peinture &amp; revêtements</option>
+                    <option value="Menuiserie & travail du bois">
+                      Menuiserie &amp; travail du bois
+                    </option>
+                    <option value="Peinture & revêtements">
+                      Peinture &amp; revêtements
+                    </option>
                     <option value="Jardinage">Jardinage</option>
                     <option value="Sécurité & EPI">Sécurité &amp; EPI</option>
                   </select>
@@ -479,7 +660,12 @@ export default function Profile() {
                   <input
                     type="text"
                     value={editFormData.subcategory}
-                    onChange={(e) => setEditFormData({ ...editFormData, subcategory: e.target.value })}
+                    onChange={e =>
+                      setEditFormData({
+                        ...editFormData,
+                        subcategory: e.target.value,
+                      })
+                    }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                   />
                 </div>
@@ -491,7 +677,12 @@ export default function Profile() {
                   <input
                     type="text"
                     value={editFormData.characteristics}
-                    onChange={(e) => setEditFormData({ ...editFormData, characteristics: e.target.value })}
+                    onChange={e =>
+                      setEditFormData({
+                        ...editFormData,
+                        characteristics: e.target.value,
+                      })
+                    }
                     placeholder="Séparez par des virgules"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                   />

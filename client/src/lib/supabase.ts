@@ -6,6 +6,10 @@ const supabaseUrl =
   "";
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 
+// Storage bucket name from environment or default to 'products'
+export const STORAGE_BUCKET =
+  import.meta.env.VITE_SUPABASE_STORAGE_BUCKET || "products";
+
 export const supabase: SupabaseClient = createClient(
   supabaseUrl,
   supabaseAnonKey
@@ -18,10 +22,10 @@ export const storageService = {
     const fileName = `${serviceSlug}-${Date.now()}.${fileExt}`;
     const filePath = `services/${fileName}`;
 
-    console.log("Uploading to bucket: public-assets, path:", filePath);
+    console.log("Uploading to bucket:", STORAGE_BUCKET, "path:", filePath);
 
     const { data, error } = await supabase.storage
-      .from("public-assets")
+      .from(STORAGE_BUCKET)
       .upload(filePath, file, {
         cacheControl: "3600",
         upsert: false,
@@ -36,7 +40,7 @@ export const storageService = {
 
     // Get public URL
     const { data: urlData } = supabase.storage
-      .from("public-assets")
+      .from(STORAGE_BUCKET)
       .getPublicUrl(filePath);
 
     console.log("Public URL:", urlData.publicUrl);
@@ -45,17 +49,153 @@ export const storageService = {
 
   async deleteServiceImage(imageUrl: string): Promise<void> {
     // Extract file path from URL
-    const urlParts = imageUrl.split("/storage/v1/object/public/");
-    if (urlParts.length < 2) return;
+    const urlParts = imageUrl.split("/storage/v2/object/public/");
+    if (urlParts.length < 2) {
+      // Try alternative format
+      const altParts = imageUrl.split("/storage/v1/object/public/");
+      if (altParts.length < 2) return;
+
+      const filePath = altParts[1];
+      const { error } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .remove([filePath]);
+
+      if (error) {
+        console.error("Storage delete error:", error);
+      }
+      return;
+    }
 
     const filePath = urlParts[1];
     const { error } = await supabase.storage
-      .from("public-assets")
+      .from(STORAGE_BUCKET)
       .remove([filePath]);
 
     if (error) {
       console.error("Storage delete error:", error);
     }
+  },
+};
+
+// Storage service for products (tools/equipment) images
+export const productsService = {
+  /**
+   * Upload a product image to the products bucket
+   * @param file - The image file to upload
+   * @param productId - Optional product ID for naming the file
+   * @returns The public URL of the uploaded image
+   */
+  async uploadProductImage(file: File, productId?: string): Promise<string> {
+    const fileExt = file.name.split(".").pop();
+    const timestamp = Date.now();
+    const idPart = productId || "unknown";
+    const fileName = `${idPart}-${timestamp}.${fileExt}`;
+
+    console.log(
+      "Uploading product image to bucket:",
+      STORAGE_BUCKET,
+      "fileName:",
+      fileName
+    );
+
+    const { data, error } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(fileName, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (error) {
+      console.error("Product image upload error:", error);
+      throw new Error(error.message || "Failed to upload product image");
+    }
+
+    console.log("Product image upload successful:", data);
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(fileName);
+
+    console.log("Product image public URL:", urlData.publicUrl);
+    return urlData.publicUrl;
+  },
+
+  /**
+   * Delete a product image from the products bucket
+   * @param imageUrl - The full public URL of the image to delete
+   */
+  async deleteProductImage(imageUrl: string): Promise<void> {
+    if (!imageUrl) return;
+
+    // Extract file path from URL - handle both v1 and v2 storage formats
+    let filePath = "";
+
+    if (imageUrl.includes("/storage/v2/object/public/")) {
+      filePath = imageUrl.split("/storage/v2/object/public/")[1];
+    } else if (imageUrl.includes("/storage/v1/object/public/")) {
+      filePath = imageUrl.split("/storage/v1/object/public/")[1];
+    } else {
+      // If the URL doesn't contain the storage path format, it might be just the path
+      console.warn("Could not extract path from image URL:", imageUrl);
+      return;
+    }
+
+    console.log(
+      "Deleting product image:",
+      filePath,
+      "from bucket:",
+      STORAGE_BUCKET
+    );
+
+    const { error } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .remove([filePath]);
+
+    if (error) {
+      console.error("Product image delete error:", error);
+      throw error;
+    }
+
+    console.log("Product image deleted successfully");
+  },
+
+  /**
+   * Get the public URL for a product image
+   * @param imagePath - The path of the image in the bucket (e.g., 'products/image.jpg')
+   * @returns The full public URL
+   */
+  getProductImageUrl(imagePath: string): string {
+    if (!imagePath) return "";
+
+    // If it's already a full URL, return as-is
+    if (imagePath.startsWith("http")) return imagePath;
+
+    const { data } = supabase.storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(imagePath);
+
+    return data.publicUrl;
+  },
+
+  /**
+   * Upload multiple product images
+   * @param files - Array of image files to upload
+   * @param productId - Optional product ID for naming the files
+   * @returns Array of public URLs
+   */
+  async uploadProductImages(
+    files: File[],
+    productId?: string
+  ): Promise<string[]> {
+    const urls: string[] = [];
+
+    for (const file of files) {
+      const url = await this.uploadProductImage(file, productId);
+      urls.push(url);
+    }
+
+    return urls;
   },
 };
 
@@ -114,13 +254,13 @@ export const authService = {
     const { data, error } = await supabase
       .from("publish")
       .select("user_id, created_at");
-    
+
     if (error) {
       // If publish table doesn't exist or has no data, return empty array
       console.warn("Could not fetch users from publish table:", error.message);
       return [];
     }
-    
+
     // Get unique users
     const uniqueUsers = new Map();
     data?.forEach(item => {
@@ -134,7 +274,7 @@ export const authService = {
         });
       }
     });
-    
+
     return Array.from(uniqueUsers.values());
   },
 };
@@ -240,26 +380,26 @@ export const publishService = {
   async getStats() {
     const { data, error } = await supabase.from("publish").select("category");
     if (error) throw error;
-    
+
     // Count by category
     const categoryCount: Record<string, number> = {};
     data?.forEach(item => {
       const cat = item.category || "Uncategorized";
       categoryCount[cat] = (categoryCount[cat] || 0) + 1;
     });
-    
+
     // Count by city
     const { data: cityData, error: cityError } = await supabase
       .from("publish")
       .select("city");
     if (cityError) throw cityError;
-    
+
     const cityCount: Record<string, number> = {};
     cityData?.forEach(item => {
       const city = item.city || "Unknown";
       cityCount[city] = (cityCount[city] || 0) + 1;
     });
-    
+
     return {
       total: data?.length || 0,
       byCategory: categoryCount,
@@ -300,19 +440,21 @@ export const subscribersService = {
   },
 
   async getStats() {
-    const { data, error } = await supabase.from("subscribers").select("profile, verified");
+    const { data, error } = await supabase
+      .from("subscribers")
+      .select("profile, verified");
     if (error) throw error;
-    
+
     const profileCount: Record<string, number> = { bricoleur: 0, loueur: 0 };
     let verifiedCount = 0;
-    
+
     data?.forEach(item => {
       if (item.profile && profileCount.hasOwnProperty(item.profile)) {
         profileCount[item.profile]++;
       }
       if (item.verified) verifiedCount++;
     });
-    
+
     return {
       total: data?.length || 0,
       byProfile: profileCount,
@@ -371,14 +513,14 @@ export const blogService = {
 
     const path = `blog/${Date.now()}-${fileName}`;
     const { error } = await supabase.storage
-      .from("public-assets")
+      .from(STORAGE_BUCKET)
       .upload(path, blob, {
         contentType,
         upsert: true,
       });
     if (error) throw error;
 
-    const { data } = supabase.storage.from("public-assets").getPublicUrl(path);
+    const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
 
     return { url: data.publicUrl };
   },
@@ -433,14 +575,14 @@ export const caseStudiesService = {
 
     const path = `case-studies/${Date.now()}-${fileName}`;
     const { error } = await supabase.storage
-      .from("public-assets")
+      .from(STORAGE_BUCKET)
       .upload(path, blob, {
         contentType,
         upsert: true,
       });
     if (error) throw error;
 
-    const { data } = supabase.storage.from("public-assets").getPublicUrl(path);
+    const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
 
     return { url: data.publicUrl };
   },
@@ -506,24 +648,39 @@ export const servicesService = {
   async create(data: any) {
     // Sanitize inputs to prevent XSS and injection attacks
     const sanitize = (val: string | null | undefined) => {
-      if (!val || typeof val !== 'string') return '';
-      return val.trim().replace(/<script/gi, '').replace(/javascript:/gi, '').replace(/on\w+=/gi, '').substring(0, 1000);
+      if (!val || typeof val !== "string") return "";
+      return val
+        .trim()
+        .replace(/<script/gi, "")
+        .replace(/javascript:/gi, "")
+        .replace(/on\w+=/gi, "")
+        .substring(0, 1000);
     };
-    
+
     const sanitizeSlug = (val: string | null | undefined) => {
-      if (!val || typeof val !== 'string') return '';
-      return val.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').substring(0, 100);
+      if (!val || typeof val !== "string") return "";
+      return val
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "")
+        .substring(0, 100);
     };
 
     // Map camelCase to snake_case for database
     const dbData = {
       name: sanitize(data.name),
       slug: sanitizeSlug(data.slug),
-      shortdescription: sanitize(data.shortDescription || data.shortdescription),
+      shortdescription: sanitize(
+        data.shortDescription || data.shortdescription
+      ),
       description: sanitize(data.description),
       icon: sanitize(data.icon),
-      orderindex: Math.max(0, Math.floor(Number(data.orderIndex || data.orderindex || 0))),
-      ispublished: (data.isPublished ?? data.ispublished) ?? true,
+      orderindex: Math.max(
+        0,
+        Math.floor(Number(data.orderIndex || data.orderindex || 0))
+      ),
+      ispublished: data.isPublished ?? data.ispublished ?? true,
       image: data.image || null,
     };
     return dbService.insert("services", dbData);
@@ -532,24 +689,38 @@ export const servicesService = {
   async update(id: number, data: any) {
     // Sanitize inputs
     const sanitize = (val: string | null | undefined) => {
-      if (!val || typeof val !== 'string') return undefined;
-      return val.trim().replace(/<script/gi, '').replace(/javascript:/gi, '').replace(/on\w+=/gi, '').substring(0, 1000);
+      if (!val || typeof val !== "string") return undefined;
+      return val
+        .trim()
+        .replace(/<script/gi, "")
+        .replace(/javascript:/gi, "")
+        .replace(/on\w+=/gi, "")
+        .substring(0, 1000);
     };
-    
+
     const sanitizeSlug = (val: string | null | undefined) => {
-      if (!val || typeof val !== 'string') return undefined;
-      return val.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '').substring(0, 100);
+      if (!val || typeof val !== "string") return undefined;
+      return val
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "")
+        .substring(0, 100);
     };
 
     // Map camelCase to snake_case for database
     const dbData: any = {};
     if (data.name !== undefined) dbData.name = sanitize(data.name);
     if (data.slug !== undefined) dbData.slug = sanitizeSlug(data.slug);
-    if (data.shortDescription !== undefined) dbData.shortdescription = sanitize(data.shortDescription);
-    if (data.description !== undefined) dbData.description = sanitize(data.description);
+    if (data.shortDescription !== undefined)
+      dbData.shortdescription = sanitize(data.shortDescription);
+    if (data.description !== undefined)
+      dbData.description = sanitize(data.description);
     if (data.icon !== undefined) dbData.icon = sanitize(data.icon);
-    if (data.orderIndex !== undefined) dbData.orderindex = Math.max(0, Math.floor(Number(data.orderIndex)));
-    if (data.isPublished !== undefined) dbData.ispublished = Boolean(data.isPublished);
+    if (data.orderIndex !== undefined)
+      dbData.orderindex = Math.max(0, Math.floor(Number(data.orderIndex)));
+    if (data.isPublished !== undefined)
+      dbData.ispublished = Boolean(data.isPublished);
     if (data.image !== undefined) dbData.image = data.image;
     dbData.updatedat = new Date().toISOString();
     return dbService.update("services", id, dbData);
@@ -561,7 +732,7 @@ export const servicesService = {
 
   async seedServices() {
     // First, delete all existing services
-    const existing = await dbService.select<{id: number}>("services", {});
+    const existing = await dbService.select<{ id: number }>("services", {});
     for (const service of existing) {
       await dbService.delete("services", service.id);
     }
@@ -577,7 +748,8 @@ export const servicesService = {
         icon: "BookOpen",
         orderindex: 1,
         ispublished: true,
-        image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80",
+        image:
+          "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&q=80",
       },
       {
         name: "Media Localization",
@@ -589,7 +761,8 @@ export const servicesService = {
         icon: "Video",
         orderindex: 2,
         ispublished: true,
-        image: "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=800&q=80",
+        image:
+          "https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=800&q=80",
       },
       {
         name: "Accessibility",
@@ -601,7 +774,8 @@ export const servicesService = {
         icon: "Zap",
         orderindex: 3,
         ispublished: true,
-        image: "https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=800&q=80",
+        image:
+          "https://images.unsplash.com/photo-1573164713714-d95e436ab8d6?w=800&q=80",
       },
       {
         name: "Document & DTP",
@@ -613,7 +787,8 @@ export const servicesService = {
         icon: "Globe",
         orderindex: 4,
         ispublished: true,
-        image: "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&q=80",
+        image:
+          "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&q=80",
       },
       {
         name: "Content Creation",
@@ -625,7 +800,8 @@ export const servicesService = {
         icon: "FileText",
         orderindex: 5,
         ispublished: true,
-        image: "https://images.unsplash.com/photo-1455390582262-044cdead277a?w=800&q=80",
+        image:
+          "https://images.unsplash.com/photo-1455390582262-044cdead277a?w=800&q=80",
       },
       {
         name: "AI Workflows",
@@ -637,7 +813,8 @@ export const servicesService = {
         icon: "Users",
         orderindex: 6,
         ispublished: true,
-        image: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80",
+        image:
+          "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80",
       },
     ];
 
@@ -706,7 +883,11 @@ export const testimonialsService = {
 };
 
 // Leads service
-type SubscriptionType = "lead" | "newsletter" | "quote_request" | "guide_request";
+type SubscriptionType =
+  | "lead"
+  | "newsletter"
+  | "quote_request"
+  | "guide_request";
 
 export const leadsService = {
   async submit(data: {
@@ -813,7 +994,7 @@ export const leadsService = {
   async getAllLeads(type?: SubscriptionType) {
     const options: any = { order: "createdat", ascending: false };
     // Only filter for quote_request and guide_request, show all for other cases
-    if (type === 'quote_request' || type === 'guide_request') {
+    if (type === "quote_request" || type === "guide_request") {
       options.eq = { type };
     }
     return dbService.select("leads", options);
@@ -1094,11 +1275,7 @@ export const adminService = {
 
   async deleteEmployeeRecords(employeeId: number) {
     // Delete related records in proper order (child tables first)
-    await dbService.deleteByField(
-      "monthlyreports",
-      "employeeid",
-      employeeId
-    );
+    await dbService.deleteByField("monthlyreports", "employeeid", employeeId);
     await dbService.deleteByField(
       "timetrackingrecords",
       "employeeid",
