@@ -1,13 +1,19 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  generateToolDescription,
+  isHuggingFaceConfigured,
+} from "@/lib/huggingface";
 import { productsService, supabase } from "@/lib/supabase";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
   DollarSign,
   Globe,
+  Loader2,
   Lock,
   Package,
+  Sparkles,
   Upload,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -223,6 +229,12 @@ export default function PublierOutil() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [aiMode, setAIMode] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [hfConfigured, setHfConfigured] = useState(false);
+
+  useEffect(() => {
+    setHfConfigured(isHuggingFaceConfigured());
+  }, []);
 
   // Show loading while checking auth
   if (loading) {
@@ -311,6 +323,31 @@ export default function PublierOutil() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setImageFile(e.target.files[0]);
+    }
+  };
+
+  const handleGenerateDescription = async () => {
+    if (!formData.name || !formData.category) {
+      toast.error("Veuillez d'abord sélectionner un outil et une catégorie");
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const description = await generateToolDescription(
+        formData.name,
+        formData.category,
+        formData.condition || "bon état"
+      );
+      setFormData(prev => ({ ...prev, description }));
+      toast.success("Description générée avec succès!");
+    } catch (error: any) {
+      console.error("Error generating description:", error);
+      toast.error(
+        error.message || "Erreur lors de la génération de la description"
+      );
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -610,15 +647,45 @@ export default function PublierOutil() {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Description de l'outil *
                         </label>
-                        <textarea
-                          name="description"
-                          value={formData.description}
-                          onChange={handleChange}
-                          required
-                          rows={3}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="Décrivez l'état, les caractéristiques, les accessoires inclus..."
-                        />
+                        <div className="relative">
+                          <textarea
+                            name="description"
+                            value={formData.description}
+                            onChange={handleChange}
+                            required
+                            rows={3}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="Décrivez l'état, les caractéristiques, les accessoires inclus..."
+                          />
+                          <Button
+                            type="button"
+                            onClick={handleGenerateDescription}
+                            disabled={
+                              isGenerating ||
+                              !formData.name ||
+                              !formData.category
+                            }
+                            className="absolute bottom-3 right-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white text-xs px-3 py-1.5 rounded-full flex items-center gap-1.5 shadow-md"
+                            title={
+                              hfConfigured
+                                ? "Générer une description avec l'IA"
+                                : "Générer une description (modèle simple)"
+                            }
+                          >
+                            {isGenerating ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <Sparkles className="w-3 h-3" />
+                            )}
+                            {isGenerating ? "Génération..." : "IA"}
+                          </Button>
+                        </div>
+                        {!hfConfigured && (
+                          <p className="text-xs text-amber-600 mt-1">
+                            💡 Configurez VITE_HUGGING_FACE_API_KEY dans .env
+                            pour une génération IA avancée
+                          </p>
+                        )}
                       </div>
 
                       <div>
