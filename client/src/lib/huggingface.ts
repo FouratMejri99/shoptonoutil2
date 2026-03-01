@@ -5,6 +5,8 @@
  */
 
 const HF_API_URL = "https://api-inference.huggingface.co/models/gpt2";
+const HF_IMAGE_API_URL =
+  "https://api-inference.huggingface.co/models/stabilityai/stable-diffusion-xl-base-1.0";
 
 // Fallback templates for when API is not available
 const descriptionTemplates = {
@@ -160,4 +162,96 @@ Description professionnelle :`;
  */
 export function isHuggingFaceConfigured(): boolean {
   return !!import.meta.env.VITE_HUGGING_FACE_API_KEY;
+}
+
+/**
+ * Generate an image for a tool using Hugging Face Stable Diffusion API (nscale provider)
+ * @param toolName - The name of the tool
+ * @param category - The category of the tool
+ * @returns Base64 encoded image data URL
+ */
+export async function generateToolImage(
+  toolName: string,
+  category: string
+): Promise<string> {
+  const apiKey = import.meta.env.VITE_HUGGING_FACE_API_KEY;
+
+  if (!apiKey) {
+    throw new Error(
+      "Clé API Hugging Face non configurée. Veuillez configurer VITE_HUGGING_FACE_API_KEY dans le fichier .env"
+    );
+  }
+
+  console.log(
+    "Using API key (first 10 chars):",
+    apiKey.substring(0, 10) + "..."
+  );
+
+  // Create a detailed prompt in English for generating tool images
+  const prompt = `Professional product photography of a ${toolName}, ${category}, clean white background, studio lighting, high quality, detailed, realistic, e-commerce product image, sharp focus, professional photography`;
+
+  try {
+    console.log("Fetching from:", HF_IMAGE_API_URL);
+    const response = await fetch(HF_IMAGE_API_URL, {
+      method: "POST",
+      mode: "cors",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        inputs: prompt,
+      }),
+    });
+
+    console.log("Response status:", response.status);
+    console.log("Response ok:", response.ok);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Hugging Face Image API error:", errorText);
+      throw new Error("Erreur lors de la génération de l'image: " + errorText);
+    }
+
+    // Get content type to determine how to handle response
+    const contentType = response.headers.get("content-type") || "";
+
+    if (contentType.includes("application/json")) {
+      const data = await response.json();
+      console.log("JSON Response keys:", Object.keys(data));
+      console.log("Full JSON Response:", data);
+      // The nscale API returns base64 directly in the response
+      if (data?.b64_json) {
+        return `data:image/png;base64,${data.b64_json}`;
+      }
+      // Check for other possible fields
+      if (data?.image) {
+        return `data:image/png;base64,${data.image}`;
+      }
+      console.error("Unexpected JSON response:", data);
+      throw new Error("Format de réponse JSON inattendu pour l'image");
+    } else if (contentType.includes("image/")) {
+      // Response is directly an image blob
+      const blob = await response.blob();
+      const buffer = await blob.arrayBuffer();
+      const base64 = btoa(
+        new Uint8Array(buffer).reduce(
+          (data, byte) => data + String.fromCharCode(byte),
+          ""
+        )
+      );
+      const mimeType = contentType.split(";")[0];
+      return `data:${mimeType};base64,${base64}`;
+    }
+
+    throw new Error("Type de contenu inattendu: " + contentType);
+  } catch (error) {
+    console.error("Error generating image:", error);
+    if (error instanceof TypeError && error.message.includes("fetch")) {
+      throw new Error(
+        "Erreur réseau: Impossible de contacter l'API Hugging Face. Vérifiez votre connexion internet."
+      );
+    }
+    throw error;
+  }
 }

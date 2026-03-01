@@ -8,7 +8,6 @@ import {
   authService,
   blogService,
   caseStudiesService,
-  employeeService,
   leadsService,
   publishService,
   servicesService,
@@ -416,14 +415,18 @@ export const trpc = {
       }),
     },
     byCategory: {
-      useQuery: createParameterizedQueryHook(async (params: { category: string }) => {
-        return publishService.getByCategory(params.category);
-      }),
+      useQuery: createParameterizedQueryHook(
+        async (params: { category: string }) => {
+          return publishService.getByCategory(params.category);
+        }
+      ),
     },
     byUser: {
-      useQuery: createParameterizedQueryHook(async (params: { userId: string }) => {
-        return publishService.getByUser(params.userId);
-      }),
+      useQuery: createParameterizedQueryHook(
+        async (params: { userId: string }) => {
+          return publishService.getByUser(params.userId);
+        }
+      ),
     },
     stats: {
       useQuery: createQueryHook(async () => {
@@ -438,9 +441,11 @@ export const trpc = {
       }),
     },
     byProfile: {
-      useQuery: createParameterizedQueryHook(async (params: { profile: string }) => {
-        return subscribersService.getByProfile(params.profile);
-      }),
+      useQuery: createParameterizedQueryHook(
+        async (params: { profile: string }) => {
+          return subscribersService.getByProfile(params.profile);
+        }
+      ),
     },
     stats: {
       useQuery: createQueryHook(async () => {
@@ -600,49 +605,6 @@ export const trpc = {
     getNewsletterSubscriptions: {
       useQuery: createQueryHook(async () => {
         return leadsService.getNewsletterSubscriptions();
-      }),
-    },
-  },
-  employee: {
-    login: {
-      useMutation: createMutationHook(
-        async (data: { email: string; password: string }) => {
-          // Use employees table for login instead of Supabase auth
-          const employee = await employeeService.verifyLogin(
-            data.email,
-            data.password
-          );
-
-          if (!employee) {
-            throw new Error("Invalid employee credentials");
-          }
-
-          // Normalise field names from snake_case to camelCase for the UI
-          return {
-            id: (employee as any).id,
-            email: (employee as any).email,
-            firstName:
-              (employee as any).firstName ?? (employee as any).firstname,
-            lastName: (employee as any).lastName ?? (employee as any).lastname,
-            employeeId:
-              (employee as any).employeeId ?? (employee as any).employeeid,
-          };
-        }
-      ),
-    },
-    getRecords: {
-      useQuery: createParameterizedQueryHook(async (employeeId: number) => {
-        return employeeService.getRecords(employeeId);
-      }),
-    },
-    createTimeRecord: {
-      useMutation: createMutationHook(async (data: any) => {
-        return employeeService.createTimeRecord(data);
-      }),
-    },
-    deleteRecord: {
-      useMutation: createMutationHook(async (id: number) => {
-        return employeeService.deleteTimeRecord(id);
       }),
     },
   },

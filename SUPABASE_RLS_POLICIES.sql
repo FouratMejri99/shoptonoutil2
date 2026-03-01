@@ -29,13 +29,49 @@ CREATE TABLE IF NOT EXISTS conversations (
     participant1_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     participant2_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     tool_id BIGINT REFERENCES publish(id) ON DELETE SET NULL,
-    tool_name TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- PROFILES TABLE - For storing user profile information
+CREATE TABLE IF NOT EXISTS profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    full_name TEXT,
+    city TEXT,
+    address TEXT,
+    profile_type TEXT,
+    avatar_url TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Enable RLS
 ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+
+-- Profiles: Users can view all profiles (for messaging)
+CREATE POLICY "Anyone can view profiles" ON profiles
+FOR SELECT USING (true);
+
+-- Profiles: Users can update their own profile
+CREATE POLICY "Users can update own profile" ON profiles
+FOR UPDATE USING (auth.uid() = id);
+
+-- Function to create profile on user signup
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $
+BEGIN
+  INSERT INTO public.profiles (id, full_name)
+  VALUES (NEW.id, NEW.raw_user_meta_data->>'name');
+  RETURN NEW;
+END;
+$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger to create profile on user signup
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
 -- Allow users to see their own conversations
 CREATE POLICY "Users can view their conversations" ON conversations

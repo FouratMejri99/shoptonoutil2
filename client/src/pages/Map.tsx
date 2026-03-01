@@ -1,23 +1,28 @@
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
-import { MapPin, Search, Filter, Lock, Wrench } from "lucide-react";
-import { useEffect, useState } from "react";
-import { Link } from "wouter";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
+import { Filter, Lock, MapPin, Search, Wrench } from "lucide-react";
+import { useEffect, useState } from "react";
+import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import { Link } from "wouter";
 
 // Fix for default marker icon in Leaflet with webpack
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
 // Custom blue marker icon for tools
 const blueIcon = new L.Icon({
-  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+  iconUrl:
+    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
@@ -39,7 +44,11 @@ interface Tool {
 // Generate random coordinates around Reims for demo
 const reimsCenter = { lat: 49.2583, lng: 4.0317 };
 
-function generateRandomPosition(baseLat: number, baseLng: number, radiusKm: number = 5) {
+function generateRandomPosition(
+  baseLat: number,
+  baseLng: number,
+  radiusKm: number = 5
+) {
   const radiusInDegrees = radiusKm / 111;
   const u = Math.random();
   const v = Math.random();
@@ -60,34 +69,67 @@ export default function Map() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [viewMode, setViewMode] = useState<"map" | "list">("map");
+  const [mapCenter, setMapCenter] = useState<[number, number]>([
+    reimsCenter.lat,
+    reimsCenter.lng,
+  ]);
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       setUser(user);
     };
     checkUser();
-    fetchTools();
   }, []);
+
+  // Fetch tools after user is loaded
+  useEffect(() => {
+    if (user) {
+      fetchTools();
+    }
+  }, [user]);
 
   const fetchTools = async () => {
     setLoading(true);
+    // Fetch only the current user's tools
     const { data, error } = await supabase
       .from("publish")
       .select("*")
+      .eq("user_id", user?.id)
       .order("created_at", { ascending: false });
 
     if (data) {
-      // Add random coordinates around Reims for each tool (for demo)
-      const toolsWithCoords = data.map((tool, index) => {
-        const pos = generateRandomPosition(reimsCenter.lat, reimsCenter.lng, 3 + index * 0.5);
-        return {
+      // Use actual coordinates from the database
+      const toolsWithCoords = data
+        .filter(tool => tool.latitude && tool.longitude)
+        .map(tool => ({
           ...tool,
-          lat: pos.lat,
-          lng: pos.lng,
-        };
-      });
+          lat: tool.latitude,
+          lng: tool.longitude,
+        }));
+
       setTools(toolsWithCoords as any);
+
+      // Calculate center based on user's location from their profile
+      if (user?.user_metadata?.latitude && user?.user_metadata?.longitude) {
+        setMapCenter([
+          user.user_metadata.latitude,
+          user.user_metadata.longitude,
+        ]);
+      } else if (toolsWithCoords.length > 0) {
+        // Fallback to average of tool locations
+        const avgLat =
+          toolsWithCoords.reduce((sum, t) => sum + (t.lat || 0), 0) /
+          toolsWithCoords.length;
+        const avgLng =
+          toolsWithCoords.reduce((sum, t) => sum + (t.lng || 0), 0) /
+          toolsWithCoords.length;
+        if (avgLat && avgLng) {
+          setMapCenter([avgLat, avgLng]);
+        }
+      }
     }
     setLoading(false);
   };
@@ -103,10 +145,14 @@ export default function Map() {
     "Sécurité & EPI",
   ];
 
-  const filteredTools = tools.filter((tool) => {
-    const matchesSearch = tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredTools = tools.filter(tool => {
+    const matchesSearch =
+      tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       tool.city?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !selectedCategory || selectedCategory === "Tous" || tool.category === selectedCategory;
+    const matchesCategory =
+      !selectedCategory ||
+      selectedCategory === "Tous" ||
+      tool.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -145,7 +191,7 @@ export default function Map() {
             <MapPin className="text-blue-600" />
             Carte des outils disponibles - Reims
           </h1>
-          
+
           {/* View Toggle */}
           <div className="flex gap-2">
             <Button
@@ -177,18 +223,19 @@ export default function Map() {
               type="text"
               placeholder="Rechercher un outil ou une ville..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={e => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           <div className="flex items-center gap-2 overflow-x-auto">
             <Filter className="text-gray-400 w-5 h-5" />
-            {categories.map((cat) => (
+            {categories.map(cat => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
                 className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition-colors ${
-                  selectedCategory === cat || (!selectedCategory && cat === "Tous")
+                  selectedCategory === cat ||
+                  (!selectedCategory && cat === "Tous")
                     ? "bg-blue-600 text-white"
                     : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
@@ -208,9 +255,12 @@ export default function Map() {
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl shadow-lg overflow-hidden" style={{ height: "600px" }}>
+            <div
+              className="bg-white rounded-2xl shadow-lg overflow-hidden"
+              style={{ height: "600px" }}
+            >
               <MapContainer
-                center={[reimsCenter.lat, reimsCenter.lng]}
+                center={mapCenter}
                 zoom={13}
                 style={{ height: "100%", width: "100%" }}
               >
@@ -218,10 +268,13 @@ export default function Map() {
                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                   url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
-                {filteredTools.map((tool) => (
+                {filteredTools.map(tool => (
                   <Marker
                     key={tool.id}
-                    position={[tool.lat || reimsCenter.lat, tool.lng || reimsCenter.lng]}
+                    position={[
+                      tool.lat || reimsCenter.lat,
+                      tool.lng || reimsCenter.lng,
+                    ]}
                     icon={blueIcon}
                   >
                     <Popup>
@@ -235,7 +288,9 @@ export default function Map() {
                         )}
                         <h3 className="font-bold text-gray-900">{tool.name}</h3>
                         <p className="text-sm text-gray-500">{tool.category}</p>
-                        <p className="text-lg font-bold text-blue-600 mt-1">{tool.price}€/jour</p>
+                        <p className="text-lg font-bold text-blue-600 mt-1">
+                          {tool.price}€/jour
+                        </p>
                         <p className="text-sm text-gray-600 mt-1">
                           <MapPin className="w-3 h-3 inline mr-1" />
                           {tool.city || "Reims"}
@@ -252,13 +307,17 @@ export default function Map() {
               </MapContainer>
             </div>
           )}
-          
+
           {/* Tool count */}
           <div className="mt-4 bg-blue-50 rounded-xl p-4 flex items-center gap-3">
             <Wrench className="w-6 h-6 text-blue-600" />
             <div>
-              <p className="text-sm text-gray-600">Outils disponibles à Reims</p>
-              <p className="text-2xl font-bold text-blue-600">{filteredTools.length}</p>
+              <p className="text-sm text-gray-600">
+                Outils disponibles à Reims
+              </p>
+              <p className="text-2xl font-bold text-blue-600">
+                {filteredTools.length}
+              </p>
             </div>
           </div>
         </div>
@@ -281,7 +340,7 @@ export default function Map() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredTools.map((tool) => (
+              {filteredTools.map(tool => (
                 <div
                   key={tool.id}
                   className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow"
@@ -303,8 +362,12 @@ export default function Map() {
                     </div>
                   </div>
                   <div className="p-4">
-                    <h3 className="font-semibold text-gray-900 mb-1">{tool.name}</h3>
-                    <p className="text-sm text-gray-500 mb-2">{tool.category}</p>
+                    <h3 className="font-semibold text-gray-900 mb-1">
+                      {tool.name}
+                    </h3>
+                    <p className="text-sm text-gray-500 mb-2">
+                      {tool.category}
+                    </p>
                     <div className="flex items-center gap-1 text-sm text-gray-600">
                       <MapPin className="w-4 h-4" />
                       {tool.city || "Reims"}
@@ -325,7 +388,9 @@ export default function Map() {
       {/* Stats */}
       <div className="fixed bottom-4 right-4 bg-white rounded-2xl shadow-xl p-4 z-10">
         <p className="text-sm text-gray-500">Outils disponibles</p>
-        <p className="text-2xl font-bold text-blue-600">{filteredTools.length}</p>
+        <p className="text-2xl font-bold text-blue-600">
+          {filteredTools.length}
+        </p>
       </div>
     </div>
   );

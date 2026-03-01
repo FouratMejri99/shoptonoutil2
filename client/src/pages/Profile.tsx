@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { productsService, supabase } from "@/lib/supabase";
 import {
+  Camera,
   Edit,
   LogOut,
   Mail,
@@ -54,7 +55,19 @@ export default function Profile() {
     name: "",
     city: "",
     address: "",
+    latitude: "",
+    longitude: "",
   });
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [idCardImage, setIdCardImage] = useState<File | null>(null);
+  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(
+    null
+  );
+  const [idCardImagePreview, setIdCardImagePreview] = useState<string | null>(
+    null
+  );
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -67,6 +80,8 @@ export default function Profile() {
           name: user.user_metadata?.name || "",
           city: user.user_metadata?.city || "",
           address: user.user_metadata?.address || "",
+          latitude: user.user_metadata?.latitude || "",
+          longitude: user.user_metadata?.longitude || "",
         });
         await fetchUserTools(user.id);
       }
@@ -124,6 +139,127 @@ export default function Profile() {
       }
     } catch (err) {
       toast.error("Erreur lors de la mise à jour du profil");
+    }
+  };
+
+  // Handle profile image selection
+  const handleProfileImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setProfileImage(file);
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfileImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle ID card image selection (including camera capture)
+  const handleIdCardImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setIdCardImage(file);
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setIdCardImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Upload image to Supabase storage
+  const uploadImage = async (file: File, folder: string): Promise<string> => {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+    const filePath = `${folder}/${fileName}`;
+
+    const { data, error } = await supabase.storage
+      .from("products")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const { data: urlData } = supabase.storage
+      .from("products")
+      .getPublicUrl(filePath);
+
+    return urlData.publicUrl;
+  };
+
+  // Save profile with images
+  const handleSaveProfileWithImages = async () => {
+    if (!user) return;
+
+    setSavingProfile(true);
+    try {
+      const metadata: any = {
+        name: profileData.name,
+        city: profileData.city,
+        address: profileData.address,
+        latitude: profileData.latitude
+          ? parseFloat(profileData.latitude)
+          : null,
+        longitude: profileData.longitude
+          ? parseFloat(profileData.longitude)
+          : null,
+      };
+
+      // Upload profile image if selected
+      if (profileImage) {
+        try {
+          const imageUrl = await uploadImage(profileImage, "profiles");
+          metadata.avatar_url = imageUrl;
+        } catch (uploadError) {
+          console.error("Profile image upload error:", uploadError);
+          toast.error("Erreur lors de l'upload de la photo de profil");
+          setSavingProfile(false);
+          return;
+        }
+      }
+
+      // Upload ID card image if selected
+      if (idCardImage) {
+        try {
+          const idCardUrl = await uploadImage(idCardImage, "id_cards");
+          metadata.id_card_url = idCardUrl;
+        } catch (uploadError) {
+          console.error("ID card upload error:", uploadError);
+          toast.error("Erreur lors de l'upload de la pièce d'identité");
+          setSavingProfile(false);
+          return;
+        }
+      }
+
+      const { error } = await supabase.auth.updateUser({
+        data: metadata,
+      });
+
+      if (error) {
+        toast.error("Erreur lors de la mise à jour du profil");
+      } else {
+        toast.success("Profil mis à jour avec succès");
+        setEditingProfile(false);
+        setProfileImage(null);
+        setIdCardImage(null);
+        setProfileImagePreview(null);
+        setIdCardImagePreview(null);
+        setUser({
+          ...user,
+          user_metadata: { ...user.user_metadata, ...metadata },
+        });
+      }
+    } catch (err) {
+      toast.error("Erreur lors de la mise à jour du profil");
+    } finally {
+      setSavingProfile(false);
     }
   };
 
@@ -253,12 +389,77 @@ export default function Profile() {
         {/* Header - Profile Info */}
         <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
           <div className="flex items-center gap-6">
-            <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center">
-              <User className="w-12 h-12 text-blue-600" />
+            <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden">
+              {profileImagePreview ? (
+                <img
+                  src={profileImagePreview}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              ) : user.user_metadata?.avatar_url ? (
+                <img
+                  src={user.user_metadata.avatar_url}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User className="w-12 h-12 text-blue-600" />
+              )}
             </div>
             <div className="flex-1">
               {editingProfile ? (
                 <div className="space-y-3">
+                  {/* Profile Image Upload */}
+                  <div className="flex items-center gap-4">
+                    <label className="cursor-pointer flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                      <Upload className="w-4 h-4" />
+                      <span className="text-sm">Photo de profil</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleProfileImageChange}
+                        className="hidden"
+                      />
+                    </label>
+                    {profileImage && (
+                      <span className="text-sm text-green-600">
+                        ✓ Image sélectionnée
+                      </span>
+                    )}
+                  </div>
+
+                  {/* ID Card Image Capture */}
+                  <div className="flex items-center gap-4">
+                    <label className="cursor-pointer flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                      <Camera className="w-4 h-4" />
+                      <span className="text-sm">Prendre photo CIN</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        onChange={handleIdCardImageChange}
+                        className="hidden"
+                      />
+                    </label>
+                    {idCardImage && (
+                      <span className="text-sm text-green-600">
+                        ✓ CIN sélectionné
+                      </span>
+                    )}
+                  </div>
+
+                  {/* ID Card Preview */}
+                  {idCardImagePreview && (
+                    <div className="mt-2">
+                      <p className="text-xs text-gray-500 mb-1">Aperçu CIN:</p>
+                      <img
+                        src={idCardImagePreview}
+                        alt="ID Card"
+                        className="w-32 h-20 object-cover rounded-lg border"
+                      />
+                    </div>
+                  )}
+
                   <input
                     type="text"
                     value={profileData.name}
@@ -289,16 +490,80 @@ export default function Profile() {
                     placeholder="Votre adresse"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                   />
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={profileData.latitude}
+                      onChange={e =>
+                        setProfileData({
+                          ...profileData,
+                          latitude: e.target.value,
+                        })
+                      }
+                      placeholder="Latitude"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    />
+                    <input
+                      type="text"
+                      value={profileData.longitude}
+                      onChange={e =>
+                        setProfileData({
+                          ...profileData,
+                          longitude: e.target.value,
+                        })
+                      }
+                      placeholder="Longitude"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                          position => {
+                            setProfileData({
+                              ...profileData,
+                              latitude: position.coords.latitude.toString(),
+                              longitude: position.coords.longitude.toString(),
+                            });
+                            toast.success("Position récupérée avec succès!");
+                          },
+                          error => {
+                            toast.error(
+                              "Impossible de récupérer la position: " +
+                                error.message
+                            );
+                          }
+                        );
+                      } else {
+                        toast.error(
+                          "La géolocalisation n'est pas supportée par ce navigateur"
+                        );
+                      }
+                    }}
+                    className="w-full"
+                  >
+                    📍 Obtenir ma position actuelle
+                  </Button>
                   <div className="flex gap-2">
                     <Button
-                      onClick={handleSaveProfile}
+                      onClick={handleSaveProfileWithImages}
+                      disabled={savingProfile}
                       className="bg-green-600 hover:bg-green-700"
                     >
-                      Enregistrer
+                      {savingProfile ? "Enregistrement..." : "Enregistrer"}
                     </Button>
                     <Button
                       variant="outline"
-                      onClick={() => setEditingProfile(false)}
+                      onClick={() => {
+                        setEditingProfile(false);
+                        setProfileImage(null);
+                        setIdCardImage(null);
+                        setProfileImagePreview(null);
+                        setIdCardImagePreview(null);
+                      }}
                     >
                       Annuler
                     </Button>
@@ -376,6 +641,27 @@ export default function Profile() {
                       ? "Bricoleur"
                       : "Loueur professionnel"}
                   </p>
+                </div>
+              </div>
+              {/* ID Card Status */}
+              <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
+                <Camera className="w-5 h-5 text-gray-400" />
+                <div className="flex-1">
+                  <p className="text-sm text-gray-500">
+                    Pièce d'identité (CIN)
+                  </p>
+                  {user.user_metadata?.id_card_url ? (
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="font-medium text-green-600">Vérifiée</p>
+                      <img
+                        src={user.user_metadata.id_card_url}
+                        alt="CIN"
+                        className="w-16 h-10 object-cover rounded ml-2"
+                      />
+                    </div>
+                  ) : (
+                    <p className="font-medium text-orange-600">Non vérifiée</p>
+                  )}
                 </div>
               </div>
             </div>

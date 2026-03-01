@@ -9,16 +9,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { trpc } from "@/lib/trpc";
 import { motion } from "framer-motion";
-import { 
-  Mail, 
-  Search, 
-  Users, 
-  MapPin, 
-  CheckCircle, 
-  XCircle, 
-  FileText,
+import {
+  CheckCircle,
+  Mail,
+  MapPin,
+  Search,
   User,
-  Building
+  Users,
+  XCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
@@ -44,15 +42,11 @@ export default function AdminSubscribers() {
   const [selectedProfile, setSelectedProfile] = useState<string | null>(null);
 
   // tRPC queries
-  const {
-    data: subscribersData,
-    isLoading: isLoadingSubscribers,
-  } = trpc.subscribers.list.useQuery();
+  const { data: subscribersData, isLoading: isLoadingSubscribers } =
+    trpc.subscribers.list.useQuery();
 
-  const {
-    data: statsData,
-    isLoading: isLoadingStats,
-  } = trpc.subscribers.stats.useQuery();
+  const { data: statsData, isLoading: isLoadingStats } =
+    trpc.subscribers.stats.useQuery();
 
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -68,19 +62,22 @@ export default function AdminSubscribers() {
   }, [isLoadingSubscribers]);
 
   const filteredSubscribers = subscribers.filter(sub => {
-    const matchesSearch = !searchTerm || 
+    const matchesSearch =
+      !searchTerm ||
       sub.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       sub.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       sub.city?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesProfile = !selectedProfile || sub.profile === selectedProfile;
-    
+
     return matchesSearch && matchesProfile;
   });
 
   const verifiedCount = subscribers.filter(s => s.verified).length;
   const unverifiedCount = subscribers.filter(s => !s.verified).length;
-  const bricoleurCount = subscribers.filter(s => s.profile === "bricoleur").length;
+  const bricoleurCount = subscribers.filter(
+    s => s.profile === "bricoleur"
+  ).length;
   const loueurCount = subscribers.filter(s => s.profile === "loueur").length;
 
   const handleLogout = () => {
@@ -114,7 +111,7 @@ export default function AdminSubscribers() {
               </div>
             </div>
             <div className="flex gap-3">
-              <Link href="/admin/employees">
+              <Link href="/admin/services">
                 <Button
                   variant="ghost"
                   className="rounded-full hover:bg-blue-50 text-blue-600 hover:text-blue-700"
@@ -243,7 +240,10 @@ export default function AdminSubscribers() {
           transition={{ duration: 0.3, delay: 0.4 }}
         >
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <Search
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              size={18}
+            />
             <Input
               placeholder="Search by name, email, or city..."
               value={searchTerm}
@@ -289,7 +289,8 @@ export default function AdminSubscribers() {
                 All Subscribers ({filteredSubscribers.length})
               </CardTitle>
               <CardDescription>
-                Showing {filteredSubscribers.length} of {subscribers.length} subscribers
+                Showing {filteredSubscribers.length} of {subscribers.length}{" "}
+                subscribers
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -306,23 +307,40 @@ export default function AdminSubscribers() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-gray-200">
-                        <th className="text-left py-3 px-4 font-medium text-gray-600">Name</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-600">Email</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-600">Profile</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-600">City</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-600">Verified</th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-600">Joined</th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">
+                          Name
+                        </th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">
+                          Email
+                        </th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">
+                          Profile
+                        </th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">
+                          City
+                        </th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">
+                          Verified
+                        </th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-600">
+                          Joined
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
                       {filteredSubscribers.slice(0, 20).map(sub => (
-                        <tr key={sub.id} className="border-b border-gray-100 hover:bg-gray-50">
+                        <tr
+                          key={sub.id}
+                          className="border-b border-gray-100 hover:bg-gray-50"
+                        >
                           <td className="py-3 px-4">
                             <div className="flex items-center gap-2">
                               <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
                                 <User size={16} className="text-blue-600" />
                               </div>
-                              <span className="font-medium text-gray-900">{sub.name}</span>
+                              <span className="font-medium text-gray-900">
+                                {sub.name}
+                              </span>
                             </div>
                           </td>
                           <td className="py-3 px-4">
@@ -332,12 +350,16 @@ export default function AdminSubscribers() {
                             </div>
                           </td>
                           <td className="py-3 px-4">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              sub.profile === "bricoleur" 
-                                ? "bg-purple-100 text-purple-800" 
-                                : "bg-orange-100 text-orange-800"
-                            }`}>
-                              {sub.profile === "bricoleur" ? "Bricoleur" : "Loueur"}
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                sub.profile === "bricoleur"
+                                  ? "bg-purple-100 text-purple-800"
+                                  : "bg-orange-100 text-orange-800"
+                              }`}
+                            >
+                              {sub.profile === "bricoleur"
+                                ? "Bricoleur"
+                                : "Loueur"}
                             </span>
                           </td>
                           <td className="py-3 px-4">
@@ -346,7 +368,9 @@ export default function AdminSubscribers() {
                                 <MapPin size={14} className="text-gray-400" />
                                 {sub.city}
                               </div>
-                            ) : "-"}
+                            ) : (
+                              "-"
+                            )}
                           </td>
                           <td className="py-3 px-4">
                             {sub.verified ? (
@@ -362,7 +386,9 @@ export default function AdminSubscribers() {
                             )}
                           </td>
                           <td className="py-3 px-4 text-gray-500 text-sm">
-                            {sub.created_at ? new Date(sub.created_at).toLocaleDateString() : "-"}
+                            {sub.created_at
+                              ? new Date(sub.created_at).toLocaleDateString()
+                              : "-"}
                           </td>
                         </tr>
                       ))}

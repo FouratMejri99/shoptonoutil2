@@ -91,9 +91,9 @@ export default function AdminChangePassword() {
       setNewPassword("");
       setConfirmPassword("");
 
-      // Redirect to employees page after short delay
+      // Redirect to services page after short delay
       setTimeout(() => {
-        setLocation("/admin/employees");
+        setLocation("/admin/services");
       }, 1500);
     } catch (err: any) {
       console.error("Password change error:", err);
@@ -209,7 +209,7 @@ export default function AdminChangePassword() {
               </div>
 
               <div className="flex gap-3 pt-4">
-                <Link href="/admin/employees">
+                <Link href="/admin/services">
                   <Button type="button" variant="outline" className="flex-1">
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     Cancel

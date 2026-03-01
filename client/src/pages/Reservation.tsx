@@ -1,10 +1,21 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/lib/supabase";
-import { Calendar, Check, Clock, MapPin, Package, Shield, Star, User, ArrowLeft } from "lucide-react";
+import {
+  ArrowLeft,
+  Calendar,
+  Check,
+  CreditCard,
+  MapPin,
+  Package,
+  Shield,
+  Star,
+  User,
+  Wallet,
+} from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
+import { Link, useLocation } from "wouter";
 
 interface Tool {
   id: number;
@@ -40,15 +51,20 @@ export default function Reservation() {
     startDate: "",
     endDate: "",
     message: "",
+    paymentMethod: "card",
   });
 
   // Get tool ID from URL
-  const toolIdParam = new URLSearchParams(location.split("?")[1] || "").get("tool");
+  const toolIdParam = new URLSearchParams(location.split("?")[1] || "").get(
+    "tool"
+  );
   const toolId = toolIdParam ? parseInt(toolIdParam) : null;
 
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       setUser(user);
       // Fetch tool regardless of login status
       if (toolId) {
@@ -66,7 +82,7 @@ export default function Reservation() {
     }
 
     console.log("Fetching tool with ID:", toolId, "type:", typeof toolId);
-    
+
     const { data, error } = await supabase
       .from("publish")
       .select("*")
@@ -103,31 +119,34 @@ export default function Reservation() {
       // Calculate total days and price
       const start = new Date(formData.startDate);
       const end = new Date(formData.endDate);
-      const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      const days =
+        Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) +
+        1;
       const totalPrice = tool.price * days;
 
       // Create reservation
-      const { error } = await supabase
-        .from("reservations")
-        .insert([
-          {
-            tool_id: tool.id,
-            renter_id: user.id,
-            owner_id: tool.user_id,
-            start_date: formData.startDate,
-            end_date: formData.endDate,
-            total_price: totalPrice,
-            deposit: tool.deposit || tool.price * 2,
-            status: "pending",
-            message: formData.message,
-          },
-        ]);
+      const { error } = await supabase.from("reservations").insert([
+        {
+          tool_id: tool.id,
+          renter_id: user.id,
+          owner_id: tool.user_id,
+          start_date: formData.startDate,
+          end_date: formData.endDate,
+          total_price: totalPrice,
+          deposit: tool.deposit || tool.price * 2,
+          status: "pending",
+          message: formData.message,
+          payment_method: formData.paymentMethod,
+        },
+      ]);
 
       if (error) {
         console.error("Error creating reservation:", error);
         toast.error("Erreur lors de la création de la réservation");
       } else {
-        toast.success("Réservation envoyée ! Le propriétaire va recevoir votre demande.");
+        toast.success(
+          "Réservation envoyée ! Le propriétaire va recevoir votre demande."
+        );
         window.location.href = "/messages";
       }
     } catch (err) {
@@ -199,7 +218,8 @@ export default function Reservation() {
     const start = new Date(formData.startDate);
     const end = new Date(formData.endDate);
     if (isNaN(start.getTime()) || isNaN(end.getTime())) return null;
-    const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    const days =
+      Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
     if (days < 1) return null;
     return {
       days,
@@ -214,7 +234,10 @@ export default function Reservation() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
       <div className="max-w-4xl mx-auto">
-        <Link href="/shop" className="inline-flex items-center text-blue-600 hover:underline mb-6">
+        <Link
+          href="/shop"
+          className="inline-flex items-center text-blue-600 hover:underline mb-6"
+        >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Retour aux outils
         </Link>
@@ -242,9 +265,12 @@ export default function Reservation() {
               <h1 className="text-2xl font-bold text-gray-900 mb-2">
                 {tool.name}
               </h1>
-              
+
               <div className="text-3xl font-bold text-blue-600 mb-4">
-                {tool.price}€ <span className="text-lg font-normal text-gray-500">/ jour</span>
+                {tool.price}€{" "}
+                <span className="text-lg font-normal text-gray-500">
+                  / jour
+                </span>
               </div>
 
               {/* Owner Info */}
@@ -256,7 +282,7 @@ export default function Reservation() {
                   <p className="font-semibold text-gray-900">Propriétaire</p>
                   <div className="flex items-center gap-2 text-sm">
                     <div className="flex items-center text-amber-500">
-                      {[1, 2, 3, 4, 5].map((star) => (
+                      {[1, 2, 3, 4, 5].map(star => (
                         <Star key={star} className="w-3 h-3 fill-current" />
                       ))}
                     </div>
@@ -271,7 +297,9 @@ export default function Reservation() {
               {/* Description */}
               {tool.description && (
                 <div className="mb-4">
-                  <h3 className="font-semibold text-gray-900 mb-2">Description</h3>
+                  <h3 className="font-semibold text-gray-900 mb-2">
+                    Description
+                  </h3>
                   <p className="text-gray-600 text-sm">{tool.description}</p>
                 </div>
               )}
@@ -279,8 +307,12 @@ export default function Reservation() {
               {/* Characteristics */}
               {tool.characteristics && (
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Caractéristiques</h3>
-                  <p className="text-gray-600 text-sm">{tool.characteristics}</p>
+                  <h3 className="font-semibold text-gray-900 mb-2">
+                    Caractéristiques
+                  </h3>
+                  <p className="text-gray-600 text-sm">
+                    {tool.characteristics}
+                  </p>
                 </div>
               )}
 
@@ -311,7 +343,12 @@ export default function Reservation() {
                       <input
                         type="date"
                         value={formData.startDate}
-                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                        onChange={e =>
+                          setFormData({
+                            ...formData,
+                            startDate: e.target.value,
+                          })
+                        }
                         required
                         min={new Date().toISOString().split("T")[0]}
                         className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -328,9 +365,14 @@ export default function Reservation() {
                       <input
                         type="date"
                         value={formData.endDate}
-                        onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                        onChange={e =>
+                          setFormData({ ...formData, endDate: e.target.value })
+                        }
                         required
-                        min={formData.startDate || new Date().toISOString().split("T")[0]}
+                        min={
+                          formData.startDate ||
+                          new Date().toISOString().split("T")[0]
+                        }
                         className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       />
                     </div>
@@ -341,20 +383,96 @@ export default function Reservation() {
                     <div className="bg-blue-50 rounded-xl p-4 space-y-2">
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">
-                          {pricePreview.days} jour{pricePreview.days > 1 ? 's' : ''} × {pricePreview.pricePerDay}€
+                          {pricePreview.days} jour
+                          {pricePreview.days > 1 ? "s" : ""} ×{" "}
+                          {pricePreview.pricePerDay}€
                         </span>
-                        <span className="font-medium">{pricePreview.total}€</span>
+                        <span className="font-medium">
+                          {pricePreview.total}€
+                        </span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-gray-600">Caution</span>
-                        <span className="font-medium">{pricePreview.deposit}€</span>
+                        <span className="font-medium">
+                          {pricePreview.deposit}€
+                        </span>
                       </div>
                       <div className="border-t border-blue-200 pt-2 flex justify-between font-bold">
                         <span>Total</span>
-                        <span className="text-blue-600">{pricePreview.total}€</span>
+                        <span className="text-blue-600">
+                          {pricePreview.total}€
+                        </span>
                       </div>
                     </div>
                   )}
+
+                  {/* Payment Method Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Mode de paiement
+                    </label>
+                    <div className="grid grid-cols-3 gap-3">
+                      <label
+                        className={`cursor-pointer border-2 rounded-xl p-3 flex flex-col items-center gap-2 transition-all ${formData.paymentMethod === "card" ? "border-blue-600 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}
+                      >
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="card"
+                          checked={formData.paymentMethod === "card"}
+                          onChange={e =>
+                            setFormData({
+                              ...formData,
+                              paymentMethod: e.target.value,
+                            })
+                          }
+                          className="sr-only"
+                        />
+                        <CreditCard className="w-6 h-6 text-blue-600" />
+                        <span className="text-sm font-medium">
+                          Carte bancaire
+                        </span>
+                      </label>
+                      <label
+                        className={`cursor-pointer border-2 rounded-xl p-3 flex flex-col items-center gap-2 transition-all ${formData.paymentMethod === "paypal" ? "border-blue-600 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}
+                      >
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="paypal"
+                          checked={formData.paymentMethod === "paypal"}
+                          onChange={e =>
+                            setFormData({
+                              ...formData,
+                              paymentMethod: e.target.value,
+                            })
+                          }
+                          className="sr-only"
+                        />
+                        <Wallet className="w-6 h-6 text-blue-600" />
+                        <span className="text-sm font-medium">PayPal</span>
+                      </label>
+                      <label
+                        className={`cursor-pointer border-2 rounded-xl p-3 flex flex-col items-center gap-2 transition-all ${formData.paymentMethod === "cash" ? "border-blue-600 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}
+                      >
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="cash"
+                          checked={formData.paymentMethod === "cash"}
+                          onChange={e =>
+                            setFormData({
+                              ...formData,
+                              paymentMethod: e.target.value,
+                            })
+                          }
+                          className="sr-only"
+                        />
+                        <Wallet className="w-6 h-6 text-blue-600" />
+                        <span className="text-sm font-medium">Espèces</span>
+                      </label>
+                    </div>
+                  </div>
 
                   <Button
                     type="submit"
@@ -366,7 +484,10 @@ export default function Reservation() {
 
                   <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
                     <Shield className="w-4 h-4 text-green-600" />
-                    <span>Paiement sécurisé sur la plateforme Shoptonoutil avec caution</span>
+                    <span>
+                      Paiement sécurisé sur la plateforme Shoptonoutil avec
+                      caution
+                    </span>
                   </div>
                 </form>
               </CardContent>

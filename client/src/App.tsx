@@ -25,14 +25,10 @@ const BlogPostDetail = lazy(() => import("./pages/BlogPostDetail"));
 const Contact = lazy(() => import("./pages/Contact"));
 const IndustryLanding = lazy(() => import("./pages/IndustryLanding"));
 const LeadMagnet = lazy(() => import("./pages/LeadMagnet"));
-const EmployeeLogin = lazy(() => import("./pages/EmployeeLogin"));
-const EmployeeDashboard = lazy(() => import("./pages/EmployeeDashboard"));
-const AdminReporting = lazy(() => import("./pages/AdminReporting"));
 const Profile = lazy(() => import("./pages/Profile"));
 const Map = lazy(() => import("./pages/Map"));
 const Messages = lazy(() => import("./pages/Messages"));
 const Reservation = lazy(() => import("./pages/Reservation"));
-const AdminEmployees = lazy(() => import("./pages/AdminEmployees"));
 const AdminLogin = lazy(() => import("./pages/AdminLogin"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const AdminBlog = lazy(() => import("./pages/AdminBlog"));
@@ -61,8 +57,6 @@ function Router() {
         <Route path={"/industries/:industry"} component={IndustryLanding} />
         <Route path={"/lead-magnet"} component={LeadMagnet} />
         {/* Admin routes - hidden from public navigation */}
-        <Route path={"/admin/reporting"} component={AdminReporting} />
-        <Route path={"/admin/employees"} component={AdminEmployees} />
         <Route path={"/shoptonoutil-admin"} component={AdminLogin} />
         <Route path={"/admin/dashboard"} component={AdminDashboard} />
         <Route path={"/admin/blog"} component={AdminBlog} />
@@ -73,8 +67,6 @@ function Router() {
           component={AdminChangePassword}
         />
         <Route path={"/admin/subscribers"} component={AdminSubscribers} />
-        <Route path={"/employee/login"} component={EmployeeLogin} />
-        <Route path={"/employee/dashboard"} component={EmployeeDashboard} />
         <Route path={"/404"} component={NotFound} />
         <Route component={NotFound} />
       </Switch>
@@ -85,11 +77,9 @@ function Router() {
 function App() {
   const [location] = useLocation();
 
-  // Don't show navigation and footer for employee portal and admin pages
+  // Don't show navigation and footer for admin pages
   const isPortalPage =
-    location.startsWith("/employee") ||
-    location.startsWith("/admin") ||
-    location === "/shoptonoutil-admin";
+    location.startsWith("/admin") || location === "/shoptonoutil-admin";
 
   return (
     <ErrorBoundary>

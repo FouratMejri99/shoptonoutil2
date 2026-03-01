@@ -1,22 +1,28 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { trpc } from "@/lib/trpc";
+import { Card } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { supabase } from "@/lib/supabase";
+import { trpc } from "@/lib/trpc";
 import { motion } from "framer-motion";
-import { 
-  ArrowLeft, 
-  MapPin, 
-  Calendar, 
-  Check, 
+import {
+  ArrowLeft,
+  Check,
   CreditCard,
+  Eye,
+  EyeOff,
+  Mail,
+  MapPin,
   MessageCircle,
-  User,
-  Phone,
-  Mail
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link, useLocation as useWouterLocation } from "wouter";
 import { toast } from "sonner";
+import { Link, useLocation as useWouterLocation } from "wouter";
 
 interface PublishItem {
   id: number;
@@ -44,13 +50,27 @@ export default function ShopDetail() {
   const [isOwner, setIsOwner] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
 
+  // Login dialog state
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+
+  // Message dialog state
+  const [messageDialogOpen, setMessageDialogOpen] = useState(false);
+  const [messageText, setMessageText] = useState("");
+
   // Get the item ID from the URL
   const itemId = location.split("/").pop();
 
   // Fetch current user
   useEffect(() => {
     const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       setUser(user);
     };
     checkUser();
@@ -64,7 +84,8 @@ export default function ShopDetail() {
   }, [user, item]);
 
   // Fetch the item details using publish service
-  const { data: itemsData, isLoading: isLoadingItems } = trpc.publish.list.useQuery();
+  const { data: itemsData, isLoading: isLoadingItems } =
+    trpc.publish.list.useQuery();
 
   useEffect(() => {
     if (itemsData && itemId) {
@@ -87,9 +108,13 @@ export default function ShopDetail() {
   if (!item) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
-        <h1 className="text-2xl font-bold text-gray-900 mb-4">Annonce non trouvée</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-4">
+          Annonce non trouvée
+        </h1>
         <Link href="/shop">
-          <Button className="bg-blue-600 hover:bg-blue-700">Retour à la boutique</Button>
+          <Button className="bg-blue-600 hover:bg-blue-700">
+            Retour à la boutique
+          </Button>
         </Link>
       </div>
     );
@@ -150,7 +175,9 @@ export default function ShopDetail() {
               </span>
               <div className="flex items-baseline gap-2">
                 <span className="text-4xl font-bold text-blue-600">
-                  {item.price ? `${Number(item.price).toFixed(2)}€` : "Prix sur demande"}
+                  {item.price
+                    ? `${Number(item.price).toFixed(2)}€`
+                    : "Prix sur demande"}
                 </span>
                 {item.price && <span className="text-gray-500">/jour</span>}
               </div>
@@ -173,7 +200,9 @@ export default function ShopDetail() {
             {/* Description */}
             {item.description && (
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Description</h3>
+                <h3 className="font-semibold text-gray-900 mb-2">
+                  Description
+                </h3>
                 <p className="text-gray-600">{item.description}</p>
               </div>
             )}
@@ -181,7 +210,9 @@ export default function ShopDetail() {
             {/* Characteristics */}
             {item.characteristics && (
               <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Caractéristiques</h3>
+                <h3 className="font-semibold text-gray-900 mb-2">
+                  Caractéristiques
+                </h3>
                 <div className="flex flex-wrap gap-2">
                   {item.characteristics.split(",").map((char, index) => (
                     <span
@@ -219,66 +250,170 @@ export default function ShopDetail() {
               ) : user ? (
                 // Logged in user who is not the owner can send message
                 <>
-                  <Button
-                    size="lg"
-                    onClick={async () => {
-                      if (!user || !item?.user_id) return;
-                      
-                      setSendingMessage(true);
-                      try {
-                        // Check if conversation already exists
-                        const { data: existingConv } = await supabase
-                          .from("conversations")
-                          .select("id")
-                          .or(`and(participant1_id.eq.${user.id},participant2_id.eq.${item.user_id}),and(participant1_id.eq.${item.user_id},participant2_id.eq.${user.id})`)
-                          .eq("tool_id", item.id)
-                          .maybeSingle();
-                        
-                        let conversationId;
-                        
-                        if (existingConv) {
-                          conversationId = existingConv.id;
-                        } else {
-                          // Create new conversation
-                          const { data: newConv, error: convError } = await supabase
-                            .from("conversations")
-                            .insert([
-                              {
-                                participant1_id: user.id,
-                                participant2_id: item.user_id,
-                                tool_id: item.id,
-                                tool_name: item.name,
-                              }
-                            ])
-                            .select("id")
-                            .single();
-                          
-                          if (convError) {
-                            console.error("Conversation error:", convError);
-                            // If error, just go to messages page
-                            window.location.href = "/messages";
-                            return;
-                          }
-                          conversationId = newConv.id;
-                        }
-                        
-                        window.location.href = `/messages?conversation=${conversationId}`;
-                      } catch (error: any) {
-                        console.error("Error starting conversation:", error);
-                        // On error, go to messages page
-                        window.location.href = "/messages";
-                      } finally {
-                        setSendingMessage(false);
-                      }
-                    }}
-                    disabled={sendingMessage}
-                    variant="outline"
-                    className="w-full h-14 text-lg border-blue-600 text-blue-600 hover:bg-blue-50 rounded-full"
+                  <Dialog
+                    open={messageDialogOpen}
+                    onOpenChange={setMessageDialogOpen}
                   >
-                    <MessageCircle className="mr-2" />
-                    {sendingMessage ? "Envoi..." : "Envoyer un message"}
-                  </Button>
-                  
+                    <DialogTrigger asChild>
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        className="w-full h-14 text-lg border-blue-600 text-blue-600 hover:bg-blue-50 rounded-full"
+                      >
+                        <MessageCircle className="mr-2" />
+                        Envoyer un message
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Envoyer un message</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <p className="text-sm text-gray-600">
+                          Vous allez envoyer un message à propos de:{" "}
+                          <strong>{item?.name}</strong>
+                        </p>
+                        <textarea
+                          value={messageText}
+                          onChange={e => setMessageText(e.target.value)}
+                          placeholder="Tapez votre message..."
+                          className="w-full min-h-[120px] p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          autoFocus
+                        />
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setMessageDialogOpen(false);
+                              setMessageText("");
+                            }}
+                          >
+                            Annuler
+                          </Button>
+                          <Button
+                            onClick={async () => {
+                              if (!messageText.trim()) {
+                                toast.error("Veuillez entrer un message");
+                                return;
+                              }
+                              if (!user || !item?.user_id) {
+                                toast.error("Impossible d'envoyer le message");
+                                return;
+                              }
+
+                              // Prevent sending message to yourself
+                              if (user.id === item.user_id) {
+                                toast.error(
+                                  "Vous ne pouvez pas vous envoyer un message à vous-même"
+                                );
+                                return;
+                              }
+
+                              setSendingMessage(true);
+                              try {
+                                // Check if conversation already exists
+                                const {
+                                  data: existingConv,
+                                  error: checkError,
+                                } = await supabase
+                                  .from("conversations")
+                                  .select("id")
+                                  .or(
+                                    `and(participant1_id.eq.${user.id},participant2_id.eq.${item.user_id}),and(participant1_id.eq.${item.user_id},participant2_id.eq.${user.id})`
+                                  )
+                                  .eq("tool_id", item.id)
+                                  .maybeSingle();
+
+                                if (checkError) {
+                                  console.error(
+                                    "Check conversation error:",
+                                    checkError
+                                  );
+                                }
+
+                                let conversationId;
+
+                                if (existingConv) {
+                                  conversationId = existingConv.id;
+                                } else {
+                                  // Create new conversation
+                                  const { data: newConv, error: convError } =
+                                    await supabase
+                                      .from("conversations")
+                                      .insert([
+                                        {
+                                          participant1_id: user.id,
+                                          participant2_id: item.user_id,
+                                          tool_id: item.id,
+                                        },
+                                      ])
+                                      .select("id")
+                                      .single();
+
+                                  if (convError) {
+                                    console.error(
+                                      "Conversation error:",
+                                      convError
+                                    );
+                                    toast.error(
+                                      convError.message ||
+                                        "Erreur lors de la création de la conversation"
+                                    );
+                                    return;
+                                  }
+                                  conversationId = newConv.id;
+                                }
+
+                                // Send the message
+                                const { error: msgError } = await supabase
+                                  .from("messages")
+                                  .insert([
+                                    {
+                                      conversation_id: conversationId,
+                                      sender_id: user.id,
+                                      content: messageText.trim(),
+                                    },
+                                  ]);
+
+                                if (msgError) {
+                                  console.error("Message error:", msgError);
+                                  toast.error(
+                                    "Erreur lors de l'envoi du message"
+                                  );
+                                  return;
+                                }
+
+                                // Update conversation timestamp
+                                await supabase
+                                  .from("conversations")
+                                  .update({
+                                    updated_at: new Date().toISOString(),
+                                  })
+                                  .eq("id", conversationId);
+
+                                toast.success("Message envoyé !");
+                                setMessageDialogOpen(false);
+                                setMessageText("");
+                                window.location.href = `/messages?conversation=${conversationId}`;
+                              } catch (error: any) {
+                                console.error("Error sending message:", error);
+                                toast.error(
+                                  "Erreur lors de l'envoi du message"
+                                );
+                              } finally {
+                                setSendingMessage(false);
+                              }
+                            }}
+                            disabled={sendingMessage || !messageText.trim()}
+                            className="bg-blue-600 hover:bg-blue-700"
+                          >
+                            {sendingMessage ? "Envoi..." : "Envoyer"}
+                          </Button>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+
                   <Link href={`/reservation?tool=${item.id}`}>
                     <Button
                       size="lg"
@@ -290,22 +425,175 @@ export default function ShopDetail() {
                   </Link>
                 </>
               ) : (
-                // Not logged in - prompt to login
+                // Not logged in - show login dialog
                 <div className="text-center">
                   <p className="text-gray-600 mb-3">
                     Connectez-vous pour contacter le propriétaire ou réserver
                   </p>
-                  <Link href="/profile">
-                    <Button
-                      size="lg"
-                      className="w-full bg-blue-600 hover:bg-blue-700 rounded-full h-14 text-lg"
-                    >
-                      Se connecter
-                    </Button>
-                  </Link>
+                  <Dialog open={loginOpen} onOpenChange={setLoginOpen}>
+                    <DialogTrigger asChild>
+                      <Button
+                        size="lg"
+                        className="w-full bg-blue-600 hover:bg-blue-700 rounded-full h-14 text-lg"
+                      >
+                        Se connecter
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader>
+                        <DialogTitle className="text-center text-xl font-bold">
+                          {isRegistering
+                            ? "Créer un compte"
+                            : "Connexion à votre compte"}
+                        </DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        {!isRegistering ? (
+                          // Login Form
+                          <>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium text-gray-700">
+                                Email
+                              </label>
+                              <div className="relative">
+                                <Mail
+                                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                                  size={18}
+                                />
+                                <input
+                                  type="email"
+                                  placeholder="votre@email.com"
+                                  value={loginEmail}
+                                  onChange={e => setLoginEmail(e.target.value)}
+                                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                                />
+                              </div>
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium text-gray-700">
+                                Mot de passe
+                              </label>
+                              <div className="relative">
+                                <input
+                                  type={showPassword ? "text" : "password"}
+                                  placeholder="••••••••"
+                                  value={loginPassword}
+                                  onChange={e =>
+                                    setLoginPassword(e.target.value)
+                                  }
+                                  className="w-full pl-4 pr-12 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPassword(!showPassword)}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                                >
+                                  {showPassword ? (
+                                    <EyeOff size={18} />
+                                  ) : (
+                                    <Eye size={18} />
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                            <Button
+                              onClick={async () => {
+                                if (!loginEmail || !loginPassword) {
+                                  toast.error(
+                                    "Veuillez remplir tous les champs"
+                                  );
+                                  return;
+                                }
+                                setLoginLoading(true);
+                                try {
+                                  const { error } =
+                                    await supabase.auth.signInWithPassword({
+                                      email: loginEmail,
+                                      password: loginPassword,
+                                    });
+                                  if (error) {
+                                    toast.error(error.message);
+                                  } else {
+                                    toast.success("Connexion réussie!");
+                                    setLoginOpen(false);
+                                    window.location.reload();
+                                  }
+                                } catch (error: any) {
+                                  toast.error(
+                                    error.message || "Erreur de connexion"
+                                  );
+                                } finally {
+                                  setLoginLoading(false);
+                                }
+                              }}
+                              disabled={loginLoading}
+                              className="w-full bg-blue-600 hover:bg-blue-700 rounded-full h-12"
+                            >
+                              {loginLoading ? "Connexion..." : "Se connecter"}
+                            </Button>
+                            <div className="text-center">
+                              <button
+                                onClick={() => setIsRegistering(true)}
+                                className="text-blue-600 hover:underline text-sm"
+                              >
+                                Pas encore de compte ? S'inscrire
+                              </button>
+                            </div>
+                          </>
+                        ) : (
+                          // Registration Form
+                          <>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium text-gray-700">
+                                Nom complet
+                              </label>
+                              <input
+                                type="text"
+                                placeholder="Votre nom"
+                                value={loginEmail}
+                                onChange={e => setLoginEmail(e.target.value)}
+                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium text-gray-700">
+                                Email
+                              </label>
+                              <input
+                                type="email"
+                                placeholder="votre@email.com"
+                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium text-gray-700">
+                                Mot de passe
+                              </label>
+                              <input
+                                type="password"
+                                placeholder="••••••••"
+                                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                              />
+                            </div>
+                            <Button className="w-full bg-blue-600 hover:bg-blue-700 rounded-full h-12">
+                              Créer un compte
+                            </Button>
+                            <div className="text-center">
+                              <button
+                                onClick={() => setIsRegistering(false)}
+                                className="text-blue-600 hover:underline text-sm"
+                              >
+                                Déjà un compte ? Se connecter
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               )}
-              
+
               {user && !isOwner && (
                 <p className="text-center text-sm text-gray-500 mt-2">
                   Paiement sécurisé par carte bancaire
@@ -315,11 +603,14 @@ export default function ShopDetail() {
 
             {/* Posted date */}
             <div className="text-sm text-gray-500">
-              Publié le {item.created_at ? new Date(item.created_at).toLocaleDateString("fr-FR", {
-                year: "numeric",
-                month: "long",
-                day: "numeric"
-              }) : "N/A"}
+              Publié le{" "}
+              {item.created_at
+                ? new Date(item.created_at).toLocaleDateString("fr-FR", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })
+                : "N/A"}
             </div>
           </motion.div>
         </div>

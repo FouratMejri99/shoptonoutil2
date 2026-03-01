@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   generateToolDescription,
+  generateToolImage,
   isHuggingFaceConfigured,
 } from "@/lib/huggingface";
 import { productsService, supabase } from "@/lib/supabase";
@@ -163,6 +164,10 @@ const toolCategories = [
 export default function PublierOutil() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [loginData, setLoginData] = useState({ email: "", password: "" });
   const [loginLoading, setLoginLoading] = useState(false);
@@ -174,6 +179,15 @@ export default function PublierOutil() {
         data: { user },
       } = await supabase.auth.getUser();
       setUser(user);
+
+      // Get user's stored location from metadata
+      if (user?.user_metadata?.latitude && user?.user_metadata?.longitude) {
+        setUserLocation({
+          lat: user.user_metadata.latitude,
+          lng: user.user_metadata.longitude,
+        });
+      }
+
       setLoading(false);
     };
     checkUser();
@@ -226,6 +240,8 @@ export default function PublierOutil() {
   });
 
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [aiGeneratedImage, setAiGeneratedImage] = useState<string | null>(null);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [aiMode, setAIMode] = useState(false);
@@ -351,6 +367,29 @@ export default function PublierOutil() {
     }
   };
 
+  const handleGenerateImage = async () => {
+    if (!formData.name || !formData.category) {
+      toast.error("Veuillez d'abord sélectionner un outil et une catégorie");
+      return;
+    }
+
+    setIsGeneratingImage(true);
+    try {
+      const imageDataUrl = await generateToolImage(
+        formData.name,
+        formData.category
+      );
+      setAiGeneratedImage(imageDataUrl);
+      setImageFile(null); // Clear uploaded file when using AI image
+      toast.success("Image générée avec succès!");
+    } catch (error: any) {
+      console.error("Error generating image:", error);
+      toast.error(error.message || "Erreur lors de la génération de l'image");
+    } finally {
+      setIsGeneratingImage(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -384,8 +423,26 @@ export default function PublierOutil() {
 
       let imageUrl = null;
 
-      // Upload image if selected
-      if (imageFile) {
+      // Upload AI generated image if available
+      if (aiGeneratedImage) {
+        try {
+          console.log("Uploading AI generated image...");
+          // Convert data URL to blob
+          const response = await fetch(aiGeneratedImage);
+          const blob = await response.blob();
+          const fileName = `ai-generated-${Date.now()}.png`;
+          const file = new File([blob], fileName, { type: "image/png" });
+          imageUrl = await productsService.uploadProductImage(file);
+          console.log("AI image uploaded successfully:", imageUrl);
+        } catch (storageError) {
+          console.error("Storage error for AI image:", storageError);
+          toast.error(
+            "Erreur lors de l'upload de l'image générée. L'outil sera publié sans image."
+          );
+        }
+      }
+      // Upload manually uploaded image if selected
+      else if (imageFile) {
         try {
           console.log("Uploading image file:", imageFile.name);
           imageUrl = await productsService.uploadProductImage(imageFile);
@@ -414,6 +471,8 @@ export default function PublierOutil() {
             city: formData.city,
             address: formData.address,
             image_url: imageUrl,
+            latitude: userLocation?.lat || null,
+            longitude: userLocation?.lng || null,
           },
         ])
         .select();
@@ -435,6 +494,7 @@ export default function PublierOutil() {
           address: "",
         });
         setImageFile(null);
+        setAiGeneratedImage(null);
         setCurrentStep(1);
       }
     } catch (err) {
@@ -726,9 +786,88 @@ export default function PublierOutil() {
                   {/* Step 2: Image */}
                   {currentStep === 2 && (
                     <div className="space-y-6">
+                      {/* AI Image Generation Option */}
+                      <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4 border border-purple-200">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            <Sparkles className="w-5 h-5 text-purple-600" />
+                            <span className="font-medium text-gray-900">
+                              Générer une image avec l'IA
+                            </span>
+                          </div>
+                          <Button
+                            type="button"
+                            onClick={handleGenerateImage}
+                            disabled={
+                              isGeneratingImage ||
+                              !formData.name ||
+                              !formData.category
+                            }
+                            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                          >
+                            {isGeneratingImage ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Génération en cours...
+                              </>
+                            ) : (
+                              <>
+                                <Sparkles className="w-4 h-4 mr-2" />
+                                Générer
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                        {!hfConfigured && (
+                          <p className="text-xs text-amber-600">
+                            💡 Configurez VITE_HUGGING_FACE_API_KEY dans .env
+                            pour utiliser la génération d'images IA
+                          </p>
+                        )}
+                        {hfConfigured && !formData.name && (
+                          <p className="text-xs text-gray-500">
+                            Veuillez d'abord sélectionner un outil à l'étape 1
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Show generated AI image */}
+                      {aiGeneratedImage && (
+                        <div className="relative">
+                          <img
+                            src={aiGeneratedImage}
+                            alt="Image générée par IA"
+                            className="w-full h-64 object-cover rounded-lg"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setAiGeneratedImage(null)}
+                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </button>
+                          <p className="text-sm text-green-600 mt-2 text-center">
+                            ✓ Image générée avec succès!
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="text-center text-gray-500">- OU -</div>
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Photo principale de l'outil
+                          Télécharger une photo
                         </label>
                         <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-500 transition-colors">
                           <input

@@ -43,6 +43,16 @@ function Navigation() {
     address: "",
     profileType: "bricoleur",
   });
+  // State for ID card images during registration
+  const [idCardFront, setIdCardFront] = useState<File | null>(null);
+  const [idCardBack, setIdCardBack] = useState<File | null>(null);
+  const [idCardFrontPreview, setIdCardFrontPreview] = useState<string | null>(
+    null
+  );
+  const [idCardBackPreview, setIdCardBackPreview] = useState<string | null>(
+    null
+  );
+  const [iban, setIban] = useState("");
 
   // Check auth state on mount
   useEffect(() => {
@@ -67,6 +77,7 @@ function Navigation() {
     await supabase.auth.signOut();
     setUser(null);
     toast.success("Déconnexion réussie");
+    window.location.href = "/";
   };
 
   useEffect(() => {
@@ -479,19 +490,43 @@ function Navigation() {
                             <Input
                               type="file"
                               accept="image/*"
+                              capture="environment"
                               className="hidden"
                               id="id-front"
+                              onChange={e => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  setIdCardFront(file);
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => {
+                                    setIdCardFrontPreview(
+                                      reader.result as string
+                                    );
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
                             />
                             <label
                               htmlFor="id-front"
                               className="cursor-pointer"
                             >
-                              <p className="text-gray-600">
-                                Choisir un fichier
-                              </p>
-                              <p className="text-xs text-gray-400 mt-1">
-                                Prendre une photo
-                              </p>
+                              {idCardFrontPreview ? (
+                                <img
+                                  src={idCardFrontPreview}
+                                  alt="ID Front"
+                                  className="w-full h-32 object-contain mx-auto"
+                                />
+                              ) : (
+                                <>
+                                  <p className="text-gray-600">
+                                    Choisir un fichier
+                                  </p>
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    Prendre une photo
+                                  </p>
+                                </>
+                              )}
                             </label>
                           </div>
                         </div>
@@ -504,16 +539,40 @@ function Navigation() {
                             <Input
                               type="file"
                               accept="image/*"
+                              capture="environment"
                               className="hidden"
                               id="id-back"
+                              onChange={e => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  setIdCardBack(file);
+                                  const reader = new FileReader();
+                                  reader.onloadend = () => {
+                                    setIdCardBackPreview(
+                                      reader.result as string
+                                    );
+                                  };
+                                  reader.readAsDataURL(file);
+                                }
+                              }}
                             />
                             <label htmlFor="id-back" className="cursor-pointer">
-                              <p className="text-gray-600">
-                                Choisir un fichier
-                              </p>
-                              <p className="text-xs text-gray-400 mt-1">
-                                Prendre une photo
-                              </p>
+                              {idCardBackPreview ? (
+                                <img
+                                  src={idCardBackPreview}
+                                  alt="ID Back"
+                                  className="w-full h-32 object-contain mx-auto"
+                                />
+                              ) : (
+                                <>
+                                  <p className="text-gray-600">
+                                    Choisir un fichier
+                                  </p>
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    Prendre une photo
+                                  </p>
+                                </>
+                              )}
                             </label>
                           </div>
                           <p className="text-xs text-gray-500">
@@ -527,6 +586,8 @@ function Navigation() {
                           <Input
                             id="reg-iban"
                             placeholder="FR76 1234 5678 9012 3456 7890 123"
+                            value={iban}
+                            onChange={e => setIban(e.target.value)}
                           />
                           <p className="text-xs text-gray-500">
                             Format : FR suivi de 23 chiffres. Espaces
@@ -558,6 +619,47 @@ function Navigation() {
                               }
                               setRegisterLoading(true);
                               try {
+                                // Upload ID card images if provided
+                                let idCardFrontUrl = "";
+                                let idCardBackUrl = "";
+
+                                const uploadIdCard = async (
+                                  file: File,
+                                  side: string
+                                ) => {
+                                  const fileExt = file.name.split(".").pop();
+                                  const fileName = `${registerData.email}-${side}-${Date.now()}.${fileExt}`;
+                                  const filePath = `id_cards/${fileName}`;
+
+                                  const { data, error } = await supabase.storage
+                                    .from("products")
+                                    .upload(filePath, file, {
+                                      cacheControl: "3600",
+                                      upsert: false,
+                                    });
+
+                                  if (error) throw error;
+
+                                  const { data: urlData } = supabase.storage
+                                    .from("products")
+                                    .getPublicUrl(filePath);
+
+                                  return urlData.publicUrl;
+                                };
+
+                                if (idCardFront) {
+                                  idCardFrontUrl = await uploadIdCard(
+                                    idCardFront,
+                                    "front"
+                                  );
+                                }
+                                if (idCardBack) {
+                                  idCardBackUrl = await uploadIdCard(
+                                    idCardBack,
+                                    "back"
+                                  );
+                                }
+
                                 const { data, error } =
                                   await supabase.auth.signUp({
                                     email: registerData.email,
@@ -568,6 +670,9 @@ function Navigation() {
                                         city: registerData.city,
                                         address: registerData.address,
                                         profile_type: registerData.profileType,
+                                        id_card_front_url: idCardFrontUrl,
+                                        id_card_back_url: idCardBackUrl,
+                                        iban: iban,
                                       },
                                     },
                                   });
@@ -587,6 +692,11 @@ function Navigation() {
                                     address: "",
                                     profileType: "bricoleur",
                                   });
+                                  setIdCardFront(null);
+                                  setIdCardBack(null);
+                                  setIdCardFrontPreview(null);
+                                  setIdCardBackPreview(null);
+                                  setIban("");
                                   setLoginOpen(true);
                                 }
                               } catch (err) {

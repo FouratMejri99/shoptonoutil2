@@ -5,7 +5,7 @@ export default function AdminDashboard() {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    setLocation("/admin/employees");
+    setLocation("/admin/services");
   }, [setLocation]);
 
   return null;

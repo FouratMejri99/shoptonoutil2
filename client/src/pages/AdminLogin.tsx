@@ -70,7 +70,7 @@ export default function AdminLogin() {
         toast.success("Login successful!");
         // Small delay to ensure cookie is set
         setTimeout(() => {
-          setLocation("/admin/employees");
+          setLocation("/admin/services");
         }, 100);
       }
     } catch (err: any) {
@@ -125,7 +125,7 @@ export default function AdminLogin() {
               Admin Login
             </CardTitle>
             <CardDescription className="text-center text-gray-600 mt-2">
-              Sign in to manage employee accounts and access
+              Sign in to manage the platform content
             </CardDescription>
           </CardHeader>
           <CardContent className="p-8">

@@ -1,22 +1,46 @@
 import { PageSkeleton } from "@/components/PageLoader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { supabase } from "@/lib/supabase";
 import { trpc } from "@/lib/trpc";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
 import {
   ArrowRight,
   Award,
   CheckCircle,
+  MapPin,
   Package,
   ShoppingCart,
-  Star,
   Truck,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 
 export default function Home() {
   const [refreshKey, setRefreshKey] = useState(0);
+  const [featuredTools, setFeaturedTools] = useState<any[]>([]);
+  const [loadingTools, setLoadingTools] = useState(true);
+
+  // Fetch tools from Supabase
+  useEffect(() => {
+    const fetchFeaturedTools = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("publish")
+          .select("*")
+          .limit(8);
+
+        if (data) {
+          setFeaturedTools(data);
+        }
+      } catch (err) {
+        console.error("Error fetching tools:", err);
+      } finally {
+        setLoadingTools(false);
+      }
+    };
+    fetchFeaturedTools();
+  }, [refreshKey]);
 
   const { data: testimonials, isLoading: testimonialsLoading } =
     trpc.testimonials.list.useQuery();
@@ -30,8 +54,9 @@ export default function Home() {
         setRefreshKey(k => k + 1);
       }
     };
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility);
   }, []);
 
   // Show skeleton while loading
@@ -46,7 +71,8 @@ export default function Home() {
       name: "Outils à main",
       slug: "outils-a-main",
       description: "Marteaux, tournevis, clés...",
-      image: "https://images.unsplash.com/photo-1581244277943-fe4a9c777189?w=800&q=80",
+      image:
+        "https://images.unsplash.com/photo-1581244277943-fe4a9c777189?w=800&q=80",
       icon: "Package",
     },
     {
@@ -54,7 +80,8 @@ export default function Home() {
       name: "Outils électriques",
       slug: "outils-electriques",
       description: "Perceuses, scies, ponceuses...",
-      image: "https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&q=80",
+      image:
+        "https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&q=80",
       icon: "CheckCircle",
     },
     {
@@ -62,7 +89,8 @@ export default function Home() {
       name: "Quincaillerie",
       slug: "quincaillerie",
       description: "Vis, écrous, boulons...",
-      image: "https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=800&q=80",
+      image:
+        "https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=800&q=80",
       icon: "Package",
     },
     {
@@ -70,7 +98,8 @@ export default function Home() {
       name: "Peintures & revêtements",
       slug: "peintures",
       description: "Peintures, vernis, revêtements...",
-      image: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=800&q=80",
+      image:
+        "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=800&q=80",
       icon: "CheckCircle",
     },
     {
@@ -78,7 +107,8 @@ export default function Home() {
       name: "Électricité",
       slug: "electricite",
       description: "Câbles, prises, interrupteurs...",
-      image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80",
+      image:
+        "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80",
       icon: "CheckCircle",
     },
     {
@@ -86,7 +116,8 @@ export default function Home() {
       name: "Plomberie",
       slug: "plomberie",
       description: "Tuyaux, robinets, raccords...",
-      image: "https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=800&q=80",
+      image:
+        "https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=800&q=80",
       icon: "CheckCircle",
     },
   ];
@@ -97,7 +128,8 @@ export default function Home() {
       name: "Perceuse-visseuse sans fil 18V",
       description: "Performance professionnelle avec 2 batteries",
       price: 149.99,
-      image: "https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&q=80",
+      image:
+        "https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&q=80",
       rating: 4.8,
       reviews: 245,
     },
@@ -106,7 +138,8 @@ export default function Home() {
       name: "Kit d'outils à main 100 pièces",
       description: "Complet pour tous vos travaux",
       price: 79.99,
-      image: "https://images.unsplash.com/photo-1581244277943-fe4a9c777189?w=800&q=80",
+      image:
+        "https://images.unsplash.com/photo-1581244277943-fe4a9c777189?w=800&q=80",
       rating: 4.6,
       reviews: 189,
     },
@@ -115,7 +148,8 @@ export default function Home() {
       name: "Scie circulaire 1400W",
       description: "Précision et puissance",
       price: 119.99,
-      image: "https://images.unsplash.com/photo-1572981779307-38b8cabb2407?w=800&q=80",
+      image:
+        "https://images.unsplash.com/photo-1572981779307-38b8cabb2407?w=800&q=80",
       rating: 4.7,
       reviews: 156,
     },
@@ -124,7 +158,8 @@ export default function Home() {
       name: "Boîte à outils professionnelle",
       description: "Rangement modulable",
       price: 59.99,
-      image: "https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=800&q=80",
+      image:
+        "https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=800&q=80",
       rating: 4.5,
       reviews: 98,
     },
@@ -210,7 +245,8 @@ export default function Home() {
                     size="lg"
                     className="h-14 px-8 bg-white text-blue-600 hover:bg-blue-50 hover:scale-105 transition-all duration-300 text-lg shadow-lg shadow-blue-900/20 rounded-full"
                   >
-                    Commander maintenant <ShoppingCart className="ml-2" size={20} />
+                    Commander maintenant{" "}
+                    <ShoppingCart className="ml-2" size={20} />
                   </Button>
                 </Link>
                 <Link href="/about">
@@ -273,7 +309,9 @@ export default function Home() {
                   </div>
                   <div>
                     <p className="font-bold text-gray-900">Stock important</p>
-                    <p className="text-sm text-gray-500">Disponibilité immédiate</p>
+                    <p className="text-sm text-gray-500">
+                      Disponibilité immédiate
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -331,7 +369,8 @@ export default function Home() {
                         {category.description}
                       </p>
                       <div className="mt-4 flex items-center text-blue-600 font-medium text-sm">
-                        Voir les produits <ArrowRight className="ml-1 w-4 h-4" />
+                        Voir les produits{" "}
+                        <ArrowRight className="ml-1 w-4 h-4" />
                       </div>
                     </CardContent>
                   </Card>
@@ -355,83 +394,83 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <span className="text-blue-600 font-semibold tracking-wider uppercase text-sm">
-              Bestsellers
+              Boutique
             </span>
             <h2 className="text-4xl font-bold mt-2 text-gray-900">
-              Nos produits vedettes
+              Nos outils disponibles
             </h2>
             <p className="text-xl text-gray-600 mt-4 max-w-2xl mx-auto">
-              Les outils les plus appréciés par nos clients
+              Découvrez les outils publiés par nos utilisateurs
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {featuredProducts.map((product, idx) => (
+            {featuredTools.map((tool, idx) => (
               <motion.div
-                key={product.id}
+                key={tool.id}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.1 }}
               >
-                <Card className="h-full overflow-hidden border-none shadow-lg hover:shadow-xl transition-all duration-300">
-                  <div className="h-48 overflow-hidden relative">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-500"
-                    />
-                    <div className="absolute top-2 right-2 bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-medium">
-                      -20%
-                    </div>
-                  </div>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-1 mb-2">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          size={14}
-                          className={
-                            i < Math.floor(product.rating)
-                              ? "text-yellow-400 fill-yellow-400"
-                              : "text-gray-300"
-                          }
+                <Link href={`/shop?tool=${tool.id}`}>
+                  <Card className="h-full overflow-hidden border-none shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer">
+                    <div className="h-48 overflow-hidden relative">
+                      {tool.image_url ? (
+                        <img
+                          src={tool.image_url}
+                          alt={tool.name}
+                          className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-500"
                         />
-                      ))}
-                      <span className="text-xs text-gray-500 ml-1">
-                        ({product.reviews})
-                      </span>
+                      ) : (
+                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                          <Package className="w-12 h-12 text-gray-400" />
+                        </div>
+                      )}
                     </div>
-                    <h3 className="text-sm font-bold text-gray-900 mb-1 line-clamp-2">
-                      {product.name}
-                    </h3>
-                    <p className="text-xs text-gray-600 mb-3">
-                      {product.description}
-                    </p>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <span className="text-lg font-bold text-blue-600">
-                          {product.price.toFixed(2)}€
-                        </span>
+                    <CardContent className="p-4">
+                      <h3 className="text-sm font-bold text-gray-900 mb-1 line-clamp-2">
+                        {tool.name}
+                      </h3>
+                      <p className="text-xs text-gray-600 mb-3 line-clamp-2">
+                        {tool.description ||
+                          tool.characteristics ||
+                          "Aucune description"}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-lg font-bold text-blue-600">
+                            {tool.price}€
+                            <span className="text-sm font-normal">/jour</span>
+                          </span>
+                        </div>
+                        <Button
+                          size="sm"
+                          className="bg-blue-600 hover:bg-blue-700 rounded-full"
+                        >
+                          <ShoppingCart size={14} className="mr-1" />
+                          Louer
+                        </Button>
                       </div>
-                      <Button
-                        size="sm"
-                        className="bg-blue-600 hover:bg-blue-700 rounded-full"
-                      >
-                        <ShoppingCart size={14} className="mr-1" />
-                        Ajouter
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                      {tool.city && (
+                        <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                          <MapPin size={12} /> {tool.city}
+                        </p>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Link>
               </motion.div>
             ))}
           </div>
 
           <div className="text-center mt-12">
-            <Link href="/contact">
-              <Button size="lg" className="rounded-full bg-blue-600 hover:bg-blue-700">
-                Voir tous les produits
+            <Link href="/shop">
+              <Button
+                size="lg"
+                className="rounded-full bg-blue-600 hover:bg-blue-700"
+              >
+                Voir tous les outils
               </Button>
             </Link>
           </div>
@@ -476,7 +515,8 @@ export default function Home() {
               Prêt à démarrer vos projets ?
             </h2>
             <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-              Contactez-nous pour bénéficier de conseils personnalisés et d'un devis gratuit
+              Contactez-nous pour bénéficier de conseils personnalisés et d'un
+              devis gratuit
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/contact">
