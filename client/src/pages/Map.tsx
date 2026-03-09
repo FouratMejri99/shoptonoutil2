@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabase";
 import L from "leaflet";
-import { Filter, Lock, MapPin, Search, Wrench } from "lucide-react";
+import { Filter, MapPin, Search, Wrench } from "lucide-react";
 import { useEffect, useState } from "react";
 import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
 import { Link } from "wouter";
@@ -41,63 +41,32 @@ interface Tool {
   lng?: number;
 }
 
-// Generate random coordinates around Reims for demo
+// Center coordinates for France (default)
+const franceCenter = { lat: 46.2276, lng: 2.2137 };
 const reimsCenter = { lat: 49.2583, lng: 4.0317 };
 
-function generateRandomPosition(
-  baseLat: number,
-  baseLng: number,
-  radiusKm: number = 5
-) {
-  const radiusInDegrees = radiusKm / 111;
-  const u = Math.random();
-  const v = Math.random();
-  const w = radiusInDegrees * Math.sqrt(u);
-  const t = 2 * Math.PI * v;
-  const x = w * Math.cos(t);
-  const y = w * Math.sin(t);
-  return {
-    lat: baseLat + y,
-    lng: baseLng + x / Math.cos(baseLat * (Math.PI / 180)),
-  };
-}
-
 export default function Map() {
-  const [user, setUser] = useState<any>(null);
   const [tools, setTools] = useState<Tool[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [viewMode, setViewMode] = useState<"map" | "list">("map");
   const [mapCenter, setMapCenter] = useState<[number, number]>([
-    reimsCenter.lat,
-    reimsCenter.lng,
+    franceCenter.lat,
+    franceCenter.lng,
   ]);
 
+  // Fetch all tools from publish table on mount
   useEffect(() => {
-    const checkUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setUser(user);
-    };
-    checkUser();
+    fetchTools();
   }, []);
-
-  // Fetch tools after user is loaded
-  useEffect(() => {
-    if (user) {
-      fetchTools();
-    }
-  }, [user]);
 
   const fetchTools = async () => {
     setLoading(true);
-    // Fetch only the current user's tools
+    // Fetch ALL tools from publish table (not just user's tools)
     const { data, error } = await supabase
       .from("publish")
       .select("*")
-      .eq("user_id", user?.id)
       .order("created_at", { ascending: false });
 
     if (data) {
@@ -112,23 +81,12 @@ export default function Map() {
 
       setTools(toolsWithCoords as any);
 
-      // Calculate center based on user's location from their profile
-      if (user?.user_metadata?.latitude && user?.user_metadata?.longitude) {
+      // Set center to first tool location or default to Reims
+      if (toolsWithCoords.length > 0) {
         setMapCenter([
-          user.user_metadata.latitude,
-          user.user_metadata.longitude,
+          toolsWithCoords[0].lat || reimsCenter.lat,
+          toolsWithCoords[0].lng || reimsCenter.lng,
         ]);
-      } else if (toolsWithCoords.length > 0) {
-        // Fallback to average of tool locations
-        const avgLat =
-          toolsWithCoords.reduce((sum, t) => sum + (t.lat || 0), 0) /
-          toolsWithCoords.length;
-        const avgLng =
-          toolsWithCoords.reduce((sum, t) => sum + (t.lng || 0), 0) /
-          toolsWithCoords.length;
-        if (avgLat && avgLng) {
-          setMapCenter([avgLat, avgLng]);
-        }
       }
     }
     setLoading(false);
@@ -145,6 +103,7 @@ export default function Map() {
     "Sécurité & EPI",
   ];
 
+  // Filter tools based on search and category
   const filteredTools = tools.filter(tool => {
     const matchesSearch =
       tool.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -156,32 +115,6 @@ export default function Map() {
     return matchesSearch && matchesCategory;
   });
 
-  // Show login required if not authenticated
-  if (!user && !loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="max-w-md w-full">
-          <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Lock className="w-10 h-10 text-blue-600" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Connexion requise
-            </h2>
-            <p className="text-gray-600 mb-6">
-              Vous devez être connecté pour voir la carte des outils.
-            </p>
-            <Link href="/">
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                Retour à l'accueil
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
@@ -189,7 +122,7 @@ export default function Map() {
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <MapPin className="text-blue-600" />
-            Carte des outils disponibles - Reims
+            Carte des outils disponibles
           </h1>
 
           {/* View Toggle */}
@@ -272,8 +205,8 @@ export default function Map() {
                   <Marker
                     key={tool.id}
                     position={[
-                      tool.lat || reimsCenter.lat,
-                      tool.lng || reimsCenter.lng,
+                      tool.lat || franceCenter.lat,
+                      tool.lng || franceCenter.lng,
                     ]}
                     icon={blueIcon}
                   >
@@ -293,7 +226,7 @@ export default function Map() {
                         </p>
                         <p className="text-sm text-gray-600 mt-1">
                           <MapPin className="w-3 h-3 inline mr-1" />
-                          {tool.city || "Reims"}
+                          {tool.city || "France"}
                         </p>
                         <Link href={`/shop/${tool.id}`}>
                           <Button size="sm" className="w-full mt-2 bg-blue-600">
@@ -312,9 +245,7 @@ export default function Map() {
           <div className="mt-4 bg-blue-50 rounded-xl p-4 flex items-center gap-3">
             <Wrench className="w-6 h-6 text-blue-600" />
             <div>
-              <p className="text-sm text-gray-600">
-                Outils disponibles à Reims
-              </p>
+              <p className="text-sm text-gray-600">Outils disponibles</p>
               <p className="text-2xl font-bold text-blue-600">
                 {filteredTools.length}
               </p>
@@ -370,7 +301,7 @@ export default function Map() {
                     </p>
                     <div className="flex items-center gap-1 text-sm text-gray-600">
                       <MapPin className="w-4 h-4" />
-                      {tool.city || "Reims"}
+                      {tool.city || "France"}
                     </div>
                     <Link href={`/shop/${tool.id}`}>
                       <Button className="w-full mt-4 bg-blue-600 hover:bg-blue-700">

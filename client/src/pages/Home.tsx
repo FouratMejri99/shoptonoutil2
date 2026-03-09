@@ -1,169 +1,20 @@
-import { PageSkeleton } from "@/components/PageLoader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { supabase } from "@/lib/supabase";
-import { trpc } from "@/lib/trpc";
-import { motion } from "framer-motion";
+import { categoriesData, outilsData } from "@/lib/outils";
 import {
   ArrowRight,
   Award,
   CheckCircle,
-  MapPin,
   Package,
   ShoppingCart,
   Truck,
 } from "lucide-react";
-import { useEffect, useState } from "react";
 import { Link } from "wouter";
 
 export default function Home() {
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [featuredTools, setFeaturedTools] = useState<any[]>([]);
-  const [loadingTools, setLoadingTools] = useState(true);
-
-  // Fetch tools from Supabase
-  useEffect(() => {
-    const fetchFeaturedTools = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("publish")
-          .select("*")
-          .limit(8);
-
-        if (data) {
-          setFeaturedTools(data);
-        }
-      } catch (err) {
-        console.error("Error fetching tools:", err);
-      } finally {
-        setLoadingTools(false);
-      }
-    };
-    fetchFeaturedTools();
-  }, [refreshKey]);
-
-  const { data: testimonials, isLoading: testimonialsLoading } =
-    trpc.testimonials.list.useQuery();
-
-  const isLoading = testimonialsLoading;
-
-  // Refresh data when page becomes visible (e.g., after admin update)
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (!document.hidden) {
-        setRefreshKey(k => k + 1);
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () =>
-      document.removeEventListener("visibilitychange", handleVisibility);
-  }, []);
-
-  // Show skeleton while loading
-  if (isLoading) {
-    return <PageSkeleton />;
-  }
-
-  // Static data for shoptonoutil2
-  const categories = [
-    {
-      id: 1,
-      name: "Outils à main",
-      slug: "outils-a-main",
-      description: "Marteaux, tournevis, clés...",
-      image:
-        "https://images.unsplash.com/photo-1581244277943-fe4a9c777189?w=800&q=80",
-      icon: "Package",
-    },
-    {
-      id: 2,
-      name: "Outils électriques",
-      slug: "outils-electriques",
-      description: "Perceuses, scies, ponceuses...",
-      image:
-        "https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&q=80",
-      icon: "CheckCircle",
-    },
-    {
-      id: 3,
-      name: "Quincaillerie",
-      slug: "quincaillerie",
-      description: "Vis, écrous, boulons...",
-      image:
-        "https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=800&q=80",
-      icon: "Package",
-    },
-    {
-      id: 4,
-      name: "Peintures & revêtements",
-      slug: "peintures",
-      description: "Peintures, vernis, revêtements...",
-      image:
-        "https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=800&q=80",
-      icon: "CheckCircle",
-    },
-    {
-      id: 5,
-      name: "Électricité",
-      slug: "electricite",
-      description: "Câbles, prises, interrupteurs...",
-      image:
-        "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&q=80",
-      icon: "CheckCircle",
-    },
-    {
-      id: 6,
-      name: "Plomberie",
-      slug: "plomberie",
-      description: "Tuyaux, robinets, raccords...",
-      image:
-        "https://images.unsplash.com/photo-1585704032915-c3400ca199e7?w=800&q=80",
-      icon: "CheckCircle",
-    },
-  ];
-
-  const featuredProducts = [
-    {
-      id: 1,
-      name: "Perceuse-visseuse sans fil 18V",
-      description: "Performance professionnelle avec 2 batteries",
-      price: 149.99,
-      image:
-        "https://images.unsplash.com/photo-1504148455328-c376907d081c?w=800&q=80",
-      rating: 4.8,
-      reviews: 245,
-    },
-    {
-      id: 2,
-      name: "Kit d'outils à main 100 pièces",
-      description: "Complet pour tous vos travaux",
-      price: 79.99,
-      image:
-        "https://images.unsplash.com/photo-1581244277943-fe4a9c777189?w=800&q=80",
-      rating: 4.6,
-      reviews: 189,
-    },
-    {
-      id: 3,
-      name: "Scie circulaire 1400W",
-      description: "Précision et puissance",
-      price: 119.99,
-      image:
-        "https://images.unsplash.com/photo-1572981779307-38b8cabb2407?w=800&q=80",
-      rating: 4.7,
-      reviews: 156,
-    },
-    {
-      id: 4,
-      name: "Boîte à outils professionnelle",
-      description: "Rangement modulable",
-      price: 59.99,
-      image:
-        "https://images.unsplash.com/photo-1530124566582-a618bc2615dc?w=800&q=80",
-      rating: 4.5,
-      reviews: 98,
-    },
-  ];
+  // Use local data for instant loading - no API calls needed
+  const featuredTools = outilsData;
+  const categories = categoriesData;
 
   const advantages = [
     {
@@ -192,24 +43,6 @@ export default function Home() {
     },
   ];
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-    },
-  };
-
   return (
     <div className="w-full overflow-hidden">
       {/* Hero Section */}
@@ -220,11 +53,7 @@ export default function Home() {
 
         <div className="container mx-auto px-4 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -50 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.8 }}
-            >
+            <div>
               <div className="inline-block px-4 py-1.5 rounded-full bg-blue-500/30 backdrop-blur-sm text-blue-100 text-sm font-medium mb-6 border border-blue-400/30">
                 🛠️ Votre shop Bricolor
               </div>
@@ -277,32 +106,20 @@ export default function Home() {
                   <p className="text-sm">Satisfaction</p>
                 </div>
               </div>
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8, rotate: 5 }}
-              animate={{ opacity: 1, scale: 1, rotate: 0 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="hidden lg:block relative"
-            >
+            <div className="hidden lg:block relative">
               <div className="relative z-10 rounded-2xl overflow-hidden shadow-2xl shadow-blue-900/50 border-4 border-white/10">
                 <img
                   src="/welcom.png"
                   alt="Outils de bricolage"
+                  loading="lazy"
                   className="w-full h-auto object-cover hover:scale-105 transition-transform duration-700"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-blue-900/60 to-transparent"></div>
               </div>
               {/* Floating element */}
-              <motion.div
-                animate={{ y: [0, -20, 0] }}
-                transition={{
-                  repeat: Infinity,
-                  duration: 5,
-                  ease: "easeInOut",
-                }}
-                className="absolute -bottom-10 -left-10 z-20 bg-white p-6 rounded-xl shadow-xl max-w-xs"
-              >
+              <div className="absolute -bottom-10 -left-10 z-20 bg-white p-6 rounded-xl shadow-xl max-w-xs">
                 <div className="flex items-center gap-4 mb-3">
                   <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                     <Package className="text-blue-600" size={24} />
@@ -320,8 +137,8 @@ export default function Home() {
                     Marque professionnelle
                   </span>
                 </div>
-              </motion.div>
-            </motion.div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -342,27 +159,21 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {categories.map((category, idx) => (
+            {categories.map(category => (
               <Link key={category.id} href={`/contact`}>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: idx * 0.1 }}
-                  whileHover={{ y: -5 }}
-                  className="group cursor-pointer"
-                >
+                <div className="group cursor-pointer">
                   <Card className="h-full overflow-hidden border-none shadow-lg hover:shadow-xl transition-all duration-300">
                     <div className="h-48 overflow-hidden relative">
                       <img
                         src={category.image}
                         alt={category.name}
-                        className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
+                        loading="lazy"
+                        className="w-full h-full object-cover"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                     </div>
                     <CardContent className="p-6">
-                      <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors">
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">
                         {category.name}
                       </h3>
                       <p className="text-gray-600 text-sm">
@@ -374,7 +185,7 @@ export default function Home() {
                       </div>
                     </CardContent>
                   </Card>
-                </motion.div>
+                </div>
               </Link>
             ))}
           </div>
@@ -400,48 +211,39 @@ export default function Home() {
               Nos outils disponibles
             </h2>
             <p className="text-xl text-gray-600 mt-4 max-w-2xl mx-auto">
-              Découvrez les outils publiés par nos utilisateurs
+              Découvrez notre sélection d'outils professionnels
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {featuredTools.map((tool, idx) => (
-              <motion.div
-                key={tool.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-              >
-                <Link href={`/shop?tool=${tool.id}`}>
+            {featuredTools.map(tool => (
+              <div key={tool.id}>
+                <Link href={`/shop`}>
                   <Card className="h-full overflow-hidden border-none shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer">
-                    <div className="h-48 overflow-hidden relative">
-                      {tool.image_url ? (
-                        <img
-                          src={tool.image_url}
-                          alt={tool.name}
-                          className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-500"
-                        />
-                      ) : (
-                        <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                          <Package className="w-12 h-12 text-gray-400" />
-                        </div>
-                      )}
+                    <div className="h-48 overflow-hidden relative bg-gray-100">
+                      <img
+                        src={tool.image}
+                        alt={tool.name}
+                        loading="lazy"
+                        className="w-full h-full object-cover"
+                        onError={e => {
+                          // Fallback to placeholder if image fails
+                          (e.target as HTMLImageElement).src =
+                            "/placeholder-tool.jpg";
+                        }}
+                      />
                     </div>
                     <CardContent className="p-4">
                       <h3 className="text-sm font-bold text-gray-900 mb-1 line-clamp-2">
                         {tool.name}
                       </h3>
                       <p className="text-xs text-gray-600 mb-3 line-clamp-2">
-                        {tool.description ||
-                          tool.characteristics ||
-                          "Aucune description"}
+                        {tool.description}
                       </p>
                       <div className="flex items-center justify-between">
                         <div>
                           <span className="text-lg font-bold text-blue-600">
                             {tool.price}€
-                            <span className="text-sm font-normal">/jour</span>
                           </span>
                         </div>
                         <Button
@@ -452,15 +254,10 @@ export default function Home() {
                           Louer
                         </Button>
                       </div>
-                      {tool.city && (
-                        <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
-                          <MapPin size={12} /> {tool.city}
-                        </p>
-                      )}
                     </CardContent>
                   </Card>
                 </Link>
-              </motion.div>
+              </div>
             ))}
           </div>
 
@@ -481,15 +278,8 @@ export default function Home() {
       <section className="py-24 bg-white">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {advantages.map((advantage, idx) => (
-              <motion.div
-                key={advantage.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                className="text-center"
-              >
+            {advantages.map(advantage => (
+              <div key={advantage.id} className="text-center">
                 <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
                   <advantage.icon className="text-blue-600" size={32} />
                 </div>
@@ -497,7 +287,7 @@ export default function Home() {
                   {advantage.title}
                 </h3>
                 <p className="text-gray-600">{advantage.description}</p>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -506,11 +296,7 @@ export default function Home() {
       {/* CTA Section */}
       <section className="py-24 bg-gradient-to-br from-blue-600 to-blue-800 text-white">
         <div className="container mx-auto px-4 text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
+          <div>
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
               Prêt à démarrer vos projets ?
             </h2>
@@ -537,7 +323,7 @@ export default function Home() {
                 </Button>
               </Link>
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
     </div>

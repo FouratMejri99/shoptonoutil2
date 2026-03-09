@@ -55,15 +55,31 @@ function Navigation() {
   );
   const [iban, setIban] = useState("");
 
-  // Check auth state on mount
+  // Check auth state on mount - non-blocking for faster initial load
   useEffect(() => {
     const checkUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      setUser(user);
+      try {
+        // Add timeout to prevent slow auth from blocking page render
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Auth timeout")), 3000)
+        );
+
+        const authPromise = supabase.auth.getUser();
+
+        const {
+          data: { user },
+        } = (await Promise.race([authPromise, timeoutPromise])) as any;
+        if (user) {
+          setUser(user);
+        }
+      } catch (err) {
+        // Silently fail - user will be prompted to login when needed
+        console.log("Auth check deferred");
+      }
     };
-    checkUser();
+
+    // Defer auth check to not block initial render
+    const timer = setTimeout(() => checkUser(), 100);
 
     const {
       data: { subscription },
@@ -71,7 +87,10 @@ function Navigation() {
       setUser(session?.user || null);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(timer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleLogout = async () => {
