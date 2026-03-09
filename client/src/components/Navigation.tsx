@@ -679,7 +679,7 @@ function Navigation() {
                               }
                               setRegisterLoading(true);
                               try {
-                                // Upload ID card images if provided
+                                // Upload ID card images if provided (optional - don't block registration if it fails)
                                 let idCardFrontUrl = "";
                                 let idCardBackUrl = "";
 
@@ -687,24 +687,39 @@ function Navigation() {
                                   file: File,
                                   side: string
                                 ) => {
-                                  const fileExt = file.name.split(".").pop();
-                                  const fileName = `${registerData.email}-${side}-${Date.now()}.${fileExt}`;
-                                  const filePath = `id_cards/${fileName}`;
+                                  try {
+                                    const fileExt = file.name.split(".").pop();
+                                    const fileName = `${registerData.email}-${side}-${Date.now()}.${fileExt}`;
+                                    const filePath = `id_cards/${fileName}`;
 
-                                  const { data, error } = await supabase.storage
-                                    .from("products")
-                                    .upload(filePath, file, {
-                                      cacheControl: "3600",
-                                      upsert: false,
-                                    });
+                                    const { data, error } =
+                                      await supabase.storage
+                                        .from("products")
+                                        .upload(filePath, file, {
+                                          cacheControl: "3600",
+                                          upsert: false,
+                                        });
 
-                                  if (error) throw error;
+                                    if (error) {
+                                      console.warn(
+                                        "ID card upload failed:",
+                                        error.message
+                                      );
+                                      return "";
+                                    }
 
-                                  const { data: urlData } = supabase.storage
-                                    .from("products")
-                                    .getPublicUrl(filePath);
+                                    const { data: urlData } = supabase.storage
+                                      .from("products")
+                                      .getPublicUrl(filePath);
 
-                                  return urlData.publicUrl;
+                                    return urlData.publicUrl;
+                                  } catch (uploadErr) {
+                                    console.warn(
+                                      "ID card upload error:",
+                                      uploadErr
+                                    );
+                                    return "";
+                                  }
                                 };
 
                                 if (idCardFront) {
@@ -759,8 +774,11 @@ function Navigation() {
                                   setIban("");
                                   setLoginOpen(true);
                                 }
-                              } catch (err) {
-                                toast.error("Erreur lors de l'inscription");
+                              } catch (err: any) {
+                                console.error("Registration error:", err);
+                                toast.error(
+                                  err?.message || "Erreur lors de l'inscription"
+                                );
                               } finally {
                                 setRegisterLoading(false);
                               }

@@ -304,6 +304,26 @@ CREATE POLICY "Authenticated can delete images" ON storage.objects
 FOR DELETE USING (bucket_id = 'public-assets' AND auth.role() = 'authenticated');
 
 -- =============================================================================
+-- STORAGE POLICIES (for products bucket - used for tool images)
+-- =============================================================================
+
+-- Allow public read access to product images
+CREATE POLICY "Public can view products" ON storage.objects
+FOR SELECT USING (bucket_id = 'products');
+
+-- Allow authenticated users to upload product images
+CREATE POLICY "Authenticated can upload products" ON storage.objects
+FOR INSERT WITH CHECK (bucket_id = 'products' AND auth.role() = 'authenticated');
+
+-- Allow authenticated users to update product images
+CREATE POLICY "Authenticated can update products" ON storage.objects
+FOR UPDATE USING (bucket_id = 'products' AND auth.role() = 'authenticated');
+
+-- Allow authenticated users to delete product images
+CREATE POLICY "Authenticated can delete products" ON storage.objects
+FOR DELETE USING (bucket_id = 'products' AND auth.role() = 'authenticated');
+
+-- =============================================================================
 -- INDEXES FOR PERFORMANCE (optional - only create if columns exist)
 -- =============================================================================
 

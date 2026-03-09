@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { categoriesData, outilsData } from "@/lib/outils";
+import { supabase } from "@/lib/supabase";
 import {
   ArrowRight,
   Award,
@@ -9,11 +10,33 @@ import {
   ShoppingCart,
   Truck,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link } from "wouter";
 
 export default function Home() {
-  // Use local data for instant loading - no API calls needed
-  const featuredTools = outilsData;
+  // Fetch tools from Supabase for the Boutique section
+  const [featuredTools, setFeaturedTools] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTools = async () => {
+      const { data, error } = await supabase
+        .from("publish")
+        .select("*")
+        .limit(8);
+
+      if (data) {
+        setFeaturedTools(data);
+      } else if (error) {
+        console.error("Error fetching tools:", error);
+        // Fallback to local data if fetch fails
+        setFeaturedTools(outilsData);
+      }
+      setLoading(false);
+    };
+
+    fetchTools();
+  }, []);
   const categories = categoriesData;
 
   const advantages = [
@@ -165,7 +188,7 @@ export default function Home() {
                   <Card className="h-full overflow-hidden border-none shadow-lg hover:shadow-xl transition-all duration-300">
                     <div className="h-48 overflow-hidden relative">
                       <img
-                        src={category.image}
+                        src="/outil.png"
                         alt={category.name}
                         loading="lazy"
                         className="w-full h-full object-cover"
@@ -216,49 +239,62 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {featuredTools.map(tool => (
-              <div key={tool.id}>
-                <Link href={`/shop`}>
-                  <Card className="h-full overflow-hidden border-none shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer">
-                    <div className="h-48 overflow-hidden relative bg-gray-100">
-                      <img
-                        src={tool.image}
-                        alt={tool.name}
-                        loading="lazy"
-                        className="w-full h-full object-cover"
-                        onError={e => {
-                          // Fallback to placeholder if image fails
-                          (e.target as HTMLImageElement).src =
-                            "/placeholder-tool.jpg";
-                        }}
-                      />
-                    </div>
+            {loading
+              ? // Loading skeleton
+                Array.from({ length: 8 }).map((_, i) => (
+                  <Card
+                    key={i}
+                    className="h-full overflow-hidden border-none shadow-lg"
+                  >
+                    <div className="h-48 bg-gray-200 animate-pulse" />
                     <CardContent className="p-4">
-                      <h3 className="text-sm font-bold text-gray-900 mb-1 line-clamp-2">
-                        {tool.name}
-                      </h3>
-                      <p className="text-xs text-gray-600 mb-3 line-clamp-2">
-                        {tool.description}
-                      </p>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <span className="text-lg font-bold text-blue-600">
-                            {tool.price}€
-                          </span>
-                        </div>
-                        <Button
-                          size="sm"
-                          className="bg-blue-600 hover:bg-blue-700 rounded-full"
-                        >
-                          <ShoppingCart size={14} className="mr-1" />
-                          Louer
-                        </Button>
-                      </div>
+                      <div className="h-4 bg-gray-200 rounded mb-2" />
+                      <div className="h-3 bg-gray-200 rounded w-2/3" />
                     </CardContent>
                   </Card>
-                </Link>
-              </div>
-            ))}
+                ))
+              : featuredTools.map(tool => (
+                  <div key={tool.id}>
+                    <Link href={`/shop/${tool.id}`}>
+                      <Card className="h-full overflow-hidden border-none shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer">
+                        <div className="h-48 overflow-hidden relative bg-gray-100">
+                          <img
+                            src={tool.image_url}
+                            alt={tool.name}
+                            loading="lazy"
+                            className="w-full h-full object-cover"
+                            onError={e => {
+                              // Fallback to placeholder if image fails
+                              (e.target as HTMLImageElement).src = "/outil.png";
+                            }}
+                          />
+                        </div>
+                        <CardContent className="p-4">
+                          <h3 className="text-sm font-bold text-gray-900 mb-1 line-clamp-2">
+                            {tool.name}
+                          </h3>
+                          <p className="text-xs text-gray-600 mb-3 line-clamp-2">
+                            {tool.description}
+                          </p>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="text-lg font-bold text-blue-600">
+                                {tool.price}€ /jour
+                              </span>
+                            </div>
+                            <Button
+                              size="sm"
+                              className="bg-blue-600 hover:bg-blue-700 rounded-full"
+                            >
+                              <ShoppingCart size={14} className="mr-1" />
+                              Louer
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </div>
+                ))}
           </div>
 
           <div className="text-center mt-12">
