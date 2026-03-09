@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { supabase } from "@/lib/supabase";
+import { productsService, supabase } from "@/lib/supabase";
+import { trpc } from "@/lib/trpc";
 import {
   ArrowLeft,
   Calendar,
@@ -43,6 +44,7 @@ export default function Reservation() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [tool, setTool] = useState<Tool | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [owner, setOwner] = useState<Owner | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -60,54 +62,45 @@ export default function Reservation() {
   );
   const toolId = toolIdParam ? parseInt(toolIdParam) : null;
 
+  console.log("URL:", location);
+  console.log("toolIdParam:", toolIdParam);
+  console.log("toolId:", toolId);
+
+  // Fetch all tools and find by ID (bypasses single row query issues)
+  const { data: allTools, error: fetchError } = trpc.publish.list.useQuery();
+
+  // Find the specific tool from the list
+  const toolData = allTools?.find((t: any) => t.id === toolId) || null;
+  const toolError = fetchError ? new Error(fetchError.message) : null;
+  const toolLoading = !allTools && !fetchError;
+
+  console.log("All tools:", allTools);
+  console.log("Found tool:", toolData);
+
+  // Update tool state when data changes
+  useEffect(() => {
+    if (toolId && toolData) {
+      console.log("Setting tool:", toolData);
+      setTool(toolData);
+      setError(null);
+    }
+    if (toolId && toolError) {
+      console.error("Error fetching tool:", toolError);
+      setError(toolError.message || "Erreur lors du chargement de l'outil");
+    }
+  }, [toolId, toolData, toolError]);
+
+  // Fetch user on mount
   useEffect(() => {
     const checkUser = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       setUser(user);
-      // Fetch tool regardless of login status
-      if (toolId) {
-        await fetchTool();
-      }
       setLoading(false);
     };
     checkUser();
-  }, [toolId]);
-
-  const fetchTool = async () => {
-    if (!toolId) {
-      console.log("No tool ID provided");
-      return;
-    }
-
-    console.log("Fetching tool with ID:", toolId, "type:", typeof toolId);
-
-    const { data, error } = await supabase
-      .from("publish")
-      .select("*")
-      .eq("id", toolId)
-      .single();
-
-    console.log("Fetch result:", data, error);
-
-    if (data) {
-      setTool(data);
-      // Fetch owner info
-      const { data: ownerData } = await supabase.auth.getUser();
-      if (ownerData.user) {
-        // In a real app, we'd fetch owner from a profiles table
-        setOwner({
-          id: data.user_id,
-          name: "Propriétaire",
-          email: "",
-          created_at: "",
-        });
-      }
-    } else if (error) {
-      console.error("Error fetching tool:", error);
-    }
-  };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,7 +150,8 @@ export default function Reservation() {
     }
   };
 
-  if (loading) {
+  // Show loading while checking auth or fetching tool
+  if (loading || toolLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -190,16 +184,18 @@ export default function Reservation() {
     );
   }
 
-  if (!tool) {
+  if (!tool || error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
         <div className="max-w-md w-full">
           <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Outil non trouvé
+              {error || "Outil non trouvé"}
             </h2>
             <p className="text-gray-600 mb-6">
-              Cet outil n'existe plus ou a été supprimé.
+              {error
+                ? "Impossible de charger les détails de l'outil. Veuillez vérifier que l'outil existe toujours."
+                : "Cet outil n'existe plus ou a été supprimé."}
             </p>
             <Link href="/shop">
               <Button className="bg-blue-600 hover:bg-blue-700">
@@ -249,7 +245,11 @@ export default function Reservation() {
             <div className="bg-white rounded-2xl shadow-lg overflow-hidden mb-4">
               {tool.image_url ? (
                 <img
-                  src={tool.image_url}
+                  src={
+                    tool.image_url.startsWith("http")
+                      ? tool.image_url
+                      : productsService.getProductImageUrl(tool.image_url)
+                  }
                   alt={tool.name}
                   className="w-full h-80 object-cover"
                 />

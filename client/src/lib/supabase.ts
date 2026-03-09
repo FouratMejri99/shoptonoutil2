@@ -357,6 +357,18 @@ export const publishService = {
     return data;
   },
 
+  async getById(id: number) {
+    console.log("getById called with:", id, "type:", typeof id);
+    const { data, error } = await supabase
+      .from("publish")
+      .select("*")
+      .eq("id", id)
+      .single();
+    console.log("getById result:", data, error);
+    if (error) throw error;
+    return data;
+  },
+
   async getByCategory(category: string) {
     const { data, error } = await supabase
       .from("publish")

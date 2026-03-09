@@ -285,7 +285,9 @@ export default function Shop() {
                             />
                           ) : product.image_url ? (
                             <img
-                              src={`https://rzucruakxcswuzerkdvq.supabase.co/storage/v1/object/public/products/${product.image_url}`}
+                              src={productsService.getProductImageUrl(
+                                product.image_url
+                              )}
                               alt={product.name}
                               className="w-full h-full object-cover transform hover:scale-110 transition-transform duration-500"
                             />
@@ -353,14 +355,14 @@ export default function Shop() {
             Rejoignez notre plateforme et reach des milliers de clients
             potentiels pour vos produits de bricolage.
           </p>
-          <Link href="/publier-outil">
+          <a href="/publier-outil" className="inline-block">
             <Button
               size="lg"
-              className="rounded-full bg-blue-600 hover:bg-blue-700"
+              className="rounded-full bg-blue-600 hover:bg-blue-700 cursor-pointer"
             >
               Publier un outil
             </Button>
-          </Link>
+          </a>
         </div>
       </section>
     </div>

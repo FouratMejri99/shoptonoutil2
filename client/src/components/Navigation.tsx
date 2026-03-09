@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/lib/supabase";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  Camera,
   LogOut,
   MapPin,
   Menu,
@@ -151,12 +152,12 @@ function Navigation() {
             {user ? (
               // User is logged in - show menu
               <div className="flex items-center gap-3">
-                <Link href="/publier-outil">
+                <a href="/publier-outil" className="inline-block">
                   <Button className="rounded-full bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg transition-all">
                     <Plus className="w-4 h-4 mr-2" />
                     Publier un outil
                   </Button>
-                </Link>
+                </a>
                 <Link href="/messages">
                   <Button
                     variant="ghost"
@@ -274,7 +275,31 @@ function Navigation() {
                         </span>
                       </div>
                       <div>
-                        <span className="text-blue-600 hover:underline cursor-pointer">
+                        <span
+                          className="text-blue-600 hover:underline cursor-pointer"
+                          onClick={async () => {
+                            if (!loginData.email) {
+                              toast.error(
+                                "Veuillez entrer votre email pour réinitialiser le mot de passe"
+                              );
+                              return;
+                            }
+                            const { error } =
+                              await supabase.auth.resetPasswordForEmail(
+                                loginData.email,
+                                {
+                                  redirectTo: `${window.location.origin}/reset-password`,
+                                }
+                              );
+                            if (error) {
+                              toast.error(error.message);
+                            } else {
+                              toast.success(
+                                "Email de réinitialisation envoyé ! Vérifiez votre boîte mail."
+                              );
+                            }
+                          }}
+                        >
                           Mot de passe oublié ?
                         </span>
                       </div>
@@ -443,7 +468,34 @@ function Navigation() {
                         >
                           🔧 Bricoleur (je cherche des outils)
                         </div>
+                        <div
+                          className={`p-3 rounded-lg border-2 cursor-pointer ${registerData.profileType === "loeur" ? "border-blue-600 bg-blue-50" : "border-gray-200"}`}
+                          onClick={() =>
+                            setRegisterData({
+                              ...registerData,
+                              profileType: "loeur",
+                            })
+                          }
+                        >
+                          🛠️ Loeur (je loue mes outils)
+                        </div>
                       </div>
+                      {registerData.profileType === "bricoleur" && (
+                        <div className="space-y-2">
+                          <Label htmlFor="reg-iban">
+                            IBAN (optionnel pour les bricoleurs)
+                          </Label>
+                          <Input
+                            id="reg-iban"
+                            placeholder="FR76 3000 4000 0000 0000 0000 000"
+                            value={iban}
+                            onChange={e => setIban(e.target.value)}
+                          />
+                          <p className="text-xs text-gray-500">
+                            Pour recevoir vos paiements de location
+                          </p>
+                        </div>
+                      )}
                       <div className="flex gap-3">
                         <Button
                           variant="outline"
@@ -519,11 +571,12 @@ function Navigation() {
                                 />
                               ) : (
                                 <>
-                                  <p className="text-gray-600">
-                                    Choisir un fichier
+                                  <Camera className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                                  <p className="text-gray-600 font-medium">
+                                    Prendre une photo
                                   </p>
                                   <p className="text-xs text-gray-400 mt-1">
-                                    Prendre une photo
+                                    ou choisir un fichier
                                   </p>
                                 </>
                               )}
@@ -565,11 +618,12 @@ function Navigation() {
                                 />
                               ) : (
                                 <>
-                                  <p className="text-gray-600">
-                                    Choisir un fichier
+                                  <Camera className="w-8 h-8 mx-auto text-gray-400 mb-2" />
+                                  <p className="text-gray-600 font-medium">
+                                    Prendre une photo
                                   </p>
                                   <p className="text-xs text-gray-400 mt-1">
-                                    Prendre une photo
+                                    ou choisir un fichier
                                   </p>
                                 </>
                               )}
@@ -577,21 +631,8 @@ function Navigation() {
                           </div>
                           <p className="text-xs text-gray-500">
                             Format accepté : JPG, PNG (max 10MB). Les deux faces
-                            sont obligatoires.
-                          </p>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="reg-iban">IBAN (optionnel)</Label>
-                          <Input
-                            id="reg-iban"
-                            placeholder="FR76 1234 5678 9012 3456 7890 123"
-                            value={iban}
-                            onChange={e => setIban(e.target.value)}
-                          />
-                          <p className="text-xs text-gray-500">
-                            Format : FR suivi de 23 chiffres. Espaces
-                            automatiques tous les 4 caractères.
+                            sont obligatoires. Vous pouvez prendre une photo
+                            directement avec votre caméra.
                           </p>
                         </div>
 

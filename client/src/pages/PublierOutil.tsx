@@ -375,10 +375,7 @@ export default function PublierOutil() {
 
     setIsGeneratingImage(true);
     try {
-      const imageDataUrl = await generateToolImage(
-        formData.name,
-        formData.category
-      );
+      const imageDataUrl = await generateToolImage(formData.name);
       setAiGeneratedImage(imageDataUrl);
       setImageFile(null); // Clear uploaded file when using AI image
       toast.success("Image générée avec succès!");

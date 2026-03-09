@@ -7,8 +7,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { supabase } from "@/lib/supabase";
+import { productsService, supabase } from "@/lib/supabase";
 import { trpc } from "@/lib/trpc";
+import { CardElement, Elements } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -23,6 +25,9 @@ import {
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Link, useLocation as useWouterLocation } from "wouter";
+
+// Initialize Stripe with public key
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || "");
 
 interface PublishItem {
   id: number;
@@ -61,6 +66,15 @@ export default function ShopDetail() {
   // Message dialog state
   const [messageDialogOpen, setMessageDialogOpen] = useState(false);
   const [messageText, setMessageText] = useState("");
+
+  // Reservation dialog state
+  const [reservationDialogOpen, setReservationDialogOpen] = useState(false);
+  const [reservationData, setReservationData] = useState({
+    startDate: "",
+    endDate: "",
+    message: "",
+  });
+  const [submittingReservation, setSubmittingReservation] = useState(false);
 
   // Get the item ID from the URL
   const itemId = location.split("/").pop();
@@ -149,7 +163,11 @@ export default function ShopDetail() {
             <Card className="overflow-hidden rounded-3xl">
               {item.image_url ? (
                 <img
-                  src={item.image_url}
+                  src={
+                    item.image_url.startsWith("http")
+                      ? item.image_url
+                      : productsService.getProductImageUrl(item.image_url)
+                  }
                   alt={item.name}
                   className="w-full h-[400px] object-cover"
                 />
@@ -414,15 +432,230 @@ export default function ShopDetail() {
                     </DialogContent>
                   </Dialog>
 
-                  <Link href={`/reservation?tool=${item.id}`}>
-                    <Button
-                      size="lg"
-                      className="w-full bg-blue-600 hover:bg-blue-700 rounded-full h-14 text-lg mt-3"
-                    >
-                      <CreditCard className="mr-2" />
-                      Réserver maintenant
-                    </Button>
-                  </Link>
+                  {/* Reservation Dialog */}
+                  <Dialog
+                    open={reservationDialogOpen}
+                    onOpenChange={setReservationDialogOpen}
+                  >
+                    <DialogTrigger asChild>
+                      <Button
+                        size="lg"
+                        className="w-full bg-blue-600 hover:bg-blue-700 rounded-full h-14 text-lg mt-3"
+                      >
+                        <CreditCard className="mr-2" />
+                        Réserver maintenant
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-lg">
+                      <Elements stripe={stripePromise}>
+                        <DialogHeader>
+                          <DialogTitle>Réserver {item?.name}</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <p className="text-sm text-gray-600">
+                            Prix par jour: <strong>{item?.price}€</strong>
+                          </p>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">
+                                Date de début
+                              </label>
+                              <input
+                                type="date"
+                                value={reservationData.startDate}
+                                onChange={e =>
+                                  setReservationData({
+                                    ...reservationData,
+                                    startDate: e.target.value,
+                                  })
+                                }
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-sm font-medium">
+                                Date de fin
+                              </label>
+                              <input
+                                type="date"
+                                value={reservationData.endDate}
+                                onChange={e =>
+                                  setReservationData({
+                                    ...reservationData,
+                                    endDate: e.target.value,
+                                  })
+                                }
+                                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium">
+                              Message (optionnel)
+                            </label>
+                            <textarea
+                              value={reservationData.message}
+                              onChange={e =>
+                                setReservationData({
+                                  ...reservationData,
+                                  message: e.target.value,
+                                })
+                              }
+                              placeholder="Ajouter un message au propriétaire..."
+                              className="w-full min-h-[80px] p-3 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+
+                          {reservationData.startDate &&
+                            reservationData.endDate && (
+                              <div className="bg-blue-50 p-4 rounded-lg">
+                                <div className="flex justify-between text-sm">
+                                  <span>Prix par jour:</span>
+                                  <span>{item?.price}€</span>
+                                </div>
+                                <div className="flex justify-between text-sm mt-1">
+                                  <span>Nombre de jours:</span>
+                                  <span>
+                                    {Math.ceil(
+                                      (new Date(
+                                        reservationData.endDate
+                                      ).getTime() -
+                                        new Date(
+                                          reservationData.startDate
+                                        ).getTime()) /
+                                        (1000 * 60 * 60 * 24)
+                                    ) + 1}{" "}
+                                    jours
+                                  </span>
+                                </div>
+                                <div className="flex justify-between font-bold mt-2 pt-2 border-t border-blue-200">
+                                  <span>Total:</span>
+                                  <span>
+                                    {item?.price *
+                                      (Math.ceil(
+                                        (new Date(
+                                          reservationData.endDate
+                                        ).getTime() -
+                                          new Date(
+                                            reservationData.startDate
+                                          ).getTime()) /
+                                          (1000 * 60 * 60 * 24)
+                                      ) +
+                                        1)}
+                                    €
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+
+                          {/* Payment Section */}
+                          <div className="space-y-2 pt-2 border-t">
+                            <label className="text-sm font-medium">
+                              Information de paiement
+                            </label>
+                            <div className="p-3 border border-gray-300 rounded-lg bg-white">
+                              <CardElement
+                                options={{
+                                  style: {
+                                    base: {
+                                      fontSize: "16px",
+                                      color: "#424770",
+                                      "::placeholder": {
+                                        color: "#aab7c4",
+                                      },
+                                    },
+                                    invalid: {
+                                      color: "#9e2146",
+                                    },
+                                  },
+                                }}
+                              />
+                            </div>
+                            <p className="text-xs text-gray-500">
+                              Vos données de paiement sont sécurisées via Stripe
+                            </p>
+                          </div>
+
+                          <div className="flex justify-end gap-2 pt-2">
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setReservationDialogOpen(false);
+                                setReservationData({
+                                  startDate: "",
+                                  endDate: "",
+                                  message: "",
+                                });
+                              }}
+                            >
+                              Annuler
+                            </Button>
+                            <Button
+                              onClick={async () => {
+                                if (
+                                  !reservationData.startDate ||
+                                  !reservationData.endDate
+                                ) {
+                                  toast.error(
+                                    "Veuillez sélectionner les dates"
+                                  );
+                                  return;
+                                }
+
+                                setSubmittingReservation(true);
+                                try {
+                                  const { error } = await supabase
+                                    .from("reservations")
+                                    .insert([
+                                      {
+                                        tool_id: item?.id,
+                                        renter_id: user.id,
+                                        start_date: reservationData.startDate,
+                                        end_date: reservationData.endDate,
+                                        message: reservationData.message,
+                                        status: "pending",
+                                      },
+                                    ]);
+
+                                  if (error) throw error;
+
+                                  toast.success(
+                                    "Réservation créée avec succès!"
+                                  );
+                                  setReservationDialogOpen(false);
+                                  setReservationData({
+                                    startDate: "",
+                                    endDate: "",
+                                    message: "",
+                                  });
+                                } catch (error: any) {
+                                  console.error("Reservation error:", error);
+                                  toast.error(
+                                    error.message ||
+                                      "Erreur lors de la réservation"
+                                  );
+                                } finally {
+                                  setSubmittingReservation(false);
+                                }
+                              }}
+                              disabled={
+                                submittingReservation ||
+                                !reservationData.startDate ||
+                                !reservationData.endDate
+                              }
+                              className="bg-blue-600 hover:bg-blue-700"
+                            >
+                              {submittingReservation
+                                ? "Réservation..."
+                                : "Confirmer la réservation"}
+                            </Button>
+                          </div>
+                        </div>
+                      </Elements>
+                    </DialogContent>
+                  </Dialog>
                 </>
               ) : (
                 // Not logged in - show login dialog

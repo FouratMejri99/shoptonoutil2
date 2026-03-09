@@ -428,6 +428,11 @@ export const trpc = {
         }
       ),
     },
+    byId: {
+      useQuery: createParameterizedQueryHook(async (params: { id: number }) => {
+        return publishService.getById(params.id);
+      }),
+    },
     stats: {
       useQuery: createQueryHook(async () => {
         return publishService.getStats();

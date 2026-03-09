@@ -1,21 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { motion } from "framer-motion";
-import {
-  Award,
-  Clock,
-  Package,
-  Shield,
-  Star,
-  Users,
-} from "lucide-react";
-
-// Images for About page
-const aboutImages = {
-  hero: "/S.png",
-  story: "/S.png",
-  team: "/S.png",
-  values: "/S.png",
-};
+import { Award, Clock, Package, Shield, Star, Users } from "lucide-react";
 
 export default function About() {
   const containerVariants = {
@@ -61,8 +46,8 @@ export default function About() {
               </span>
             </h1>
             <p className="text-xl text-blue-100 max-w-2xl mx-auto leading-relaxed">
-              Leader dans la vente d'outils et accessoires Bricolor.
-              Qualité professionnelle et service personnalisé.
+              Leader dans la vente d'outils et accessoires Bricolor. Qualité
+              professionnelle et service personnalisé.
             </p>
           </motion.div>
         </div>
@@ -85,18 +70,18 @@ export default function About() {
                 <p>
                   Depuis 2020, shoptonoutil2 est votre partenaire de confiance
                   pour tous vos projets de bricolage. Nous proposons une large
-                  gamme d'outils et accessoires de qualité professionnelle
-                  pour les particuliers et les professionnels.
+                  gamme d'outils et accessoires de qualité professionnelle pour
+                  les particuliers et les professionnels.
                 </p>
                 <p>
-                  Notre engagement est de vous offrir les meilleurs produits
-                  aux prix les plus compétitifs, avec un service client
-                  personnalisé pour répondre à tous vos besoins.
+                  Notre engagement est de vous offrir les meilleurs produits aux
+                  prix les plus compétitifs, avec un service client personnalisé
+                  pour répondre à tous vos besoins.
                 </p>
                 <p>
                   Nous sélectionnons soigneusement chaque produit pour garantir
-                  qualité et durabilité. Faites confiance à notre expertise
-                  pour vos projets.
+                  qualité et durabilité. Faites confiance à notre expertise pour
+                  vos projets.
                 </p>
               </div>
             </motion.div>
@@ -108,12 +93,41 @@ export default function About() {
               transition={{ duration: 0.8, delay: 0.2 }}
               className="relative"
             >
-              <div className="relative z-10 rounded-2xl overflow-hidden shadow-2xl">
-                <img
-                  src={aboutImages.story}
-                  alt="Notre boutique"
-                  className="w-full h-auto object-cover"
-                />
+              <div className="relative z-10 rounded-2xl overflow-hidden shadow-2xl bg-gradient-to-br from-blue-600 to-blue-800 p-8">
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="text-center">
+                    <div className="text-4xl font-bold text-white mb-2">
+                      5000+
+                    </div>
+                    <div className="text-blue-200 text-sm">Produits</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-4xl font-bold text-white mb-2">
+                      4.9
+                    </div>
+                    <div className="text-blue-200 text-sm">Note clients</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-4xl font-bold text-white mb-2">
+                      10K+
+                    </div>
+                    <div className="text-blue-200 text-sm">
+                      Clients satisfaits
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-4xl font-bold text-white mb-2">
+                      24h
+                    </div>
+                    <div className="text-blue-200 text-sm">Livraison</div>
+                  </div>
+                </div>
+                <div className="mt-8 pt-6 border-t border-blue-500">
+                  <div className="flex items-center justify-center gap-2 text-white">
+                    <Shield className="w-5 h-5" />
+                    <span className="font-medium">Paiement sécurisé</span>
+                  </div>
+                </div>
               </div>
               {/* Decorative element */}
               <div className="absolute -bottom-6 -right-6 w-48 h-48 bg-blue-100 rounded-2xl -z-10" />
@@ -150,8 +164,8 @@ export default function About() {
                     Large gamme de produits
                   </h3>
                   <p className="text-gray-600">
-                    Plus de 5000 produits disponibles pour tous vos besoins
-                    de bricolage et de construction.
+                    Plus de 5000 produits disponibles pour tous vos besoins de
+                    bricolage et de construction.
                   </p>
                 </CardContent>
               </Card>
@@ -245,7 +259,7 @@ export default function About() {
               Prêt à démarrer vos projets ?
             </h2>
             <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-             Contactez-nous pour bénéficier de conseils personnalisés
+              Contactez-nous pour bénéficier de conseils personnalisés
             </p>
             <a
               href="/contact"
