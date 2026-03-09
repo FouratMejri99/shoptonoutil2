@@ -189,7 +189,7 @@ export default function Map() {
             </div>
           ) : (
             <div
-              className="bg-white rounded-2xl shadow-lg overflow-hidden"
+              className="bg-white rounded-2xl shadow-lg overflow-hidden relative z-0"
               style={{ height: "600px" }}
             >
               <MapContainer

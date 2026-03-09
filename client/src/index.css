@@ -306,3 +306,16 @@
     stroke: var(--primary);
   }
 }
+
+/* Leaflet Map Z-Index Fix - Keep map below navbar */
+.leaflet-container {
+  z-index: 1 !important;
+}
+
+.leaflet-control-container .leaflet-control {
+  z-index: 2 !important;
+}
+
+.leaflet-pane {
+  z-index: 1 !important;
+}
