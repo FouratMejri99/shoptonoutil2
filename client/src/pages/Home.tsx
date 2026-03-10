@@ -1,364 +1,587 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { categoriesData, outilsData } from "@/lib/outils";
+import { outilsData } from "@/lib/outils";
 import { supabase } from "@/lib/supabase";
 import {
   ArrowRight,
-  Award,
+  Bot,
+  Calendar,
+  Check,
   CheckCircle,
-  Package,
-  ShoppingCart,
-  Truck,
+  ChevronDown,
+  CreditCard,
+  Handshake,
+  Lock,
+  Search,
+  Shield,
+  Sparkles,
+  UserCheck,
+  Wrench,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 
 export default function Home() {
-  // Fetch tools from Supabase for the Boutique section
   const [featuredTools, setFeaturedTools] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     const fetchTools = async () => {
       const { data, error } = await supabase
         .from("publish")
         .select("*")
-        .limit(8);
+        .limit(6);
 
       if (data) {
         setFeaturedTools(data);
       } else if (error) {
         console.error("Error fetching tools:", error);
-        // Fallback to local data if fetch fails
-        setFeaturedTools(outilsData);
+        setFeaturedTools(outilsData.slice(0, 6));
       }
       setLoading(false);
     };
 
-    fetchTools();
-  }, []);
-  const categories = categoriesData;
+    const fetchUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user);
+    };
 
-  const advantages = [
+    fetchTools();
+    fetchUser();
+  }, []);
+
+  const categories = [
     {
       id: 1,
-      title: "Livraison rapide",
-      description: "Livraison gratuite dès 50€ d'achat",
-      icon: Truck,
+      name: "Perceuses",
+      icon: "🔩",
+      description: "Perceuses visseuses",
     },
     {
       id: 2,
-      title: "Qualité professionnelle",
-      description: "Sélection des meilleures marques",
-      icon: Award,
+      name: "Scies",
+      icon: "🪚",
+      description: "Scies circulaires, sabres",
     },
     {
       id: 3,
-      title: "Prix avantageux",
-      description: "Les meilleurs prix du marché",
-      icon: CheckCircle,
+      name: "Tondeuses",
+      icon: "🌿",
+      description: "Tondeuses, tondeuses роботи",
     },
     {
       id: 4,
-      title: "Service client",
-      description: "Conseils personnalisés",
-      icon: Package,
+      name: "Meuleuses",
+      icon: "⚡",
+      description: "Meuleuses angulaires",
+    },
+    {
+      id: 5,
+      name: "Ponceuses",
+      icon: "✨",
+      description: "Ponceuses vibrantes, orbitales",
     },
   ];
 
+  const steps = [
+    {
+      id: 1,
+      title: "Recherchez",
+      description: "Trouvez l'outil qu'il vous faut près de chez vous",
+      icon: Search,
+      color: "bg-blue-100",
+      iconColor: "text-blue-600",
+    },
+    {
+      id: 2,
+      title: "Réservez",
+      description: "Choisissez vos dates et contact",
+      icon: Calendar,
+      color: "bg-green-100",
+      iconColor: "text-green-600",
+    },
+    {
+      id: 3,
+      title: "Récupérez",
+      description: "Rencontrez le propriétaire pour récupérer l'outil",
+      icon: Handshake,
+      color: "bg-purple-100",
+      iconColor: "text-purple-600",
+    },
+    {
+      id: 4,
+      title: "Utilisez",
+      description: "Bricolez en toute sérénité",
+      icon: Wrench,
+      color: "bg-orange-100",
+      iconColor: "text-orange-600",
+    },
+  ];
+
+  const features = [
+    {
+      id: 1,
+      title: "Paiement sécurisé",
+      description: "Votre argent est protégé jusqu'à la fin de la location",
+      icon: CreditCard,
+    },
+    {
+      id: 2,
+      title: "Vérification des utilisateurs",
+      description:
+        "Tous les utilisateurs sont vérifiés avant de pouvoir publier",
+      icon: UserCheck,
+    },
+    {
+      id: 3,
+      title: "Assurance incluse",
+      description: "Chaque location est couverte par notre assurance",
+      icon: Shield,
+    },
+  ];
+
+  const faqs = [
+    {
+      question: "Quels frais vais-je payer ?",
+      answer:
+        "Des frais de service minimes sont prélevés sur chaque transaction. Pour les locataires, c'est seulement 0,50€ par location. Pour les loueurs, c'est 0% de commission.",
+    },
+    {
+      question: "Comment fonctionne la caution ?",
+      answer:
+        "Une caution automatique est demandée lors de chaque location. Elle est débloquée automatiquement à la fin de la location si l'outil est restitué en bon état.",
+    },
+    {
+      question: "Mon paiement est-il sécurisé ?",
+      answer:
+        "Oui, tous les paiements sont sécurisés via notre plateforme. L'argent est conservé en attente jusqu'à la fin de la location.",
+    },
+    {
+      question: "L'IA m'aide à quoi ?",
+      answer:
+        "Notre IA vous aide à trouver rapidement l'outil qu'il vous faut, à estimer le prix de votre outil, et à gérer vos annonces.",
+    },
+    {
+      question: "Mes données sont-elles protégées ?",
+      answer:
+        "Oui, nous respectons les normes RGPD et vos données personnelles sont strictement confidentielles.",
+    },
+  ];
+
+  const toggleFaq = (index: number) => {
+    setOpenFaq(openFaq === index ? null : index);
+  };
+
   return (
     <div className="w-full overflow-hidden">
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-blue-900 via-blue-800 to-blue-700 text-white min-h-[90vh] flex items-center overflow-hidden">
-        {/* Abstract shapes for modern feel */}
-        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-600/20 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3 pointer-events-none" />
-
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="inline-block px-4 py-1.5 rounded-full bg-blue-500/30 backdrop-blur-sm text-blue-100 text-sm font-medium mb-6 border border-blue-400/30">
-                🛠️ Votre shop Bricolor
-              </div>
-
-              <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight tracking-tight">
-                Tous vos outils en un seul endroit,{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-white">
-                  livrés chez vous
-                </span>
-              </h1>
-              <p className="text-xl text-blue-100 mb-8 max-w-lg leading-relaxed">
-                Qualité professionnelle pour tous vos projets de bricolage.
-                Livraison rapide et meilleurs prix garantis.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Link href="/contact">
-                  <Button
-                    size="lg"
-                    className="h-14 px-8 bg-white text-blue-600 hover:bg-blue-50 hover:scale-105 transition-all duration-300 text-lg shadow-lg shadow-blue-900/20 rounded-full"
-                  >
-                    Commander maintenant{" "}
-                    <ShoppingCart className="ml-2" size={20} />
-                  </Button>
-                </Link>
-                <Link href="/about">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="h-14 px-8 border-white/50 text-white hover:bg-white/10 hover:border-white transition-all duration-300 text-lg rounded-full backdrop-blur-sm"
-                  >
-                    Découvrir nos produits
-                  </Button>
-                </Link>
-              </div>
-
-              {/* Trust indicators in Hero */}
-              <div className="mt-12 pt-8 border-t border-blue-400/30 flex items-center gap-8 text-blue-200">
-                <div>
-                  <p className="text-3xl font-bold text-white">5000+</p>
-                  <p className="text-sm">Produits</p>
-                </div>
-                <div className="w-px h-10 bg-blue-400/30"></div>
-                <div>
-                  <p className="text-3xl font-bold text-white">50+</p>
-                  <p className="text-sm">Marques</p>
-                </div>
-                <div className="w-px h-10 bg-blue-400/30"></div>
-                <div>
-                  <p className="text-3xl font-bold text-white">98%</p>
-                  <p className="text-sm">Satisfaction</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="hidden lg:block relative">
-              <div className="relative z-10 rounded-2xl overflow-hidden shadow-2xl shadow-blue-900/50 border-4 border-white/10">
-                <img
-                  src="/welcom.png"
-                  alt="Outils de bricolage"
-                  loading="lazy"
-                  className="w-full h-auto object-cover hover:scale-105 transition-transform duration-700"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-blue-900/60 to-transparent"></div>
-              </div>
-              {/* Floating element */}
-              <div className="absolute -bottom-10 -left-10 z-20 bg-white p-6 rounded-xl shadow-xl max-w-xs">
-                <div className="flex items-center gap-4 mb-3">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Package className="text-blue-600" size={24} />
-                  </div>
+      {/* News/Banner Section - Loueurs & Locataires as Cards */}
+      <section className="py-8 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Loueurs Card */}
+            <Card className="bg-gradient-to-br from-blue-600 to-blue-800 text-white overflow-hidden">
+              <CardContent className="p-8">
+                <div className="flex items-start justify-between mb-6">
                   <div>
-                    <p className="font-bold text-gray-900">Stock important</p>
-                    <p className="text-sm text-gray-500">
-                      Disponibilité immédiate
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-4xl">🔧</span>
+                      <h2 className="text-2xl font-bold">Loueurs</h2>
+                    </div>
+                    <p className="text-blue-200">
+                      Gagnez jusqu'à 50€ par mois en louant vos outils
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Award className="w-5 h-5 text-yellow-500" />
-                  <span className="text-sm text-gray-600 font-medium">
-                    Marque professionnelle
-                  </span>
+
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center gap-2">
+                    <Check className="text-green-400" size={18} />
+                    <span>0% de commission</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="text-green-400" size={18} />
+                    <span>Caution automatique</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="text-green-400" size={18} />
+                    <span>Mise en avant des outils</span>
+                  </div>
                 </div>
+
+                <div className="bg-yellow-400 text-yellow-900 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Sparkles size={20} />
+                    <span className="font-bold">
+                      🎁 Premium offert pendant 12 mois
+                    </span>
+                  </div>
+                  <p className="text-sm font-medium">
+                    pour les 50 premiers loueurs inscrits
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Locataires Card */}
+            <Card className="bg-gradient-to-br from-green-600 to-green-800 text-white overflow-hidden">
+              <CardContent className="p-8">
+                <div className="flex items-start justify-between mb-6">
+                  <div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-4xl">🎁</span>
+                      <h2 className="text-2xl font-bold">Locataires</h2>
+                    </div>
+                    <p className="text-green-200">
+                      Louez les meilleurs outils près de chez vous
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center gap-2">
+                    <Check className="text-green-400" size={18} />
+                    <span>Prix réduits</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="text-green-400" size={18} />
+                    <span>Outils de qualité</span>
+                  </div>
+                </div>
+
+                <div className="bg-white/20 backdrop-blur-sm rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Sparkles size={20} />
+                    <span className="font-bold">
+                      🎁 Frais de service à 0,50€ pendant 3 mois
+                    </span>
+                  </div>
+                  <p className="text-sm font-medium mb-4">
+                    pour toute inscription avant l'ouverture
+                  </p>
+                  {!user && (
+                    <Link href="/contact">
+                      <Button className="bg-white text-green-600 hover:bg-green-50 font-bold rounded-full w-full">
+                        S'inscrire maintenant
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Hero Section */}
+      <section className="relative bg-gray-50 py-20 overflow-hidden">
+        <div className="container mx-auto px-4">
+          <div className="text-center max-w-3xl mx-auto">
+            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
+              Louez les meilleurs outils <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-green-600">
+                près de chez vous
+              </span>
+            </h1>
+            <p className="text-xl text-gray-600 mb-8">
+              Trouvez rapidement des outils de bricolage disponibles autour de
+              vous
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Ex : perceuse, scie, tondeuse..."
+                  className="w-full md:w-96 h-14 pl-12 pr-4 rounded-full border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none text-gray-700 shadow-sm"
+                />
+                <Bot
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                  size={20}
+                />
               </div>
+              <Link href="/shop">
+                <Button
+                  size="lg"
+                  className="h-14 px-8 bg-blue-600 hover:bg-blue-700 rounded-full text-lg"
+                >
+                  <Search className="mr-2" size={20} />
+                  Trouver
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          {/* Categories */}
+          <div className="mt-12">
+            <div className="flex flex-wrap justify-center gap-4">
+              {categories.map(category => (
+                <Link key={category.id} href="/shop">
+                  <div className="bg-white rounded-full px-6 py-3 shadow-md hover:shadow-lg transition-shadow cursor-pointer flex items-center gap-2">
+                    <span className="text-2xl">{category.icon}</span>
+                    <span className="font-medium text-gray-700">
+                      {category.name}
+                    </span>
+                  </div>
+                </Link>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      {/* Categories Section */}
-      <section className="py-24 bg-white">
+      {/* Available Tools Section */}
+      <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <span className="text-blue-600 font-semibold tracking-wider uppercase text-sm">
-              Nos catégories
-            </span>
-            <h2 className="text-4xl font-bold mt-2 text-gray-900">
-              Tout pour le bricolage
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Outils disponibles près de chez vous
             </h2>
-            <p className="text-xl text-gray-600 mt-4 max-w-2xl mx-auto">
-              Découvrez notre large gamme de produits pour tous vos projets
+            <p className="text-xl text-gray-600">
+              Découvrez notre sélection d'outils de qualité pour tous vos
+              projets de bricolage
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {categories.map(category => (
-              <Link key={category.id} href={`/contact`}>
-                <div className="group cursor-pointer">
-                  <Card className="h-full overflow-hidden border-none shadow-lg hover:shadow-xl transition-all duration-300">
-                    <div className="h-48 overflow-hidden relative">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {loading ? (
+              Array.from({ length: 6 }).map((_, i) => (
+                <Card key={i} className="overflow-hidden">
+                  <div className="h-48 bg-gray-200 animate-pulse" />
+                  <CardContent className="p-4">
+                    <div className="h-4 bg-gray-200 rounded mb-2" />
+                    <div className="h-3 bg-gray-200 rounded w-2/3" />
+                  </CardContent>
+                </Card>
+              ))
+            ) : featuredTools.length > 0 ? (
+              featuredTools.slice(0, 6).map(tool => (
+                <Card
+                  key={tool.id}
+                  className="overflow-hidden hover:shadow-lg transition-shadow"
+                >
+                  <div className="h-48 bg-gray-100 relative flex items-center justify-center">
+                    {tool.image_url ? (
                       <img
-                        src="/outil.png"
-                        alt={category.name}
-                        loading="lazy"
+                        src={tool.image_url}
+                        alt={tool.name}
                         className="w-full h-full object-cover"
+                        onError={e => {
+                          (e.target as HTMLImageElement).src = "/outil.png";
+                        }}
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                    </div>
-                    <CardContent className="p-6">
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">
-                        {category.name}
-                      </h3>
-                      <p className="text-gray-600 text-sm">
-                        {category.description}
-                      </p>
-                      <div className="mt-4 flex items-center text-blue-600 font-medium text-sm">
-                        Voir les produits{" "}
-                        <ArrowRight className="ml-1 w-4 h-4" />
+                    ) : (
+                      <div className="text-center text-gray-400">
+                        <Wrench size={48} />
+                        <p className="mt-2">Pas d'image</p>
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </Link>
-            ))}
+                    )}
+                  </div>
+                  <CardContent className="p-4">
+                    <p className="text-sm text-gray-500 mb-1">
+                      {tool.category || "Outil"}
+                    </p>
+                    <h3 className="text-lg font-bold text-gray-900 mb-1">
+                      {tool.name || "Outil de bricolage"}
+                    </h3>
+                    <p className="text-2xl font-bold text-blue-600 mb-1">
+                      {tool.price || "25€"}/jour
+                    </p>
+                    <p className="text-sm text-gray-500 mb-3">
+                      {tool.city || "Reims"}
+                    </p>
+                    <Link href={`/shop/${tool.id}`}>
+                      <Button className="w-full bg-blue-600 hover:bg-blue-700 rounded-full">
+                        Voir l'annonce
+                      </Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12">
+                <p className="text-gray-500 text-lg">
+                  Aucun outil disponible pour le moment.
+                </p>
+                <Link href="/publier-outil">
+                  <Button className="mt-4 bg-blue-600 hover:bg-blue-700 rounded-full">
+                    Publier un outil
+                  </Button>
+                </Link>
+              </div>
+            )}
           </div>
 
-          <div className="text-center mt-12">
-            <Link href="/contact">
+          <div className="text-center mt-8">
+            <Link href="/shop">
               <Button variant="outline" size="lg" className="rounded-full">
-                Voir toutes les catégories
+                Voir tous les outils <ArrowRight className="ml-2" size={18} />
               </Button>
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Featured Products */}
-      <section className="py-24 bg-gray-50">
+      {/* How it works Section */}
+      <section className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <span className="text-blue-600 font-semibold tracking-wider uppercase text-sm">
-              Boutique
-            </span>
-            <h2 className="text-4xl font-bold mt-2 text-gray-900">
-              Nos outils disponibles
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              Comment ça marche ?
             </h2>
-            <p className="text-xl text-gray-600 mt-4 max-w-2xl mx-auto">
-              Découvrez notre sélection d'outils professionnels
+            <p className="text-xl text-gray-600">
+              Louez ou proposez des outils en quelques minutes seulement
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {loading
-              ? // Loading skeleton
-                Array.from({ length: 8 }).map((_, i) => (
-                  <Card
-                    key={i}
-                    className="h-full overflow-hidden border-none shadow-lg"
-                  >
-                    <div className="h-48 bg-gray-200 animate-pulse" />
-                    <CardContent className="p-4">
-                      <div className="h-4 bg-gray-200 rounded mb-2" />
-                      <div className="h-3 bg-gray-200 rounded w-2/3" />
-                    </CardContent>
-                  </Card>
-                ))
-              : featuredTools.map(tool => (
-                  <div key={tool.id}>
-                    <Link href={`/shop/${tool.id}`}>
-                      <Card className="h-full overflow-hidden border-none shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer">
-                        <div className="h-48 overflow-hidden relative bg-gray-100">
-                          <img
-                            src={tool.image_url}
-                            alt={tool.name}
-                            loading="lazy"
-                            className="w-full h-full object-cover"
-                            onError={e => {
-                              // Fallback to placeholder if image fails
-                              (e.target as HTMLImageElement).src = "/outil.png";
-                            }}
-                          />
-                        </div>
-                        <CardContent className="p-4">
-                          <h3 className="text-sm font-bold text-gray-900 mb-1 line-clamp-2">
-                            {tool.name}
-                          </h3>
-                          <p className="text-xs text-gray-600 mb-3 line-clamp-2">
-                            {tool.description}
-                          </p>
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <span className="text-lg font-bold text-blue-600">
-                                {tool.price}€ /jour
-                              </span>
-                            </div>
-                            <Button
-                              size="sm"
-                              className="bg-blue-600 hover:bg-blue-700 rounded-full"
-                            >
-                              <ShoppingCart size={14} className="mr-1" />
-                              Louer
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </Link>
-                  </div>
-                ))}
-          </div>
-
-          <div className="text-center mt-12">
-            <Link href="/shop">
-              <Button
-                size="lg"
-                className="rounded-full bg-blue-600 hover:bg-blue-700"
-              >
-                Voir tous les outils
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Advantages Section */}
-      <section className="py-24 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {advantages.map(advantage => (
-              <div key={advantage.id} className="text-center">
-                <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <advantage.icon className="text-blue-600" size={32} />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {steps.map(step => (
+              <div key={step.id} className="text-center">
+                <div
+                  className={`w-20 h-20 ${step.color} rounded-full flex items-center justify-center mx-auto mb-4`}
+                >
+                  <step.icon className={step.iconColor} size={32} />
+                </div>
+                <div className="relative inline-flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-full text-sm font-bold mb-4">
+                  {step.id}
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">
-                  {advantage.title}
+                  {step.title}
                 </h3>
-                <p className="text-gray-600">{advantage.description}</p>
+                <p className="text-gray-600">{step.description}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-24 bg-gradient-to-br from-blue-600 to-blue-800 text-white">
+      {/* Features Section */}
+      <section className="py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {features.map(feature => (
+              <div
+                key={feature.id}
+                className="text-center p-8 rounded-2xl bg-gray-50 hover:bg-gray-100 transition-colors"
+              >
+                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <feature.icon className="text-blue-600" size={28} />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  {feature.title}
+                </h3>
+                <p className="text-gray-600">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Earn Money Section */}
+      <section className="py-20 bg-gradient-to-br from-blue-600 to-blue-800 text-white">
         <div className="container mx-auto px-4 text-center">
-          <div>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">
-              Prêt à démarrer vos projets ?
+          <div className="max-w-2xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">
+              Vous avez un outil qui prend la poussière ?
             </h2>
-            <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-              Contactez-nous pour bénéficier de conseils personnalisés et d'un
-              devis gratuit
+            <p className="text-xl text-blue-100 mb-8">
+              Gagnez jusqu'à 50€ par mois en le louant à vos voisins
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/contact">
-                <Button
-                  size="lg"
-                  className="h-14 px-8 bg-white text-blue-600 hover:bg-blue-50 transition-all duration-300 text-lg rounded-full"
+            <Link href="/publier-outil">
+              <Button
+                size="lg"
+                className="h-14 px-8 bg-white text-blue-600 hover:bg-blue-50 rounded-full text-lg font-bold"
+              >
+                Publier mon premier outil
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section with Accordion UI */}
+      <section className="py-20 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              FAQ
+            </h2>
+            <p className="text-xl text-gray-600">
+              Tout ce que vous devez savoir sur Shoptonoutil
+            </p>
+          </div>
+
+          <div className="max-w-3xl mx-auto space-y-3">
+            {faqs.map((faq, index) => (
+              <div
+                key={index}
+                className="bg-white rounded-xl overflow-hidden shadow-sm"
+              >
+                <button
+                  onClick={() => toggleFaq(index)}
+                  className="w-full p-5 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
                 >
-                  Demander un devis <ArrowRight className="ml-2" size={20} />
-                </Button>
-              </Link>
-              <Link href="/about">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="h-14 px-8 border-white/50 text-white hover:bg-white/10 transition-all duration-300 text-lg rounded-full"
-                >
-                  En savoir plus
-                </Button>
-              </Link>
+                  <div className="flex items-center gap-3">
+                    {index === 0 && (
+                      <CreditCard className="text-blue-600" size={20} />
+                    )}
+                    {index === 1 && (
+                      <Lock className="text-blue-600" size={20} />
+                    )}
+                    {index === 2 && (
+                      <Shield className="text-blue-600" size={20} />
+                    )}
+                    {index === 3 && <Bot className="text-blue-600" size={20} />}
+                    {index === 4 && (
+                      <UserCheck className="text-blue-600" size={20} />
+                    )}
+                    <span className="font-bold text-gray-900">
+                      {faq.question}
+                    </span>
+                  </div>
+                  <ChevronDown
+                    className={`text-gray-400 transition-transform duration-200 ${openFaq === index ? "rotate-180" : ""}`}
+                    size={20}
+                  />
+                </button>
+                {openFaq === index && (
+                  <div className="px-5 pb-5 pt-0">
+                    <p className="text-gray-600 ml-8">{faq.answer}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <section className="py-8 bg-white border-t">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-500">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="text-green-500" size={16} />
+              <span>© 2025 Shoptonoutil — Tous droits réservés</span>
             </div>
+            <div className="flex items-center gap-4">
+              <a href="#" className="hover:text-blue-600">
+                Mentions légales
+              </a>
+              <span>|</span>
+              <a href="#" className="hover:text-blue-600">
+                CGU
+              </a>
+              <span>|</span>
+              <a href="#" className="hover:text-blue-600">
+                Politique de confidentialité
+              </a>
+            </div>
+            <a
+              href="mailto:contact@shoptonoutil.fr"
+              className="hover:text-blue-600"
+            >
+              contact@shoptonoutil.fr
+            </a>
           </div>
         </div>
       </section>

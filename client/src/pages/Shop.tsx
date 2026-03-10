@@ -68,7 +68,7 @@ export default function Shop() {
   }, []);
 
   const categories = [
-    { id: "all", name: "Tous les produits", count: products.length },
+    { id: "all", name: "Tous les outils", count: products.length },
     {
       id: "Outils électroportatifs",
       name: "Outils électroportatifs",
@@ -127,7 +127,7 @@ export default function Shop() {
             <h1 className="text-5xl md:text-6xl font-bold mb-6">
               Notre Boutique
             </h1>
-            <p className="text-xl text-blue-100">Chargement des produits...</p>
+            <p className="text-xl text-blue-100">Chargement des outils...</p>
           </div>
         </section>
       </div>
@@ -148,12 +148,12 @@ export default function Shop() {
             transition={{ duration: 0.8 }}
           >
             <h1 className="text-5xl md:text-6xl font-bold mb-6">
-              Notre Boutique
+              Louer les outils
             </h1>
             <p className="text-xl text-blue-100 max-w-2xl mx-auto">
-              Découvrez tous les outils et accessories pour le bricolage.
+              Louez des outils de qualité près de chez vous.
               {products.length > 0
-                ? ` ${products.length} produits disponibles.`
+                ? ` ${products.length} outils disponibles.`
                 : " Qualité professionnelle aux meilleurs prix."}
             </p>
           </motion.div>
@@ -349,18 +349,18 @@ export default function Shop() {
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            Vous avez un outil à vendre ?
+            Vous avez un outil à louer ?
           </h2>
           <p className="text-gray-600 mb-8 max-w-2xl mx-auto">
-            Rejoignez notre plateforme et reach des milliers de clients
-            potentiels pour vos produits de bricolage.
+            Rejoignez notre plateforme et gagnez jusqu'à 50€ par mois en louant
+            vos outils à vos voisins.
           </p>
           <a href="/publier-outil" className="inline-block">
             <Button
               size="lg"
               className="rounded-full bg-blue-600 hover:bg-blue-700 cursor-pointer"
             >
-              Publier un outil
+              Publier mon premier outil
             </Button>
           </a>
         </div>

@@ -3,7 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Suspense, lazy } from "react";
 import { Route, Switch, useLocation } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
-import Footer from "./components/Footer";
+
 import Navigation from "./components/Navigation";
 import { PageLoader } from "./components/PageLoader";
 import { ScrollToTop } from "./components/ScrollToTop";
@@ -92,7 +92,6 @@ function App() {
             <main className="flex-1">
               <Router />
             </main>
-            {!isPortalPage && <Footer />}
           </div>
         </TooltipProvider>
       </ThemeProvider>
